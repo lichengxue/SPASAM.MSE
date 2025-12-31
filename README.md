@@ -3,7 +3,9 @@
 
 ## Overview
 
-**SPASAM.MSE** is a spatially explicit, closed-loop **Management Strategy Evaluation (MSE)** framework designed to evaluate fisheries management strategies under realistic spatial population structure, movement, and observation processes. The package provides an end-to-end workflow that links **operating models**, **data generation (observation models)**, **estimation models**, **projections**, **harvest control rules**, and **management implementation error**, enabling systematic evaluation of management performance and risk in spatially structured systems.
+**SPASAM.MSE** is a spatially explicit, closed-loop **Management Strategy Evaluation (MSE)** framework designed to evaluate fisheries management strategies under spatial heterogeneity arising from **population biology, fishing dynamics, and movement/connectivity**.  
+
+The package provides an end-to-end workflow that links **spatial operating models**, **data generation via observation models**, **estimation models**, **projections**, **harvest control rules**, and **management implementation error**. This closed-loop design enables systematic evaluation of stock assessment performance, management outcomes, and risk in spatially structured fisheries systems.
 
 SPASAM.MSE is built on the **Woods Hole Assessment Model (WHAM)**, an **age-structured, state-space stock assessment model** developed and widely used at the NOAA Northeast Fisheries Science Center (NEFSC). By leveraging WHAM’s state-space formulation, SPASAM.MSE can treat key **biological and fishery processes** as **random effects** (as configured) in both the operating and estimation models, allowing controlled evaluation of model misspecification, robustness, and spatial management performance under complex spatial dynamics.
 
@@ -126,4 +128,5 @@ Install the development version of **SPASAM.MSE** from GitHub:
 
 ```r
 remotes::install_github("lichengxue/SPASAM.MSE", dependencies = TRUE)
+
 
