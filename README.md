@@ -65,7 +65,7 @@ SPASAM.MSE is built on the **Woods Hole Assessment Model (WHAM)**, an **age-stru
 
 ---
 
-## State-Space and Process Error Framework (WHAM-based)
+## State-Space and Process Error Framework
 
 SPASAM.MSE leverages WHAM’s state-space structure, which can represent key processes as fixed effects or random effects (as configured) in both operating and estimation models. This enables realistic uncertainty propagation and controlled testing of misspecification.
 
@@ -126,3 +126,4 @@ Install the development version of **SPASAM.MSE** from GitHub:
 
 ```r
 remotes::install_github("lichengxue/SPASAM.MSE", dependencies = TRUE)
+
