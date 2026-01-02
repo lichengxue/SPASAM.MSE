@@ -1,4 +1,10 @@
-<!-- header.html (SPASAM.MSE – FINAL, single-row navbar; LOCAL + ONLINE OK) -->
+<!-- header.html (SPASAM.MSE – OFFICIAL FINAL)
+     - Single-row navbar (scrolls horizontally if needed; never wraps into 2 rows)
+     - Projects points to docs/projects.html (NOT repo /R)
+     - Vignettes points to docs/vignettes.html (or your chosen landing page)
+     - Icons are loaded ONLINE from GitHub raw URLs (matches build_docs_site.R)
+     - Copy buttons for code blocks
+-->
 
 <style>
   :root{
@@ -188,30 +194,10 @@ document.addEventListener("DOMContentLoaded", function(){
     for(var i=1;i<navs.length;i++) navs[i].remove();
   }
 
-  // ICON PATH FALLBACK:
-  // If a page is in a subfolder, "icons/..." may fail. Try "./icons/..." then "/icons/...".
-  document.querySelectorAll('img.spasam-icon').forEach(function(img){
-    img.addEventListener("error", function(){
-      var src = img.getAttribute("src") || "";
-      // already absolute root?
-      if(src.startsWith("/icons/")) return;
-
-      // try "./icons/..."
-      if(src.startsWith("icons/")){
-        img.src = "./" + src; // ./icons/...
-        return;
-      }
-
-      // try "/icons/..."
-      if(src.indexOf("icons/") !== -1){
-        img.src = "/" + src.replace(/^\.?\//, "");
-      }
-    }, { once:true });
-  });
-
 });
 </script>
 
+<!-- NAVBAR -->
 <nav class="spasam-nav">
   <div class="spasam-nav-inner">
 
@@ -221,35 +207,40 @@ document.addEventListener("DOMContentLoaded", function(){
     </div>
 
     <div class="spasam-links">
+
+      <!-- IMPORTANT: these are docs-root relative links (because build flattens html into docs/) -->
       <a href="index.html">
-        <img class="spasam-icon" src="icons/home_icon.png" alt="Home">Home
+        <img class="spasam-icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/home_icon.png" alt="Home">Home
       </a>
 
-      <a href="index.html">
-        <img class="spasam-icon" src="icons/vignettes_icon.png" alt="Vignettes">Vignettes
+      <!-- If you have a specific vignette landing page, change vignettes.html to that file -->
+      <a href="vignettes.html">
+        <img class="spasam-icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/vignettes_icon.png" alt="Vignettes">Vignettes
       </a>
 
       <!-- SOURCE before PROJECTS -->
       <a href="https://github.com/lichengxue/SPASAM.MSE">
-        <img class="spasam-icon" src="icons/source_icon.png" alt="Source">Source
+        <img class="spasam-icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/source_icon.png" alt="Source">Source
       </a>
 
-      <!-- Functions renamed to Projects -->
-      <a href="https://github.com/lichengxue/SPASAM.MSE/tree/main/R">
-        <img class="spasam-icon" src="icons/functions_icon.png" alt="Projects">Projects
+      <!-- Projects should point to the rendered projects page, NOT the repo /R folder -->
+      <a href="projects.html">
+        <img class="spasam-icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/projects_icon.png" alt="Projects">Projects
       </a>
 
+      <!-- If your news page is named differently, update it here -->
       <a href="news_updates.html">
-        <img class="spasam-icon" src="icons/news_icon.png" alt="News">News
+        <img class="spasam-icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/news_icon.png" alt="News">News
       </a>
 
       <a href="bug_report.html">
-        <img class="spasam-icon" src="icons/bug_report_icon.png" alt="Bug report">Bug report
+        <img class="spasam-icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/bug_report_icon.png" alt="Bug report">Bug report
       </a>
 
       <a href="mailto:chengxue.li@noaa.gov">
-        <img class="spasam-icon" src="icons/contact_icon.png" alt="Contact">Contact
+        <img class="spasam-icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/contact_icon.png" alt="Contact">Contact
       </a>
+
     </div>
 
   </div>

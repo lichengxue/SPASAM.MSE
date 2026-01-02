@@ -1790,6 +1790,97 @@ border-radius: 0px;
   pre, code{ background: rgba(255,255,255,.06) !important; color: var(--text) !important;
     border:1px solid rgba(255,255,255,.10) !important; }
 </style>
+<style>
+  :root{
+    --bg:#0b1220; --bg2:#0f1b33; --text:#e9eefc; --muted:#b7c3e6;
+    --line:rgba(255,255,255,.10); --accent:#6ea8ff; --accent2:#7ef0d4;
+    --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+  }
+  body{
+    background:
+      radial-gradient(1000px 600px at 20% -10%, rgba(110,168,255,.25), transparent 60%),
+      radial-gradient(800px 600px at 90% 10%, rgba(126,240,212,.18), transparent 55%),
+      linear-gradient(180deg,var(--bg),var(--bg2)) !important;
+    color: var(--text) !important;
+  }
+  a{color:var(--accent) !important;}
+  /* Hide default rmarkdown/bootstrap navbar */
+  .navbar, nav.navbar, .navbar.navbar-default, .navbar.navbar-inverse,
+  .navbar.navbar-fixed-top, .navbar.navbar-static-top, #navbar{
+    display:none !important;
+  }
+  /* Remove reserved top padding */
+  html, body{ margin:0 !important; }
+  body{ padding-top:0 !important; }
+  .main-container, .container-fluid.main-container, .toc-content, .content{
+    padding-top:0 !important;
+    margin-top:0 !important;
+  }
+  body[style*='padding-top']{ padding-top:0 !important; }
+  .main-container[style*='padding-top']{ padding-top:0 !important; }
+  /* Navbar */
+  .nav.spasam-nav{
+    position:sticky !important;
+    top:0 !important;
+    z-index:999999 !important;
+    backdrop-filter:blur(10px);
+    background:rgba(11,18,32,.65);
+    border-bottom:1px solid rgba(255,255,255,.10);
+  }
+  .nav-inner{max-width:1100px;margin:0 auto;padding:10px 18px;display:flex;
+    gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;}
+  .brand .dot{width:10px;height:10px;border-radius:999px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 0 0 4px rgba(110,168,255,.15);}
+  .nav-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .nav-links a,.dropbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;
+    border-radius:999px;color:var(--text) !important;border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.04);font-size:14px;}
+  .nav-links a:hover,.dropbtn:hover{background:rgba(255,255,255,.08);text-decoration:none;}
+  .icon{width:18px;height:18px;object-fit:contain;}
+  .dropdown{position:relative;}
+  .dropbtn{cursor:pointer;}
+  .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;
+    border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);
+    box-shadow:var(--shadow);z-index:99999;}
+  .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text) !important;}
+  .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}
+  .dropdown:hover .dropdown-content{display:block;}
+  .dropdown.open .dropdown-content{display:block;}
+  .nav-version{margin-left:auto;}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
+    padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}
+  /* Dark sidebar/TOC */
+  .tocify, .tocify-wrapper, #TOC{
+    background: rgba(15,26,47,.95) !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    box-shadow: var(--shadow) !important;
+  }
+  .tocify .list-group-item, .tocify-wrapper .list-group-item, #TOC .list-group-item{
+    background: transparent !important;
+    color: var(--text) !important;
+    border-color: rgba(255,255,255,.10) !important;
+  }
+  .tocify .list-group-item:hover, .tocify-wrapper .list-group-item:hover, #TOC .list-group-item:hover{
+    background: rgba(255,255,255,.06) !important;
+  }
+  .tocify .list-group-item.active, .tocify-wrapper .list-group-item.active, #TOC .list-group-item.active{
+    background: rgba(110,168,255,.18) !important;
+    color: var(--text) !important;
+    border-radius: 10px !important;
+  }
+  .tocify a, .tocify-wrapper a, #TOC a{ color: var(--text) !important; }
+  .tocify a:hover, .tocify-wrapper a:hover, #TOC a:hover{ color: var(--accent) !important; text-decoration:none !important; }
+  /* prevent white blocks */
+  .main-container, .container, .container-fluid, .page-inner, .row,
+  .col-xs-12, .col-sm-12, .col-md-9, .col-md-3{
+    background: transparent !important;
+  }
+  pre, code{ background: rgba(255,255,255,.06) !important; color: var(--text) !important;
+    border:1px solid rgba(255,255,255,.10) !important; }
+</style>
 <!-- SPASAM_NAV_INJECTED -->
 <style>
   :root{
@@ -2167,6 +2258,34 @@ $(document).ready(function ()  {
   })();
 </script>
 
+<script>
+  (function(){
+    function killTopPadding(){
+      try {
+        document.documentElement.style.marginTop = '0px';
+        document.body.style.paddingTop = '0px';
+        document.body.style.marginTop = '0px';
+        var mc = document.querySelector('.main-container, .container-fluid.main-container');
+        if(mc){ mc.style.paddingTop='0px'; mc.style.marginTop='0px'; }
+      } catch(e) {}
+    }
+    killTopPadding();
+    window.addEventListener('load', killTopPadding);
+    setTimeout(killTopPadding, 50);
+    setTimeout(killTopPadding, 250);
+    var dd = document.getElementById('vignetteDropdown');
+    if(!dd) return;
+    var btn = dd.querySelector('.dropbtn');
+    if(!btn) return;
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      dd.classList.toggle('open');
+    });
+    document.addEventListener('click', function(){
+      dd.classList.remove('open');
+    });
+  })();
+</script>
 <script>
   (function(){
     function killTopPadding(){
