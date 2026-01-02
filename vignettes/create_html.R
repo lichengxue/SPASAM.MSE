@@ -3,19 +3,19 @@
 # SPASAM.MSE GitHub Pages site builder (OFFICIAL)
 #
 # What this script does
-# - Renders vignettes/news/bug_report Rmd -> docs/
-# - Flattens nested HTML into docs/ (so relative links work)
+# - Renders vignettes/news/bug_report/projects Rmd -> docs/
+# - Flattens nested HTML into docs/ (so relative links work everywhere)
 # - Writes docs/index.html (landing page)
 # - Injects a single custom navbar + CSS + JS into all other docs/*.html
 #
-# IMPORTANT CHANGE (per your request):
+# IMPORTANT:
 # - Icons/logos are sourced ONLINE from GitHub (raw.githubusercontent.com)
-# - No local copying of icons into docs/icons (prevents "deleted icons reappear")
+# - No local copying of icons into docs/icons
 # - A version string is computed each build and shown on the landing page + navbar
 #
-# UPDATED (per your latest request):
-# - "Build: vX.X.X • YYYY-MM-DD" appears SMALL on the RIGHT of "SPASAM.MSE"
-#   (near the title in the main hero section)
+# UPDATED:
+# - Projects navbar now points to docs/projects.html (NOT GitHub R folder)
+# - Adds rendering of projects/*.Rmd into docs/
 # ------------------------------------------------------------
 
 suppressPackageStartupMessages({
@@ -44,7 +44,7 @@ wham_link <- "https://timjmiller.github.io/wham/"
 docs_dir  <- "docs"
 
 # Where icons live INSIDE your repo (path relative to repo root)
-# (Your script comment says: docs/icons/*.png)
+# (Your repo: docs/icons/*.png)
 icons_path_in_repo <- "docs/icons"
 
 # Core SPASAM members (landing page)
@@ -92,7 +92,6 @@ build_date   <- format(Sys.Date(), "%Y-%m-%d")
 
 # Online (raw GitHub) icon URL
 icon_url <- function(fname) {
-  # e.g. https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/home_icon.png
   sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s/%s",
           repo_owner, repo_slug, branch, icons_path_in_repo, fname)
 }
@@ -163,9 +162,13 @@ vignette_files   <- list.files("vignettes",  pattern = "\\.Rmd$", full.names = T
 news_files       <- list.files("news",       pattern = "\\.Rmd$", full.names = TRUE)
 bug_report_files <- list.files("bug_report", pattern = "\\.Rmd$", full.names = TRUE)
 
+# NEW: projects pages (put your projects.Rmd in projects/ folder)
+project_files    <- list.files("projects",   pattern = "\\.Rmd$", full.names = TRUE)
+
 render_many(vignette_files, docs_dir)
 render_many(news_files, docs_dir)
 render_many(bug_report_files, docs_dir)
+render_many(project_files, docs_dir)   # <-- NEW
 
 # Flatten nested HTML so links work from root docs/
 flatten_html(docs_dir)
@@ -178,8 +181,11 @@ vignette_links <- build_vignette_links(vignette_files)
 news_html <- if (length(news_files) > 0) to_html(news_files)[1] else "#"
 bug_html  <- if (length(bug_report_files) > 0) to_html(bug_report_files)[1] else "#"
 
+# NEW: projects link target (expects projects.html after render/flatten)
+projects_html <- if (length(project_files) > 0) to_html(project_files)[1] else "projects.html"
+
 # ----------------------------
-# 3) NAVBAR HTML (Source before Projects) + version badge
+# 3) NAVBAR HTML (Projects -> projects.html) + version badge
 # ----------------------------
 navbar_html <- c(
   '  <!-- SPASAM_NAV_START -->',
@@ -195,7 +201,7 @@ navbar_html <- c(
   '          </div>',
   '        </div>',
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
-  sprintf('        <a href="projects.html"><img class="icon" src="%s" alt="Projects" />Projects</a>', icon_url("projects_icon.png")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
   sprintf('        <a href="mailto:%s"><img class="icon" src="%s" alt="Contact" />Contact</a>', email_primary, icon_url("contact_icon.png")),
@@ -434,15 +440,12 @@ index_out <- c(
   '    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;',
   '      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);',
   '      padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}',
-  
-  # NEW: title row with build tag on right
   '    .h1row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}',
   '    .buildtag{color:var(--muted);font-size:12px;white-space:nowrap;}',
   '  </style>',
   '</head>',
   '<body>',
   
-  # NAV (NO build string here anymore)
   '  <div class="nav">',
   '    <div class="nav-inner">',
   '      <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>',
@@ -455,7 +458,7 @@ index_out <- c(
   '          </div>',
   '        </div>',
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
-  sprintf('        <a href="projects.html"><img class="icon" src="%s" alt="Projects" />Projects</a>', icon_url("projects_icon.png")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
   sprintf('        <a href="mailto:%s"><img class="icon" src="%s" alt="Contact" />Contact</a>', email_primary, icon_url("contact_icon.png")),
@@ -463,13 +466,11 @@ index_out <- c(
   '    </div>',
   '  </div>',
   
-  # CONTENT
   '  <div class="wrap">',
   '    <div class="hero">',
   '      <div class="hero-grid">',
   '        <div>',
   
-  # NEW: H1 row with build on right
   '          <div class="h1row">',
   sprintf('            <h1>%s</h1>', pkg_name),
   sprintf('            <div class="buildtag">Build: <span class="kbd">%s</span> • %s</div>', site_version, build_date),
@@ -482,7 +483,6 @@ index_out <- c(
   '          </div>',
   sprintf('          <div class="subtitle" style="margin-top:8px;">WHAM: <a href="%s" target="_blank">%s</a></div>', wham_link, wham_link),
   
-  # Pills FIRST
   '          <div class="pillrow">',
   '            <div class="pill">Multi-stock • Multi-region</div>',
   '            <div class="pill">Connectivity • Mixing • Natal homing • Metapopulation</div>',
@@ -497,7 +497,6 @@ index_out <- c(
   '            <div class="pill">Automated reporting</div>',
   '          </div>',
   
-  # Logos BELOW pills, bigger (ONLINE)
   '          <div class="logo-row">',
   sprintf('            <img class="logo-img" src="%s" alt="NOAA logo" />', icon_url("NOAA_logo.png")),
   sprintf('            <img class="logo-img" src="%s" alt="SPASAM.MSE logo" />', icon_url("SPASAM.MSE_logo.png")),
@@ -505,7 +504,6 @@ index_out <- c(
   
   '        </div>',
   
-  # Quick install card (REMOVED the duplicate "Site build:" line)
   '        <div class="card">',
   '          <h2>Quick install</h2>',
   '          <p class="small">Development version from GitHub:</p>',
@@ -557,7 +555,6 @@ index_out <- c(
   '      </div>',
   '    </div>',
   
-  # Footer (removed duplicate Build line)
   '    <div class="footer">',
   '      <div>',
   sprintf('        <div><b>Main developer</b>: %s</div>', main_dev_name),
