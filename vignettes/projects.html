@@ -12,7 +12,7 @@
 <meta name="author" content="Chengxue Li" />
 
 
-<title>Installation</title>
+<title>Projects</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1699,123 +1699,9 @@ border-radius: 0px;
 
 
 
-<!-- SPASAM_NAV_INJECTED -->
-<style>
-  :root{
-    --bg:#0b1220; --bg2:#0f1b33; --text:#e9eefc; --muted:#b7c3e6;
-    --line:rgba(255,255,255,.10); --accent:#6ea8ff; --accent2:#7ef0d4;
-    --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
-  }
-  body{
-    background:
-      radial-gradient(1000px 600px at 20% -10%, rgba(110,168,255,.25), transparent 60%),
-      radial-gradient(800px 600px at 90% 10%, rgba(126,240,212,.18), transparent 55%),
-      linear-gradient(180deg,var(--bg),var(--bg2)) !important;
-    color: var(--text) !important;
-  }
-  a{color:var(--accent) !important;}
-  /* Hide default rmarkdown/bootstrap navbar */
-  .navbar, nav.navbar, .navbar.navbar-default, .navbar.navbar-inverse,
-  .navbar.navbar-fixed-top, .navbar.navbar-static-top, #navbar{
-    display:none !important;
-  }
-  /* Remove reserved top padding */
-  html, body{ margin:0 !important; }
-  body{ padding-top:0 !important; }
-  .main-container, .container-fluid.main-container, .toc-content, .content{
-    padding-top:0 !important;
-    margin-top:0 !important;
-  }
-  body[style*='padding-top']{ padding-top:0 !important; }
-  .main-container[style*='padding-top']{ padding-top:0 !important; }
-  /* Navbar */
-  .nav.spasam-nav{
-    position:sticky !important;
-    top:0 !important;
-    z-index:999999 !important;
-    backdrop-filter:blur(10px);
-    background:rgba(11,18,32,.65);
-    border-bottom:1px solid rgba(255,255,255,.10);
-  }
-  .nav-inner{max-width:1100px;margin:0 auto;padding:10px 18px;display:flex;
-    gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;}
-  .brand .dot{width:10px;height:10px;border-radius:999px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    box-shadow:0 0 0 4px rgba(110,168,255,.15);}
-  .nav-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .nav-links a,.dropbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;
-    border-radius:999px;color:var(--text) !important;border:1px solid rgba(255,255,255,.08);
-    background:rgba(255,255,255,.04);font-size:14px;}
-  .nav-links a:hover,.dropbtn:hover{background:rgba(255,255,255,.08);text-decoration:none;}
-  .icon{width:18px;height:18px;object-fit:contain;}
-  .dropdown{position:relative;}
-  .dropbtn{cursor:pointer;}
-  .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;
-    border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);
-    box-shadow:var(--shadow);z-index:99999;}
-  .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text) !important;}
-  .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}
-  .dropdown:hover .dropdown-content{display:block;}
-  .dropdown.open .dropdown-content{display:block;}
-  .nav-version{margin-left:auto;}
-  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
-    padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}
-  /* Dark sidebar/TOC */
-  .tocify, .tocify-wrapper, #TOC{
-    background: rgba(15,26,47,.95) !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
-    box-shadow: var(--shadow) !important;
-  }
-  .tocify .list-group-item, .tocify-wrapper .list-group-item, #TOC .list-group-item{
-    background: transparent !important;
-    color: var(--text) !important;
-    border-color: rgba(255,255,255,.10) !important;
-  }
-  .tocify .list-group-item:hover, .tocify-wrapper .list-group-item:hover, #TOC .list-group-item:hover{
-    background: rgba(255,255,255,.06) !important;
-  }
-  .tocify .list-group-item.active, .tocify-wrapper .list-group-item.active, #TOC .list-group-item.active{
-    background: rgba(110,168,255,.18) !important;
-    color: var(--text) !important;
-    border-radius: 10px !important;
-  }
-  .tocify a, .tocify-wrapper a, #TOC a{ color: var(--text) !important; }
-  .tocify a:hover, .tocify-wrapper a:hover, #TOC a:hover{ color: var(--accent) !important; text-decoration:none !important; }
-  /* prevent white blocks */
-  .main-container, .container, .container-fluid, .page-inner, .row,
-  .col-xs-12, .col-sm-12, .col-md-9, .col-md-3{
-    background: transparent !important;
-  }
-  pre, code{ background: rgba(255,255,255,.06) !important; color: var(--text) !important;
-    border:1px solid rgba(255,255,255,.10) !important; }
-</style>
 </head>
 
 <body>
-  <!-- SPASAM_NAV_START -->
-  <div class="nav spasam-nav">
-    <div class="nav-inner">
-      <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>
-      <div class="nav-links">
-        <a href="index.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/home_icon.png" alt="Home" />Home</a>
-        <div class="dropdown" id="vignetteDropdown">
-          <button class="dropbtn" type="button"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/vignettes_icon.png" alt="Vignettes" />Vignettes</button>
-          <div class="dropdown-content">
-<a href="Installation.html">Installation</a>
-          </div>
-        </div>
-        <a href="https://github.com/lichengxue/SPASAM.MSE"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/source_icon.png" alt="Source" />Source</a>
-        <a href="https://github.com/lichengxue/SPASAM.MSE/tree/main/R"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/projects_icon.png" alt="Projects" />Projects</a>
-        <a href="news_updates.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/news_icon.png" alt="News" />News</a>
-        <a href="bug_report.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/bug_report_icon.png" alt="Bug report" />Bug report</a>
-        <a href="mailto:chengxue.li@stonybrook.edu"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/contact_icon.png" alt="Contact" />Contact</a>
-      </div>
-      <div class="nav-version"><span class="kbd">v0.0.0</span></div>
-    </div>
-  </div>
-  <!-- SPASAM_NAV_END -->
 
 
 <div class="container-fluid main-container">
@@ -1837,7 +1723,7 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">Installation</h1>
+<h1 class="title toc-ignore">Projects</h1>
 <h4 class="author">Chengxue Li</h4>
 <h4 class="date">Last update: 2026-01-02</h4>
 
@@ -1846,92 +1732,149 @@ border-radius: 0px;
 
 <div id="overview" class="section level2">
 <h2>Overview</h2>
-<p>The <strong>SPASAM.MSE</strong> package (<strong>Spatial Processes
-and Stock Assessment Methods – Management Strategy Evaluation</strong>)
-is a comprehensive toolbox for conducting <strong>spatially explicit
-Management Strategy Evaluation (MSE)</strong> to support fisheries
-management under complex population structure and movement dynamics.</p>
-<p>SPASAM.MSE is built upon the <strong>Woods Hole Assessment Model
-(WHAM)</strong>, a state-space, age-structured stock assessment
-framework. WHAM supports time- and/or age-varying <strong>process
-error</strong> (treated as random effects) on key population processes
-and can incorporate <strong>environmental covariate effects</strong>. By
-embedding WHAM within a closed-loop MSE framework, SPASAM.MSE provides
-tools to simulate and evaluate management strategies (combinations of
-data collection, stock assessment models, and harvest control rules)
-under realistic spatial and temporal complexity.</p>
-<p>The platform enables systematic exploration of estimation and
-management performance across scenarios involving spatial heterogeneity,
-movement, connectivity, and alternative population structures for fish
-stocks with diverse life-history traits across multiple regions.</p>
+<p>This page summarizes <strong>completed and ongoing research
+projects</strong> led or co-led by <strong>Chengxue Li</strong>, with a
+focus on <strong>spatial stock assessment</strong>, <strong>state-space
+modeling</strong>, and <strong>Management Strategy Evaluation
+(MSE)</strong>. These projects integrate methodological development,
+simulation experiments, and applied fisheries management questions,
+often in close collaboration with scientists at <strong>NOAA
+Fisheries</strong>, universities, and international partners.</p>
 <hr />
 </div>
-<div id="install-wham" class="section level2">
-<h2>1. Install WHAM</h2>
-<p>SPASAM.MSE depends on <strong>WHAM</strong>, which must be installed
-separately.</p>
-<div id="install-the-development-version-of-wham" class="section level3">
-<h3>Install the development version of WHAM</h3>
-<pre class="r"><code>install.packages(&quot;devtools&quot;)
-devtools::install_github(
-  &quot;timjmiller/wham&quot;,
-  dependencies = TRUE,
-  ref = &quot;lab&quot;
-)</code></pre>
+<div id="completed-projects" class="section level2">
+<h2>Completed Projects</h2>
+<div id="spasam-mse-a-generalized-spatial-mse-framework" class="section level3">
+<h3>SPASAM-MSE: A Generalized Spatial MSE Framework</h3>
+<p><strong>Li, C.*</strong>, Deroba, J.J., Goethel, D.R., Berger, A.M.,
+Schueller, A.M., Langseth, B.J., Hanselman, D.H., Liljestrand, E.M., and
+Miller, T.J. (2025)<br />
+<strong>SPASAM-MSE: a generalized spatial management strategy evaluation
+framework for exploring the impacts of spatial structure on stock
+assessments and management outcomes</strong><br />
+<em>Canadian Journal of Fisheries and Aquatic Sciences</em> (accepted
+with minor revision)</p>
+<p>This project introduces <strong>SPASAM-MSE</strong>, a flexible and
+extensible framework for evaluating fisheries management strategies
+under <strong>spatially structured population dynamics</strong>. Built
+on the <strong>Woods Hole Assessment Model (WHAM)</strong>, SPASAM-MSE
+enables closed-loop simulation experiments linking spatial operating
+models, data generation, estimation models, projections, and harvest
+control rules.</p>
+<p>Key contributions include:</p>
+<ul>
+<li>A generalized spatial MSE architecture supporting multiple stocks,
+regions, fleets, and movement processes<br />
+</li>
+<li>Explicit treatment of movement, connectivity, natal homing, and
+metapopulation structure<br />
+</li>
+<li>Systematic evaluation of spatial misspecification between operating
+and estimation models<br />
+</li>
+<li>Quantification of management risk and spatial trade-offs in catch,
+biomass, and fishing mortality</li>
+</ul>
+<hr />
 </div>
-<div id="optional-meta-population-spatial-development-version-of-wham" class="section level3">
-<h3>(Optional) Meta-population / spatial development version of
-WHAM</h3>
-<p>For users working with <strong>spatial or meta-population extensions
-of WHAM</strong>,<br />
-the <strong>development branch (<code>lab</code>)</strong> can be
-installed directly from GitHub:</p>
-<pre class="r"><code>devtools::install_github(
-  &quot;lichengxue/wham&quot;,
-  ref = &quot;lab&quot;,
-  dependencies = TRUE
-)</code></pre>
+<div id="random-effects-on-numbers-at-age-and-implicit-movement-dynamics" class="section level3">
+<h3>Random Effects on Numbers-at-Age and Implicit Movement Dynamics</h3>
+<p><strong>Li, C.*</strong>, Deroba, J.J., Berger, A.M., Langseth, B.J.,
+Goethel, D.R., Schueller, A.M., and Miller, T.J. (2025)<br />
+<strong>Random effects on numbers-at-age transitions implicitly account
+for movement dynamics and improve stock assessment and
+management</strong><br />
+<em>Canadian Journal of Fisheries and Aquatic Sciences</em>
+(Just-IN)<br />
+<a href="https://doi.org/10.1139/cjfas-2025-0092" class="uri">https://doi.org/10.1139/cjfas-2025-0092</a></p>
+<p>This study demonstrates that introducing <strong>random effects on
+numbers-at-age transitions</strong> in state-space assessment models can
+implicitly absorb movement dynamics, even when movement is not
+explicitly modeled.</p>
+<p>Key findings include:</p>
+<ul>
+<li>Numbers-at-age random effects can partially capture unmodeled
+spatial processes<br />
+</li>
+<li>Improved estimation performance and management advice under
+spatially structured operating models<br />
+</li>
+<li>Reduced bias and improved robustness relative to deterministic
+age-transition models</li>
+</ul>
 <hr />
 </div>
 </div>
-<div id="install-spasam.mse" class="section level2">
-<h2>2. Install SPASAM.MSE</h2>
-<p>Once WHAM is installed, install <strong>SPASAM.MSE</strong> from
-GitHub:</p>
-<pre class="r"><code>devtools::install_github(
-  &quot;lichengxue/SPASAM.MSE&quot;,
-  dependencies = TRUE
-)</code></pre>
+<div id="ongoing-projects" class="section level2">
+<h2>Ongoing Projects</h2>
+<div id="is-single-region-management-adequate-for-spatially-structured-stocks" class="section level3">
+<h3>Is Single-Region Management Adequate for Spatially Structured
+Stocks?</h3>
+<p><strong>Li, C.*</strong>, Deroba, J.J., Berger, A.M., Goethel, D.R.,
+Langseth, B.J., and Schueller, A.M.</p>
+<p>This project evaluates whether <strong>single-region management
+frameworks</strong> are sufficient for managing <strong>spatially
+structured populations</strong>, with a particular emphasis on
+<strong>catch apportionment</strong>.</p>
+<p>Core questions include:</p>
+<ul>
+<li>When does spatial aggregation lead to biased or risky management
+advice?<br />
+</li>
+<li>How do alternative catch-apportionment schemes affect regional and
+stock-level outcomes?<br />
+</li>
+<li>Under what conditions is spatially explicit management necessary for
+sustainable and equitable outcomes?</li>
+</ul>
 <hr />
 </div>
-<div id="notes-on-multiple-wham-installations" class="section level2">
-<h2>3. Notes on Multiple WHAM Installations</h2>
-<p>If you have previously installed a <strong>single-stock</strong>
-version of WHAM and wish to retain it alongside a <strong>multi-stock or
-spatial</strong> version, it is recommended to store them in separate
-library directories to avoid overwriting.</p>
-<p>Example workflow:</p>
-<pre class="r"><code>library_paths &lt;- .libPaths()[1]
-new_folder &lt;- &quot;wham_old&quot;
-
-if (!file.exists(file.path(library_paths, new_folder))) {
-  dir.create(file.path(library_paths, new_folder))
-}
-
-file.copy(
-  from = file.path(library_paths, &quot;wham&quot;),
-  to   = file.path(library_paths, new_folder),
-  overwrite  = TRUE,
-  recursive  = TRUE,
-  copy.mode = TRUE
-)
-
-library(
-  wham,
-  lib.loc = file.path(library_paths, new_folder)
-)</code></pre>
-<p>This approach allows users to switch between WHAM versions as needed
-for different modeling workflows.</p>
+<div id="forecasting-fisheries-management-under-data-limited-futures-us-northeast" class="section level3">
+<h3>Forecasting Fisheries Management under Data-Limited Futures (US
+Northeast)</h3>
+<p><strong>Led by:</strong> Jonathan Deroba (NOAA NEFSC)<br />
+<strong>Target journal:</strong> <em>Canadian Journal of Fisheries and
+Aquatic Sciences</em></p>
+<p>This project examines how fisheries management strategies perform
+under future <strong>data-limited conditions</strong>, including reduced
+survey coverage and declining data quality in the US Northeast.</p>
+<hr />
+</div>
+<div id="wind-farm-mitigation-in-spatial-stock-assessment" class="section level3">
+<h3>Wind Farm Mitigation in Spatial Stock Assessment</h3>
+<p><strong>Led by:</strong> Chengxue Li (Stony Brook University)<br />
+<strong>Target journal:</strong> <em>Fisheries Research</em></p>
+<p>This project explores how offshore wind development may affect stock
+assessment and management, and how <strong>alternative survey
+designs</strong> can mitigate potential impacts.</p>
+<hr />
+</div>
+<div id="handling-numbers-at-age-random-effects-in-state-space-projections" class="section level3">
+<h3>Handling Numbers-at-Age Random Effects in State-Space
+Projections</h3>
+<p><strong>Led by:</strong> Emily Liljestrand (NOAA NEFSC)<br />
+<strong>Target journal:</strong> <em>Fisheries Research</em></p>
+<p>This work develops pragmatic strategies for projecting state-space
+assessment models that include <strong>numbers-at-age random
+effects</strong>.</p>
+<hr />
+</div>
+<div id="climate-informed-mse-for-georges-bank-yellowtail-flounder" class="section level3">
+<h3>Climate-Informed MSE for Georges Bank Yellowtail Flounder</h3>
+<p><strong>Led by:</strong> Sophie W. (UMass Dartmouth)</p>
+<p>This project integrates climate-driven processes into a spatial MSE
+framework for <strong>Georges Bank Yellowtail Flounder</strong>,
+examining how climate signals interact with assessment and management
+decisions.</p>
+<hr />
+</div>
+<div id="climate-informed-mse-for-black-sea-bass-northeast-us" class="section level3">
+<h3>Climate-Informed MSE for Black Sea Bass (Northeast US)</h3>
+<p><strong>Led by:</strong> Jeewantha Bandara (Rutgers University)</p>
+<p>This study applies climate-informed MSE approaches to <strong>Black
+Sea Bass</strong> in the Northeast US, focusing on climate impacts on
+productivity, distribution, and management performance.</p>
+</div>
 </div>
 
 
@@ -2010,33 +1953,5 @@ $(document).ready(function ()  {
   })();
 </script>
 
-<script>
-  (function(){
-    function killTopPadding(){
-      try {
-        document.documentElement.style.marginTop = '0px';
-        document.body.style.paddingTop = '0px';
-        document.body.style.marginTop = '0px';
-        var mc = document.querySelector('.main-container, .container-fluid.main-container');
-        if(mc){ mc.style.paddingTop='0px'; mc.style.marginTop='0px'; }
-      } catch(e) {}
-    }
-    killTopPadding();
-    window.addEventListener('load', killTopPadding);
-    setTimeout(killTopPadding, 50);
-    setTimeout(killTopPadding, 250);
-    var dd = document.getElementById('vignetteDropdown');
-    if(!dd) return;
-    var btn = dd.querySelector('.dropbtn');
-    if(!btn) return;
-    btn.addEventListener('click', function(e){
-      e.stopPropagation();
-      dd.classList.toggle('open');
-    });
-    document.addEventListener('click', function(){
-      dd.classList.remove('open');
-    });
-  })();
-</script>
 </body>
 </html>

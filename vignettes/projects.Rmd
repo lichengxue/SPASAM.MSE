@@ -1,0 +1,152 @@
+---
+title: "Projects"
+author: "Chengxue Li"
+date: "Last update: `r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    includes:
+      in_header: header.html
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+## Overview
+
+This page summarizes **completed and ongoing research projects** led or
+co-led by **Chengxue Li**, with a focus on **spatial stock assessment**,
+**state-space modeling**, and **Management Strategy Evaluation (MSE)**.
+These projects integrate methodological development, simulation
+experiments, and applied fisheries management questions, often in close
+collaboration with scientists at **NOAA Fisheries**, universities, and
+international partners.
+
+---
+
+## Completed Projects
+
+### SPASAM-MSE: A Generalized Spatial MSE Framework
+
+**Li, C.\***, Deroba, J.J., Goethel, D.R., Berger, A.M., Schueller, A.M.,
+Langseth, B.J., Hanselman, D.H., Liljestrand, E.M., and Miller, T.J.
+(2025)  
+**SPASAM-MSE: a generalized spatial management strategy evaluation
+framework for exploring the impacts of spatial structure on stock
+assessments and management outcomes**  
+*Canadian Journal of Fisheries and Aquatic Sciences* (accepted with minor
+revision)
+
+This project introduces **SPASAM-MSE**, a flexible and extensible
+framework for evaluating fisheries management strategies under
+**spatially structured population dynamics**. Built on the **Woods Hole
+Assessment Model (WHAM)**, SPASAM-MSE enables closed-loop simulation
+experiments linking spatial operating models, data generation,
+estimation models, projections, and harvest control rules.
+
+Key contributions include:
+
+- A generalized spatial MSE architecture supporting multiple stocks,
+  regions, fleets, and movement processes  
+- Explicit treatment of movement, connectivity, natal homing, and
+  metapopulation structure  
+- Systematic evaluation of spatial misspecification between operating
+  and estimation models  
+- Quantification of management risk and spatial trade-offs in catch,
+  biomass, and fishing mortality  
+
+---
+
+### Random Effects on Numbers-at-Age and Implicit Movement Dynamics
+
+**Li, C.\***, Deroba, J.J., Berger, A.M., Langseth, B.J., Goethel, D.R.,
+Schueller, A.M., and Miller, T.J. (2025)  
+**Random effects on numbers-at-age transitions implicitly account for
+movement dynamics and improve stock assessment and management**  
+*Canadian Journal of Fisheries and Aquatic Sciences* (Just-IN)  
+https://doi.org/10.1139/cjfas-2025-0092
+
+This study demonstrates that introducing **random effects on
+numbers-at-age transitions** in state-space assessment models can
+implicitly absorb movement dynamics, even when movement is not
+explicitly modeled.
+
+Key findings include:
+
+- Numbers-at-age random effects can partially capture unmodeled spatial
+  processes  
+- Improved estimation performance and management advice under spatially
+  structured operating models  
+- Reduced bias and improved robustness relative to deterministic
+  age-transition models  
+
+---
+
+## Ongoing Projects
+
+### Is Single-Region Management Adequate for Spatially Structured Stocks?
+
+**Li, C.\***, Deroba, J.J., Berger, A.M., Goethel, D.R., Langseth, B.J., Schueller, A.M., Liljestrand, E.M., and Miller, T.J.
+
+This project evaluates whether **single-region management frameworks**
+are sufficient for managing **spatially structured populations**, with a
+particular emphasis on **catch apportionment**.
+
+Core questions include:
+
+- When does spatial aggregation lead to biased or risky management
+  advice?  
+- How do alternative catch-apportionment schemes affect regional and
+  stock-level outcomes?  
+- Under what conditions is spatially explicit management necessary for
+  sustainable and equitable outcomes?
+
+---
+
+### Forecasting Fisheries Management under Data-Limited Futures (US Northeast)
+
+**Led by:** Jonathan Deroba (NOAA NEFSC)  
+
+This project examines how fisheries management strategies perform under
+future **data-limited conditions**, including reduced survey coverage
+and declining data quality in the US Northeast.
+
+---
+
+### Wind Farm Mitigation in Spatial Stock Assessment
+
+**Led by:** Chengxue Li (Stony Brook University)  
+
+This project explores how offshore wind development may affect stock
+assessment and management, and how **alternative survey designs** can
+mitigate potential impacts.
+
+---
+
+### Handling Numbers-at-Age Random Effects in State-Space Projections
+
+**Led by:** Emily Liljestrand (NOAA NEFSC)  
+
+This work develops pragmatic strategies for projecting state-space
+assessment models that include **numbers-at-age random effects**.
+
+---
+
+### Climate-Informed MSE for Georges Bank Yellowtail Flounder
+
+**Led by:** Sophie Wulfing, Gavin Fay (UMass Dartmouth)
+
+This project integrates climate-driven processes into a spatial MSE
+framework for **Georges Bank Yellowtail Flounder**, examining how climate
+signals interact with assessment and management decisions.
+
+---
+
+### Climate-Informed MSE for Black Sea Bass (Northeast US)
+
+**Led by:** Jeewantha Bandara, John Wiedemann (Rutgers University)
+
+This study applies climate-informed MSE approaches to **Black Sea Bass**
+in the Northeast US, focusing on climate impacts on productivity,
+distribution, and management performance.

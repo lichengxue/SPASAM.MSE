@@ -48,18 +48,19 @@ install.packages("devtools")
 devtools::install_github(
   "timjmiller/wham",
   dependencies = TRUE,
-  ref = "devel"
+  ref = "lab"
 )
 ```
 
 ### (Optional) Meta-population / spatial development version of WHAM
 
-For users working with spatial or meta-population extensions of WHAM,
-the development version can be installed from GitHub:
+For users working with **spatial or meta-population extensions of WHAM**,  
+the **development branch (`lab`)** can be installed directly from GitHub:
 
 ```r
 devtools::install_github(
-  "lichengxue/wham-devel",
+  "lichengxue/wham",
+  ref = "lab",
   dependencies = TRUE
 )
 ```
