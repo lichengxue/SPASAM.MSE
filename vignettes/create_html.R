@@ -12,6 +12,10 @@
 # - Icons/logos are sourced ONLINE from GitHub (raw.githubusercontent.com)
 # - No local copying of icons into docs/icons (prevents "deleted icons reappear")
 # - A version string is computed each build and shown on the landing page + navbar
+#
+# UPDATED (per your latest request):
+# - "Build: vX.X.X • YYYY-MM-DD" appears SMALL on the RIGHT of "SPASAM.MSE"
+#   (near the title in the main hero section)
 # ------------------------------------------------------------
 
 suppressPackageStartupMessages({
@@ -269,6 +273,7 @@ inject_css <- c(
   "  .dropdown.open .dropdown-content{display:block;}",
   
   "  .nav-version{margin-left:auto;}",
+  
   "  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
   "    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);",
   "    padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}",
@@ -429,11 +434,15 @@ index_out <- c(
   '    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;',
   '      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);',
   '      padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}',
+  
+  # NEW: title row with build tag on right
+  '    .h1row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}',
+  '    .buildtag{color:var(--muted);font-size:12px;white-space:nowrap;}',
   '  </style>',
   '</head>',
   '<body>',
   
-  # NAV
+  # NAV (NO build string here anymore)
   '  <div class="nav">',
   '    <div class="nav-inner">',
   '      <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>',
@@ -451,7 +460,6 @@ index_out <- c(
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
   sprintf('        <a href="mailto:%s"><img class="icon" src="%s" alt="Contact" />Contact</a>', email_primary, icon_url("contact_icon.png")),
   '      </div>',
-  sprintf('      <div class="small">Build: <span class="kbd">%s</span> • %s</div>', site_version, build_date),
   '    </div>',
   '  </div>',
   
@@ -460,7 +468,13 @@ index_out <- c(
   '    <div class="hero">',
   '      <div class="hero-grid">',
   '        <div>',
-  sprintf('          <h1>%s</h1>', pkg_name),
+  
+  # NEW: H1 row with build on right
+  '          <div class="h1row">',
+  sprintf('            <h1>%s</h1>', pkg_name),
+  sprintf('            <div class="buildtag">Build: <span class="kbd">%s</span> • %s</div>', site_version, build_date),
+  '          </div>',
+  
   '          <div class="subtitle">',
   '            SPASAM-MSE (Spatial Processes and Stock Assessment Methods - Management Strategy Evaluation) is a',
   '            spatially explicit, closed-loop MSE platform built on WHAM (Woods Hole Assessment Model), a',
@@ -491,13 +505,12 @@ index_out <- c(
   
   '        </div>',
   
-  # Quick install card + main developer + core members
+  # Quick install card (REMOVED the duplicate "Site build:" line)
   '        <div class="card">',
   '          <h2>Quick install</h2>',
   '          <p class="small">Development version from GitHub:</p>',
   sprintf('          <p style="margin-top:10px;"><span class="kbd">remotes::install_github("%s/%s")</span></p>', repo_owner, repo_slug),
   sprintf('          <p class="small" style="margin-top:12px;">Package name: <span class="kbd">%s</span></p>', pkg_name),
-  sprintf('          <p class="small" style="margin-top:10px;">Site build: <span class="kbd">%s</span> • %s</p>', site_version, build_date),
   
   '          <div class="members">',
   main_dev_html,
@@ -544,12 +557,12 @@ index_out <- c(
   '      </div>',
   '    </div>',
   
+  # Footer (removed duplicate Build line)
   '    <div class="footer">',
   '      <div>',
   sprintf('        <div><b>Main developer</b>: %s</div>', main_dev_name),
   sprintf('        <div class="small">&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;</div>',
           email_primary, email_primary, email_secondary, email_secondary),
-  sprintf('        <div class="small">Build: <span class="kbd">%s</span> • %s</div>', site_version, build_date),
   '      </div>',
   sprintf('      <div class="small">Source: <a href="%s">%s</a></div>', repo_base, repo_base),
   '    </div>',

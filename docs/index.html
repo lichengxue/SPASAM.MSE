@@ -73,6 +73,8 @@
     .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
       padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}
+    .h1row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .buildtag{color:var(--muted);font-size:12px;white-space:nowrap;}
   </style>
 </head>
 <body>
@@ -93,14 +95,16 @@
         <a href="bug_report.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/bug_report_icon.png" alt="Bug report" />Bug report</a>
         <a href="mailto:chengxue.li@stonybrook.edu"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/contact_icon.png" alt="Contact" />Contact</a>
       </div>
-      <div class="small">Build: <span class="kbd">v0.0.0</span> • 2026-01-02</div>
     </div>
   </div>
   <div class="wrap">
     <div class="hero">
       <div class="hero-grid">
         <div>
-          <h1>SPASAM.MSE</h1>
+          <div class="h1row">
+            <h1>SPASAM.MSE</h1>
+            <div class="buildtag">Build: <span class="kbd">v0.0.0</span> • 2026-01-02</div>
+          </div>
           <div class="subtitle">
             SPASAM-MSE (Spatial Processes and Stock Assessment Methods - Management Strategy Evaluation) is a
             spatially explicit, closed-loop MSE platform built on WHAM (Woods Hole Assessment Model), a
@@ -130,7 +134,6 @@
           <p class="small">Development version from GitHub:</p>
           <p style="margin-top:10px;"><span class="kbd">remotes::install_github("lichengxue/SPASAM.MSE")</span></p>
           <p class="small" style="margin-top:12px;">Package name: <span class="kbd">SPASAM.MSE</span></p>
-          <p class="small" style="margin-top:10px;">Site build: <span class="kbd">v0.0.0</span> • 2026-01-02</p>
           <div class="members">
 <div class="small" style="margin-top:6px;"><b>Main developer</b>: Chengxue Li &lt;<a href="mailto:chengxue.li@stonybrook.edu">chengxue.li@stonybrook.edu</a>&gt;</div>
 <div class="small" style="margin-top:4px;"><b>Alt</b>: &lt;<a href="mailto:chengxue.li@noaa.gov">chengxue.li@noaa.gov</a>&gt;</div>
@@ -182,7 +185,6 @@
       <div>
         <div><b>Main developer</b>: Chengxue Li</div>
         <div class="small">&lt;<a href="mailto:chengxue.li@stonybrook.edu">chengxue.li@stonybrook.edu</a>&gt; • &lt;<a href="mailto:chengxue.li@noaa.gov">chengxue.li@noaa.gov</a>&gt;</div>
-        <div class="small">Build: <span class="kbd">v0.0.0</span> • 2026-01-02</div>
       </div>
       <div class="small">Source: <a href="https://github.com/lichengxue/SPASAM.MSE">https://github.com/lichengxue/SPASAM.MSE</a></div>
     </div>
