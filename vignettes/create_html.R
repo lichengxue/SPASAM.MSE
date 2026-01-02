@@ -4,27 +4,14 @@
 #
 # What this script does
 # - Renders vignettes/news/bug_report Rmd -> docs/
-# - Flattens nested HTML into docs/ (so relative "icons/..." works everywhere)
-# - Writes docs/index.html (landing page with NOAA + SPASAM logos; big + centered)
+# - Flattens nested HTML into docs/ (so relative links work)
+# - Writes docs/index.html (landing page)
 # - Injects a single custom navbar + CSS + JS into all other docs/*.html
 #
-# Asset locations (local + GitHub Pages):
-#   docs/
-#     index.html
-#     *.html
-#     icons/
-#       home_icon.png
-#       vignettes_icon.png
-#       projects_icon.png
-#       source_icon.png
-#       news_icon.png
-#       bug_report_icon.png
-#       contact_icon.png
-#       NOAA_logo.png
-#       SPASAM.MSE_logo.png
-#
-# Optional: keep a project-root "icons/" folder and this script will copy
-#           those files into docs/icons/ before rendering.
+# IMPORTANT CHANGE (per your request):
+# - Icons/logos are sourced ONLINE from GitHub (raw.githubusercontent.com)
+# - No local copying of icons into docs/icons (prevents "deleted icons reappear")
+# - A version string is computed each build and shown on the landing page + navbar
 # ------------------------------------------------------------
 
 suppressPackageStartupMessages({
@@ -45,13 +32,16 @@ branch     <- "main"
 
 # Main developer
 main_dev_name   <- "Chengxue Li"
-email_primary   <- "chengxue.li@stonybrook.edu"  # Main developer email
-email_secondary <- "chengxue.li@noaa.gov"        # Alt email
+email_primary   <- "chengxue.li@stonybrook.edu"
+email_secondary <- "chengxue.li@noaa.gov"
 
 wham_link <- "https://timjmiller.github.io/wham/"
 
 docs_dir  <- "docs"
-icons_dir <- file.path(docs_dir, "icons")
+
+# Where icons live INSIDE your repo (path relative to repo root)
+# (Your script comment says: docs/icons/*.png)
+icons_path_in_repo <- "docs/icons"
 
 # Core SPASAM members (landing page)
 core_members <- list(
@@ -72,7 +62,36 @@ ensure_dir <- function(path) {
   if (!dir.exists(path)) dir.create(path, recursive = TRUE)
 }
 
-icon_url <- function(fname) file.path("icons", fname)
+# ---- Version helpers ----
+get_site_version <- function() {
+  has_git <- nzchar(Sys.which("git"))
+  is_git_repo <- dir.exists(".git")
+  
+  if (has_git && is_git_repo) {
+    ver <- tryCatch(
+      system("git describe --tags --always --dirty", intern = TRUE),
+      error = function(e) ""
+    )
+    if (length(ver) && nzchar(ver[1])) return(paste0("v", ver[1]))
+  }
+  
+  desc_ver <- tryCatch({
+    d <- read.dcf("DESCRIPTION")
+    as.character(d[1, "Version"])
+  }, error = function(e) "0.0.0")
+  
+  paste0("v", desc_ver)
+}
+
+site_version <- get_site_version()
+build_date   <- format(Sys.Date(), "%Y-%m-%d")
+
+# Online (raw GitHub) icon URL
+icon_url <- function(fname) {
+  # e.g. https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/home_icon.png
+  sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s/%s",
+          repo_owner, repo_slug, branch, icons_path_in_repo, fname)
+}
 
 render_many <- function(files, output_dir = docs_dir) {
   if (length(files) == 0) return(invisible(NULL))
@@ -129,42 +148,9 @@ build_members_html <- function(members) {
 }
 
 # ----------------------------
-# 0) Ensure docs/ + docs/icons/
+# 0) Ensure docs/
 # ----------------------------
 ensure_dir(docs_dir)
-ensure_dir(icons_dir)
-
-# Optional: copy project-root icons/ -> docs/icons/
-# NOTE: If you delete icons in docs/icons but they still exist in project-root "icons/",
-# they will be copied back here. Delete from project-root "icons/" too if desired.
-if (dir.exists("icons")) {
-  src_icons <- list.files("icons", full.names = TRUE, recursive = TRUE)
-  src_icons <- src_icons[file.info(src_icons)$isdir == FALSE]
-  if (length(src_icons) > 0) {
-    file.copy(src_icons, icons_dir, overwrite = TRUE)
-  }
-}
-
-# Icon sanity (warn only)
-required_icons <- c(
-  "home_icon.png",
-  "vignettes_icon.png",
-  "projects_icon.png",
-  "source_icon.png",
-  "news_icon.png",
-  "bug_report_icon.png",
-  "contact_icon.png",
-  "NOAA_logo.png",
-  "SPASAM.MSE_logo.png"
-)
-missing_icons <- required_icons[!file.exists(file.path(icons_dir, required_icons))]
-if (length(missing_icons) > 0) {
-  warning(
-    "Missing icons/logos in docs/icons/: ",
-    paste(missing_icons, collapse = ", "),
-    call. = FALSE
-  )
-}
 
 # ----------------------------
 # 1) Render Rmd pages into docs/
@@ -177,7 +163,7 @@ render_many(vignette_files, docs_dir)
 render_many(news_files, docs_dir)
 render_many(bug_report_files, docs_dir)
 
-# Flatten nested HTML so "icons/..." works on every page
+# Flatten nested HTML so links work from root docs/
 flatten_html(docs_dir)
 
 # ----------------------------
@@ -189,7 +175,7 @@ news_html <- if (length(news_files) > 0) to_html(news_files)[1] else "#"
 bug_html  <- if (length(bug_report_files) > 0) to_html(bug_report_files)[1] else "#"
 
 # ----------------------------
-# 3) NAVBAR HTML (Source before Projects)
+# 3) NAVBAR HTML (Source before Projects) + version badge
 # ----------------------------
 navbar_html <- c(
   '  <!-- SPASAM_NAV_START -->',
@@ -210,6 +196,7 @@ navbar_html <- c(
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
   sprintf('        <a href="mailto:%s"><img class="icon" src="%s" alt="Contact" />Contact</a>', email_primary, icon_url("contact_icon.png")),
   '      </div>',
+  sprintf('      <div class="nav-version"><span class="kbd">%s</span></div>', site_version),
   '    </div>',
   '  </div>',
   '  <!-- SPASAM_NAV_END -->'
@@ -281,6 +268,11 @@ inject_css <- c(
   "  .dropdown:hover .dropdown-content{display:block;}",
   "  .dropdown.open .dropdown-content{display:block;}",
   
+  "  .nav-version{margin-left:auto;}",
+  "  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
+  "    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);",
+  "    padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}",
+  
   "  /* Dark sidebar/TOC */",
   "  .tocify, .tocify-wrapper, #TOC{",
   "    background: rgba(15,26,47,.95) !important;",
@@ -347,8 +339,7 @@ inject_js <- c(
 )
 
 # ----------------------------
-# 5) Build docs/index.html
-#    Logos moved BELOW the pill list and made BIGGER
+# 5) Build docs/index.html (landing page)
 # ----------------------------
 members_html <- build_members_html(core_members)
 
@@ -401,14 +392,14 @@ index_out <- c(
   '    .dropbtn{cursor:pointer;}',
   '    .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;',
   '      border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);',
-  '      box-shadow:var(--shadow);z-index:9999;}',
+  '      box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:9999;}',
   '    .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text);}',
   '    .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}',
   '    .dropdown:hover .dropdown-content{display:block;}',
   '    .dropdown.open .dropdown-content{display:block;}',
   '    .wrap{max-width:1100px;margin:0 auto;padding:26px 18px 80px;}',
   '    .hero{margin-top:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);',
-  '      border-radius:var(--radius);box-shadow:var(--shadow);padding:28px;}',
+  '      border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:28px;}',
   '    .hero-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px;}',
   '    @media (max-width:900px){.hero-grid{grid-template-columns:1fr;}}',
   '    h1{margin:0 0 6px 0;font-size:34px;line-height:1.15;}',
@@ -417,21 +408,15 @@ index_out <- c(
   '    .pillrow{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;}',
   '    .pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);',
   '      border:1px solid rgba(255,255,255,.10);font-size:13px;white-space:nowrap;}',
-  
-  '    /* Logos moved below pillrow + bigger */',
   '    .logo-row{margin-top:18px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;}',
   '    .logo-img{height:280px;width:auto;object-fit:contain;filter:drop-shadow(0 15px 34px rgba(0,0,0,.45));}',
   '    @media (max-width:900px){.logo-img{height:210px;}}',
-  
-  '    .card{border-radius:var(--radius);border:1px solid rgba(255,255,255,.10);',
-  '      background:rgba(255,255,255,.04);box-shadow:var(--shadow);padding:18px;}',
+  '    .card{border-radius:18px;border:1px solid rgba(255,255,255,.10);',
+  '      background:rgba(255,255,255,.04);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px;}',
   '    .card p{margin:0;color:var(--muted);}',
-  
-  '    /* Member list (Quick install card) */',
   '    .members{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10);}',
   '    .members .member{margin:8px 0;color:var(--muted);font-size:13px;line-height:1.45;}',
   '    .members .member b{color:var(--text);} ',
-  
   '    .section{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}',
   '    @media (max-width:900px){.section{grid-template-columns:1fr;}}',
   '    .list{margin:10px 0 0 0;padding:0;list-style:none;}',
@@ -466,6 +451,7 @@ index_out <- c(
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
   sprintf('        <a href="mailto:%s"><img class="icon" src="%s" alt="Contact" />Contact</a>', email_primary, icon_url("contact_icon.png")),
   '      </div>',
+  sprintf('      <div class="small">Build: <span class="kbd">%s</span> • %s</div>', site_version, build_date),
   '    </div>',
   '  </div>',
   
@@ -497,7 +483,7 @@ index_out <- c(
   '            <div class="pill">Automated reporting</div>',
   '          </div>',
   
-  # Logos BELOW pills, bigger
+  # Logos BELOW pills, bigger (ONLINE)
   '          <div class="logo-row">',
   sprintf('            <img class="logo-img" src="%s" alt="NOAA logo" />', icon_url("NOAA_logo.png")),
   sprintf('            <img class="logo-img" src="%s" alt="SPASAM.MSE logo" />', icon_url("SPASAM.MSE_logo.png")),
@@ -511,6 +497,7 @@ index_out <- c(
   '          <p class="small">Development version from GitHub:</p>',
   sprintf('          <p style="margin-top:10px;"><span class="kbd">remotes::install_github("%s/%s")</span></p>', repo_owner, repo_slug),
   sprintf('          <p class="small" style="margin-top:12px;">Package name: <span class="kbd">%s</span></p>', pkg_name),
+  sprintf('          <p class="small" style="margin-top:10px;">Site build: <span class="kbd">%s</span> • %s</p>', site_version, build_date),
   
   '          <div class="members">',
   main_dev_html,
@@ -562,6 +549,7 @@ index_out <- c(
   sprintf('        <div><b>Main developer</b>: %s</div>', main_dev_name),
   sprintf('        <div class="small">&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;</div>',
           email_primary, email_primary, email_secondary, email_secondary),
+  sprintf('        <div class="small">Build: <span class="kbd">%s</span> • %s</div>', site_version, build_date),
   '      </div>',
   sprintf('      <div class="small">Source: <a href="%s">%s</a></div>', repo_base, repo_base),
   '    </div>',
@@ -592,20 +580,28 @@ message("Wrote: docs/index.html")
 
 # ----------------------------
 # 6) Inject navbar + CSS + JS into every other docs/*.html
+#    IMPORTANT: always refresh injection each build (no stale content)
 # ----------------------------
 inject_into_html <- function(html_file,
                              navbar_html,
                              inject_css,
                              inject_js,
                              marker = "SPASAM_NAV_INJECTED") {
+  
   x <- readLines(html_file, warn = FALSE)
   
-  if (any(grepl(marker, x, fixed = TRUE))) {
-    return(TRUE)
+  # Remove prior injected navbar block if present
+  start_nav <- which(grepl("SPASAM_NAV_START", x, fixed = TRUE))
+  end_nav   <- which(grepl("SPASAM_NAV_END",   x, fixed = TRUE))
+  if (length(start_nav) > 0 && length(end_nav) > 0 && end_nav[1] > start_nav[1]) {
+    x <- x[-seq(start_nav[1], end_nav[1])]
   }
   
+  # Remove prior marker line if present (we'll re-add)
   marker_line <- paste0("<!-- ", marker, " -->")
+  x <- x[!grepl(marker_line, x, fixed = TRUE)]
   
+  # Insert CSS near </head>
   head_end <- which(grepl("</head>", x, ignore.case = TRUE))
   if (length(head_end) > 0) {
     i <- head_end[1]
@@ -614,6 +610,7 @@ inject_into_html <- function(html_file,
     x <- c(marker_line, inject_css, x)
   }
   
+  # Insert navbar right after <body...>
   body_start <- which(grepl("<body[^>]*>", x, ignore.case = TRUE))
   if (length(body_start) > 0) {
     i <- body_start[1]
@@ -622,6 +619,7 @@ inject_into_html <- function(html_file,
     x <- c(navbar_html, x)
   }
   
+  # Insert JS near </body>
   body_end <- which(grepl("</body>", x, ignore.case = TRUE))
   if (length(body_end) > 0) {
     i <- body_end[1]
@@ -647,10 +645,9 @@ message(sprintf("Processed: %d pages", sum(changed)))
 # 7) Sanity checks
 # ----------------------------
 message("----- Sanity checks -----")
-message(sprintf("docs/icons exists: %s", dir.exists(icons_dir)))
-if (dir.exists(icons_dir)) {
-  message("docs/icons files:")
-  print(list.files(icons_dir))
-}
+message(sprintf("Site version: %s", site_version))
+message(sprintf("Build date: %s", build_date))
 message("docs HTML files:")
 print(list.files(docs_dir, pattern = "\\.html$", full.names = FALSE))
+
+message("NOTE: Icons/logos are loaded ONLINE from GitHub raw URLs.")

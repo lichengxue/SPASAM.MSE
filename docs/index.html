@@ -36,14 +36,14 @@
     .dropbtn{cursor:pointer;}
     .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;
       border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);
-      box-shadow:var(--shadow);z-index:9999;}
+      box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:9999;}
     .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text);}
     .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}
     .dropdown:hover .dropdown-content{display:block;}
     .dropdown.open .dropdown-content{display:block;}
     .wrap{max-width:1100px;margin:0 auto;padding:26px 18px 80px;}
     .hero{margin-top:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);
-      border-radius:var(--radius);box-shadow:var(--shadow);padding:28px;}
+      border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:28px;}
     .hero-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px;}
     @media (max-width:900px){.hero-grid{grid-template-columns:1fr;}}
     h1{margin:0 0 6px 0;font-size:34px;line-height:1.15;}
@@ -52,14 +52,12 @@
     .pillrow{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;}
     .pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.10);font-size:13px;white-space:nowrap;}
-    /* Logos moved below pillrow + bigger */
     .logo-row{margin-top:18px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
     .logo-img{height:280px;width:auto;object-fit:contain;filter:drop-shadow(0 15px 34px rgba(0,0,0,.45));}
     @media (max-width:900px){.logo-img{height:210px;}}
-    .card{border-radius:var(--radius);border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.04);box-shadow:var(--shadow);padding:18px;}
+    .card{border-radius:18px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);box-shadow:0 10px 30px rgba(0,0,0,.35);padding:18px;}
     .card p{margin:0;color:var(--muted);}
-    /* Member list (Quick install card) */
     .members{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10);}
     .members .member{margin:8px 0;color:var(--muted);font-size:13px;line-height:1.45;}
     .members .member b{color:var(--text);} 
@@ -82,19 +80,20 @@
     <div class="nav-inner">
       <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>
       <div class="nav-links">
-        <a href="index.html"><img class="icon" src="icons/home_icon.png" alt="Home" />Home</a>
+        <a href="index.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/home_icon.png" alt="Home" />Home</a>
         <div class="dropdown" id="vignetteDropdown">
-          <button class="dropbtn" type="button"><img class="icon" src="icons/vignettes_icon.png" alt="Vignettes" />Vignettes</button>
+          <button class="dropbtn" type="button"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/vignettes_icon.png" alt="Vignettes" />Vignettes</button>
           <div class="dropdown-content">
 <a href="Installation.html">Installation</a>
           </div>
         </div>
-        <a href="https://github.com/lichengxue/SPASAM.MSE"><img class="icon" src="icons/source_icon.png" alt="Source" />Source</a>
-        <a href="https://github.com/lichengxue/SPASAM.MSE/tree/main/R"><img class="icon" src="icons/projects_icon.png" alt="Projects" />Projects</a>
-        <a href="news_updates.html"><img class="icon" src="icons/news_icon.png" alt="News" />News</a>
-        <a href="bug_report.html"><img class="icon" src="icons/bug_report_icon.png" alt="Bug report" />Bug report</a>
-        <a href="mailto:chengxue.li@stonybrook.edu"><img class="icon" src="icons/contact_icon.png" alt="Contact" />Contact</a>
+        <a href="https://github.com/lichengxue/SPASAM.MSE"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/source_icon.png" alt="Source" />Source</a>
+        <a href="https://github.com/lichengxue/SPASAM.MSE/tree/main/R"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/projects_icon.png" alt="Projects" />Projects</a>
+        <a href="news_updates.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/news_icon.png" alt="News" />News</a>
+        <a href="bug_report.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/bug_report_icon.png" alt="Bug report" />Bug report</a>
+        <a href="mailto:chengxue.li@stonybrook.edu"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/contact_icon.png" alt="Contact" />Contact</a>
       </div>
+      <div class="small">Build: <span class="kbd">v0.0.0</span> • 2026-01-02</div>
     </div>
   </div>
   <div class="wrap">
@@ -122,8 +121,8 @@
             <div class="pill">Automated reporting</div>
           </div>
           <div class="logo-row">
-            <img class="logo-img" src="icons/NOAA_logo.png" alt="NOAA logo" />
-            <img class="logo-img" src="icons/SPASAM.MSE_logo.png" alt="SPASAM.MSE logo" />
+            <img class="logo-img" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/NOAA_logo.png" alt="NOAA logo" />
+            <img class="logo-img" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/SPASAM.MSE_logo.png" alt="SPASAM.MSE logo" />
           </div>
         </div>
         <div class="card">
@@ -131,6 +130,7 @@
           <p class="small">Development version from GitHub:</p>
           <p style="margin-top:10px;"><span class="kbd">remotes::install_github("lichengxue/SPASAM.MSE")</span></p>
           <p class="small" style="margin-top:12px;">Package name: <span class="kbd">SPASAM.MSE</span></p>
+          <p class="small" style="margin-top:10px;">Site build: <span class="kbd">v0.0.0</span> • 2026-01-02</p>
           <div class="members">
 <div class="small" style="margin-top:6px;"><b>Main developer</b>: Chengxue Li &lt;<a href="mailto:chengxue.li@stonybrook.edu">chengxue.li@stonybrook.edu</a>&gt;</div>
 <div class="small" style="margin-top:4px;"><b>Alt</b>: &lt;<a href="mailto:chengxue.li@noaa.gov">chengxue.li@noaa.gov</a>&gt;</div>
@@ -182,6 +182,7 @@
       <div>
         <div><b>Main developer</b>: Chengxue Li</div>
         <div class="small">&lt;<a href="mailto:chengxue.li@stonybrook.edu">chengxue.li@stonybrook.edu</a>&gt; • &lt;<a href="mailto:chengxue.li@noaa.gov">chengxue.li@noaa.gov</a>&gt;</div>
+        <div class="small">Build: <span class="kbd">v0.0.0</span> • 2026-01-02</div>
       </div>
       <div class="small">Source: <a href="https://github.com/lichengxue/SPASAM.MSE">https://github.com/lichengxue/SPASAM.MSE</a></div>
     </div>
