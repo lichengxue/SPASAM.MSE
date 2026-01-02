@@ -1,9 +1,13 @@
 # build_docs_site.R
 # ------------------------------------------------------------
-# SPASAM.MSE GitHub Pages site builder (OFFICIAL)
+# SPASAM.MSE GitHub Pages site builder (OFFICIAL FINAL)
 #
 # What this script does
-# - Renders vignettes/news/bug_report/projects Rmd -> docs/
+# - Renders:
+#     vignettes/*.Rmd   -> docs/
+#     news/*.Rmd        -> docs/
+#     bug_report/*.Rmd  -> docs/
+#     projects/*.Rmd    -> docs/   (NEW: Projects are NOT vignettes)
 # - Flattens nested HTML into docs/ (so relative links work everywhere)
 # - Writes docs/index.html (landing page)
 # - Injects a single custom navbar + CSS + JS into all other docs/*.html
@@ -11,11 +15,8 @@
 # IMPORTANT:
 # - Icons/logos are sourced ONLINE from GitHub (raw.githubusercontent.com)
 # - No local copying of icons into docs/icons
-# - A version string is computed each build and shown on the landing page + navbar
-#
-# UPDATED:
-# - Projects navbar now points to docs/projects.html (NOT GitHub R folder)
-# - Adds rendering of projects/*.Rmd into docs/
+# - Projects link points to docs/projects.html (NOT repo R/ folder)
+# - Projects are NOT listed in the Vignettes dropdown
 # ------------------------------------------------------------
 
 suppressPackageStartupMessages({
@@ -43,8 +44,7 @@ wham_link <- "https://timjmiller.github.io/wham/"
 
 docs_dir  <- "docs"
 
-# Where icons live INSIDE your repo (path relative to repo root)
-# (Your repo: docs/icons/*.png)
+# Icons live INSIDE repo (path relative to repo root)
 icons_path_in_repo <- "docs/icons"
 
 # Core SPASAM members (landing page)
@@ -157,18 +157,20 @@ ensure_dir(docs_dir)
 
 # ----------------------------
 # 1) Render Rmd pages into docs/
+#    NOTE: Projects are rendered from projects/ (NOT vignettes/)
 # ----------------------------
 vignette_files   <- list.files("vignettes",  pattern = "\\.Rmd$", full.names = TRUE)
 news_files       <- list.files("news",       pattern = "\\.Rmd$", full.names = TRUE)
 bug_report_files <- list.files("bug_report", pattern = "\\.Rmd$", full.names = TRUE)
+projects_files   <- list.files("projects",   pattern = "\\.Rmd$", full.names = TRUE)
 
-# NEW: projects pages (put your projects.Rmd in projects/ folder)
-project_files    <- list.files("projects",   pattern = "\\.Rmd$", full.names = TRUE)
+# Safety: ensure no "projects" accidentally gets into vignette dropdown
+vignette_files <- vignette_files[!grepl("projects", basename(vignette_files), ignore.case = TRUE)]
 
 render_many(vignette_files, docs_dir)
 render_many(news_files, docs_dir)
 render_many(bug_report_files, docs_dir)
-render_many(project_files, docs_dir)   # <-- NEW
+render_many(projects_files, docs_dir)  # NEW
 
 # Flatten nested HTML so links work from root docs/
 flatten_html(docs_dir)
@@ -181,11 +183,13 @@ vignette_links <- build_vignette_links(vignette_files)
 news_html <- if (length(news_files) > 0) to_html(news_files)[1] else "#"
 bug_html  <- if (length(bug_report_files) > 0) to_html(bug_report_files)[1] else "#"
 
-# NEW: projects link target (expects projects.html after render/flatten)
-projects_html <- if (length(project_files) > 0) to_html(project_files)[1] else "projects.html"
+# Projects page:
+# - Recommended file: projects/projects.Rmd
+# - Recommended output: docs/projects.html
+projects_html <- if (length(projects_files) > 0) to_html(projects_files)[1] else "projects.html"
 
 # ----------------------------
-# 3) NAVBAR HTML (Projects -> projects.html) + version badge
+# 3) NAVBAR HTML (Projects points to projects.html)
 # ----------------------------
 navbar_html <- c(
   '  <!-- SPASAM_NAV_START -->',
@@ -440,6 +444,7 @@ index_out <- c(
   '    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;',
   '      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);',
   '      padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}',
+  
   '    .h1row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}',
   '    .buildtag{color:var(--muted);font-size:12px;white-space:nowrap;}',
   '  </style>',
@@ -659,5 +664,4 @@ message(sprintf("Site version: %s", site_version))
 message(sprintf("Build date: %s", build_date))
 message("docs HTML files:")
 print(list.files(docs_dir, pattern = "\\.html$", full.names = FALSE))
-
 message("NOTE: Icons/logos are loaded ONLINE from GitHub raw URLs.")
