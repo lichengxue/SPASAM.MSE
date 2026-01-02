@@ -1,0 +1,114 @@
+---
+title: "Installation"
+author: "Chengxue Li"
+date: "Last update: `r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    includes:
+      in_header: header.html
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+## Overview
+
+The **SPASAM.MSE** package (**Spatial Processes and Stock Assessment
+Methods – Management Strategy Evaluation**) is a comprehensive toolbox
+for conducting **spatially explicit Management Strategy Evaluation
+(MSE)** to support fisheries management under complex population
+structure and movement dynamics.
+
+SPASAM.MSE is built upon the **Woods Hole Assessment Model (WHAM)**, a
+state-space, age-structured stock assessment framework. WHAM supports
+time- and/or age-varying **process error** (treated as random effects) on
+key population processes and can incorporate **environmental covariate
+effects**. By embedding WHAM within a closed-loop MSE framework,
+SPASAM.MSE provides tools to simulate and evaluate management strategies
+(combinations of data collection, stock assessment models, and harvest
+control rules) under realistic spatial and temporal complexity.
+
+The platform enables systematic exploration of estimation and management
+performance across scenarios involving spatial heterogeneity, movement,
+connectivity, and alternative population structures for fish stocks with
+diverse life-history traits across multiple regions.
+
+---
+
+## 1. Install WHAM
+
+SPASAM.MSE depends on **WHAM**, which must be installed separately.
+
+### Install the development version of WHAM
+
+```r
+install.packages("devtools")
+devtools::install_github(
+  "timjmiller/wham",
+  dependencies = TRUE,
+  ref = "devel"
+)
+```
+
+### (Optional) Meta-population / spatial development version of WHAM
+
+For users working with spatial or meta-population extensions of WHAM,
+the development version can be installed from GitHub:
+
+```r
+devtools::install_github(
+  "lichengxue/wham-devel",
+  dependencies = TRUE
+)
+```
+
+---
+
+## 2. Install SPASAM.MSE
+
+Once WHAM is installed, install **SPASAM.MSE** from GitHub:
+
+```r
+devtools::install_github(
+  "lichengxue/SPASAM.MSE",
+  dependencies = TRUE
+)
+```
+
+---
+
+## 3. Notes on Multiple WHAM Installations
+
+If you have previously installed a **single-stock** version of WHAM and
+wish to retain it alongside a **multi-stock or spatial** version, it is
+recommended to store them in separate library directories to avoid
+overwriting.
+
+Example workflow:
+
+```r
+library_paths <- .libPaths()[1]
+new_folder <- "wham_old"
+
+if (!file.exists(file.path(library_paths, new_folder))) {
+  dir.create(file.path(library_paths, new_folder))
+}
+
+file.copy(
+  from = file.path(library_paths, "wham"),
+  to   = file.path(library_paths, new_folder),
+  overwrite  = TRUE,
+  recursive  = TRUE,
+  copy.mode = TRUE
+)
+
+library(
+  wham,
+  lib.loc = file.path(library_paths, new_folder)
+)
+```
+
+This approach allows users to switch between WHAM versions as needed for
+different modeling workflows.

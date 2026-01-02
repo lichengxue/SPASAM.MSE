@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPASAM.MSE | Spatial Processes and Stock Assessment Methods - MSE</title>
+  <style>
+    :root{
+      --bg:#0b1220; --bg2:#0f1b33; --text:#e9eefc; --muted:#b7c3e6;
+      --line:rgba(255,255,255,.10); --accent:#6ea8ff; --accent2:#7ef0d4;
+      --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);line-height:1.6;
+      background:
+        radial-gradient(1000px 600px at 20% -10%, rgba(110,168,255,.25), transparent 60%),
+        radial-gradient(800px 600px at 90% 10%, rgba(126,240,212,.18), transparent 55%),
+        linear-gradient(180deg,var(--bg),var(--bg2));}
+    a{color:var(--accent);text-decoration:none;} a:hover{text-decoration:underline;}
+    .nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+      background:rgba(11,18,32,.65);border-bottom:1px solid var(--line);}
+    .nav-inner{max-width:1100px;margin:0 auto;padding:10px 18px;display:flex;
+      gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;}
+    .brand .dot{width:10px;height:10px;border-radius:999px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      box-shadow:0 0 0 4px rgba(110,168,255,.15);}
+    .nav-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+    .nav-links a,.dropbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;
+      border-radius:999px;color:var(--text);border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);font-size:14px;}
+    .nav-links a:hover,.dropbtn:hover{background:rgba(255,255,255,.08);text-decoration:none;}
+    .icon{width:18px;height:18px;object-fit:contain;}
+    .dropdown{position:relative;}
+    .dropbtn{cursor:pointer;}
+    .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;
+      border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);
+      box-shadow:var(--shadow);z-index:9999;}
+    .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text);}
+    .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}
+    .dropdown:hover .dropdown-content{display:block;}
+    .dropdown.open .dropdown-content{display:block;}
+    .wrap{max-width:1100px;margin:0 auto;padding:26px 18px 80px;}
+    .hero{margin-top:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);
+      border-radius:var(--radius);box-shadow:var(--shadow);padding:28px;}
+    .hero-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px;}
+    @media (max-width:900px){.hero-grid{grid-template-columns:1fr;}}
+    h1{margin:0 0 6px 0;font-size:34px;line-height:1.15;}
+    h2{margin:0 0 10px 0;font-size:18px;}
+    .subtitle{color:var(--muted);margin:10px 0 0 0;font-size:15px;}
+    .pillrow{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;}
+    .pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);font-size:13px;white-space:nowrap;}
+    /* Logos moved below pillrow + bigger */
+    .logo-row{margin-top:18px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+    .logo-img{height:280px;width:auto;object-fit:contain;filter:drop-shadow(0 15px 34px rgba(0,0,0,.45));}
+    @media (max-width:900px){.logo-img{height:210px;}}
+    .card{border-radius:var(--radius);border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);box-shadow:var(--shadow);padding:18px;}
+    .card p{margin:0;color:var(--muted);}
+    /* Member list (Quick install card) */
+    .members{margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10);}
+    .members .member{margin:8px 0;color:var(--muted);font-size:13px;line-height:1.45;}
+    .members .member b{color:var(--text);} 
+    .section{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+    @media (max-width:900px){.section{grid-template-columns:1fr;}}
+    .list{margin:10px 0 0 0;padding:0;list-style:none;}
+    .list li{margin:10px 0;padding-left:16px;position:relative;color:var(--text);}
+    .list li:before{content:"";position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:999px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));}
+    .footer{margin-top:26px;color:rgba(233,238,252,.85);display:flex;justify-content:space-between;
+      gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px;}
+    .small{color:var(--muted);font-size:13px;}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
+      padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>
+      <div class="nav-links">
+        <a href="index.html"><img class="icon" src="icons/home_icon.png" alt="Home" />Home</a>
+        <div class="dropdown" id="vignetteDropdown">
+          <button class="dropbtn" type="button"><img class="icon" src="icons/vignettes_icon.png" alt="Vignettes" />Vignettes</button>
+          <div class="dropdown-content">
+<a href="Installation.html">Installation</a>
+          </div>
+        </div>
+        <a href="https://github.com/lichengxue/SPASAM.MSE"><img class="icon" src="icons/source_icon.png" alt="Source" />Source</a>
+        <a href="https://github.com/lichengxue/SPASAM.MSE/tree/main/R"><img class="icon" src="icons/projects_icon.png" alt="Projects" />Projects</a>
+        <a href="news_updates.html"><img class="icon" src="icons/news_icon.png" alt="News" />News</a>
+        <a href="bug_report.html"><img class="icon" src="icons/bug_report_icon.png" alt="Bug report" />Bug report</a>
+        <a href="mailto:chengxue.li@stonybrook.edu"><img class="icon" src="icons/contact_icon.png" alt="Contact" />Contact</a>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-grid">
+        <div>
+          <h1>SPASAM.MSE</h1>
+          <div class="subtitle">
+            SPASAM-MSE (Spatial Processes and Stock Assessment Methods - Management Strategy Evaluation) is a
+            spatially explicit, closed-loop MSE platform built on WHAM (Woods Hole Assessment Model), a
+            state-space, age-structured stock assessment framework used in NOAA/NEFSC applications.
+          </div>
+          <div class="subtitle" style="margin-top:8px;">WHAM: <a href="https://timjmiller.github.io/wham/" target="_blank">https://timjmiller.github.io/wham/</a></div>
+          <div class="pillrow">
+            <div class="pill">Multi-stock • Multi-region</div>
+            <div class="pill">Connectivity • Mixing • Natal homing • Metapopulation</div>
+            <div class="pill">Configurable OM spatial structure</div>
+            <div class="pill">Alternative EM spatial structure</div>
+            <div class="pill">State-space features</div>
+            <div class="pill">Flexible data-generation pipeline</div>
+            <div class="pill">Flexible projection pipeline</div>
+            <div class="pill">Flexible harvest control rules</div>
+            <div class="pill">Implementation uncertainty</div>
+            <div class="pill">Parallel simulations</div>
+            <div class="pill">Automated reporting</div>
+          </div>
+          <div class="logo-row">
+            <img class="logo-img" src="icons/NOAA_logo.png" alt="NOAA logo" />
+            <img class="logo-img" src="icons/SPASAM.MSE_logo.png" alt="SPASAM.MSE logo" />
+          </div>
+        </div>
+        <div class="card">
+          <h2>Quick install</h2>
+          <p class="small">Development version from GitHub:</p>
+          <p style="margin-top:10px;"><span class="kbd">remotes::install_github("lichengxue/SPASAM.MSE")</span></p>
+          <p class="small" style="margin-top:12px;">Package name: <span class="kbd">SPASAM.MSE</span></p>
+          <div class="members">
+<div class="small" style="margin-top:6px;"><b>Main developer</b>: Chengxue Li &lt;<a href="mailto:chengxue.li@stonybrook.edu">chengxue.li@stonybrook.edu</a>&gt;</div>
+<div class="small" style="margin-top:4px;"><b>Alt</b>: &lt;<a href="mailto:chengxue.li@noaa.gov">chengxue.li@noaa.gov</a>&gt;</div>
+          </div>
+          <div class="members">
+            <div class="small" style="margin-bottom:6px;"><b>Core SPASAM members</b>:</div>
+<div class="member"><b>Jonathan Deroba</b> — NOAA Federal (NEFSC) &lt;<a href="mailto:jonathan.deroba@noaa.gov">jonathan.deroba@noaa.gov</a>&gt;</div>
+<div class="member"><b>Daniel Goethel</b> — NOAA Federal (AFSC) &lt;<a href="mailto:daniel.goethel@noaa.gov">daniel.goethel@noaa.gov</a>&gt;</div>
+<div class="member"><b>Aaron Berger</b> — NOAA Federal (NWFSC) &lt;<a href="mailto:aaron.berger@noaa.gov">aaron.berger@noaa.gov</a>&gt;</div>
+<div class="member"><b>Amy Schueller</b> — NOAA Federal (SEFSC) &lt;<a href="mailto:amy.schueller@noaa.gov">amy.schueller@noaa.gov</a>&gt;</div>
+<div class="member"><b>Brian Langseth</b> — NOAA Federal (NWFSC) &lt;<a href="mailto:brian.langseth@noaa.gov">brian.langseth@noaa.gov</a>&gt;</div>
+<div class="member"><b>Dana Hanselman</b> — NOAA Federal (AFSC) &lt;<a href="mailto:dana.hanselman@noaa.gov">dana.hanselman@noaa.gov</a>&gt;</div>
+<div class="member"><b>Emily Liljestrand</b> — NOAA Federal (NEFSC) &lt;<a href="mailto:emily.liljestrand@noaa.gov">emily.liljestrand@noaa.gov</a>&gt;</div>
+<div class="member"><b>Timothy Miller</b> — NOAA Federal (NEFSC) &lt;<a href="mailto:timothy.j.miller@noaa.gov">timothy.j.miller@noaa.gov</a>&gt;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="card">
+        <h2>What SPASAM-MSE does</h2>
+        <p>
+          SPASAM.MSE provides a flexible spatial operating model and an end-to-end workflow to test management
+          procedures under realistic spatial structure and movement. It is designed for research and method development
+          where spatial processes can drive estimation bias and management risk.
+        </p>
+        <ul class="list">
+          <li>Simulate spatial population structure, mixing, and connectivity (including natal homing and metapopulation dynamics).</li>
+          <li>Generate fishery-dependent and fishery-independent data under alternative spatial sampling designs.</li>
+          <li>Fit alternative estimation models with different spatial structures and compare against operating-model truth across scenarios and replicates.</li>
+          <li>Evaluate trade-offs and risk across regions and stocks under closed-loop feedback.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Core capabilities</h2>
+        <ul class="list">
+          <li><b>Closed-loop MSE</b>: OM -> data -> EM -> projections -> HCR -> implementation uncertainty -> feedback.</li>
+          <li><b>Spatial control</b>: spatial heterogeneity in population biology and fishing dynamics across regions, with explicit connectivity linking regions.</li>
+          <li><b>Flexible EM spatial structure</b>: evaluate estimation models with alternative spatial assumptions (e.g., spatial aggregation, region/fleet structure, and movement simplifications).</li>
+          <li><b>Movement scenarios</b>: bidirectional vs unidirectional connectivity, natal homing and metapopulation structure, movement trends, and optional environmental covariate effects on movement.</li>
+          <li><b>State-space structure</b>: WHAM-based design that treats key biological and fishery processes as random effects (time- and/or age-varying) in both OM and EM.</li>
+          <li><b>Performance evaluation</b>: bias/precision, status metrics, risk of overfishing/overfished, and spatial trade-offs in catch, SSB, and F.</li>
+          <li><b>Parallel simulations</b>: scalable pipelines for multi-scenario experiments.</li>
+          <li><b>Automated reporting</b>: PNG/HTML/PDF outputs for large simulation studies.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer">
+      <div>
+        <div><b>Main developer</b>: Chengxue Li</div>
+        <div class="small">&lt;<a href="mailto:chengxue.li@stonybrook.edu">chengxue.li@stonybrook.edu</a>&gt; • &lt;<a href="mailto:chengxue.li@noaa.gov">chengxue.li@noaa.gov</a>&gt;</div>
+      </div>
+      <div class="small">Source: <a href="https://github.com/lichengxue/SPASAM.MSE">https://github.com/lichengxue/SPASAM.MSE</a></div>
+    </div>
+  </div>
+  <script>
+    (function(){
+      var dd = document.getElementById("vignetteDropdown");
+      if(!dd) return;
+      var btn = dd.querySelector(".dropbtn");
+      btn.addEventListener("click", function(e){
+        e.stopPropagation();
+        dd.classList.toggle("open");
+      });
+      document.addEventListener("click", function(){
+        dd.classList.remove("open");
+      });
+    })();
+  </script>
+</body>
+</html>
