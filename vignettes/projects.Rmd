@@ -27,7 +27,7 @@ international partners.
 
 ## Completed Projects
 
-### SPASAM-MSE: A Generalized Spatial MSE Framework
+### 1. SPASAM-MSE: A Generalized Spatial MSE Framework
 
 **Li, C.\***, Deroba, J.J., Goethel, D.R., Berger, A.M., Schueller, A.M.,
 Langseth, B.J., Hanselman, D.H., Liljestrand, E.M., and Miller, T.J.
@@ -58,7 +58,7 @@ Key contributions include:
 
 ---
 
-### Random Effects on Numbers-at-Age and Implicit Movement Dynamics
+### 2. Random Effects on Numbers-at-Age and Implicit Movement Dynamics
 
 **Li, C.\***, Deroba, J.J., Berger, A.M., Langseth, B.J., Goethel, D.R.,
 Schueller, A.M., and Miller, T.J. (2025)  
@@ -85,7 +85,7 @@ Key findings include:
 
 ## Ongoing Projects
 
-### Is Single-Region Management Adequate for Spatially Structured Stocks?
+### 1. Is Single-Region Management Adequate for Spatially Structured Stocks?
 
 **Li, C.\***, Deroba, J.J., Berger, A.M., Goethel, D.R., Langseth, B.J., Schueller, A.M., Liljestrand, E.M., and Miller, T.J.
 
@@ -104,7 +104,7 @@ Core questions include:
 
 ---
 
-### Forecasting Fisheries Management under Data-Limited Futures (US Northeast)
+### 2. Forecasting Fisheries Management under Data-Limited Futures
 
 **Led by:** Jonathan Deroba (NOAA NEFSC)  
 
@@ -114,7 +114,7 @@ and declining data quality in the US Northeast.
 
 ---
 
-### Wind Farm Mitigation in Spatial Stock Assessment
+### 3. Wind Farm Mitigation in Spatial Stock Assessment
 
 **Led by:** Chengxue Li (Stony Brook University)  
 
@@ -124,7 +124,7 @@ mitigate potential impacts.
 
 ---
 
-### Handling Numbers-at-Age Random Effects in State-Space Projections
+### 4. Handling Numbers-at-Age Random Effects in State-Space Projections
 
 **Led by:** Emily Liljestrand (NOAA NEFSC)  
 
@@ -133,7 +133,7 @@ assessment models that include **numbers-at-age random effects**.
 
 ---
 
-### Climate-Informed MSE for Georges Bank Yellowtail Flounder
+### 5. Climate-Informed MSE for Georges Bank Yellowtail Flounder
 
 **Led by:** Sophie Wulfing, Gavin Fay (UMass Dartmouth)
 
@@ -143,10 +143,22 @@ signals interact with assessment and management decisions.
 
 ---
 
-### Climate-Informed MSE for Black Sea Bass (Northeast US)
+### 6. Climate-Informed MSE for Black Sea Bass
 
 **Led by:** Jeewantha Bandara, John Wiedemann (Rutgers University)
 
 This study applies climate-informed MSE approaches to **Black Sea Bass**
 in the Northeast US, focusing on climate impacts on productivity,
 distribution, and management performance.
+
+### 7. Practical Strategies for Addressing Catch Apportionment–Stock Boundary Mismatches
+
+**Led by:** Carryn de Moor (University of Cape Town)
+
+This project develops pragmatic and policy-relevant strategies for
+addressing **mismatches between management catch apportionment schemes
+and biological stock boundaries**. Using simulation-based and empirical
+case studies, the work evaluates how alternative apportionment
+approaches influence assessment accuracy, management performance, and
+equity across jurisdictions.
+
