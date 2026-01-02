@@ -2,8 +2,8 @@
 **Spatial Processes and Stock Assessment Methods – Management Strategy Evaluation**
 
 <p align="center">
-  <a href="https://lichengxue.github.io/SPASAM.MSE/"><b>🌐 Website</b></a> &nbsp;•&nbsp;
-  <a href="https://github.com/lichengxue/SPASAM.MSE"><b>💻 Source</b></a> &nbsp;•&nbsp;
+  <a href="https://lichengxue.github.io/SPASAM.MSE/"><b>🌐 SPASAM.MSE Website</b></a> &nbsp;•&nbsp;
+  <a href="https://github.com/lichengxue/SPASAM.MSE"><b>💻 GitHub Repo</b></a> &nbsp;•&nbsp;
   <a href="https://timjmiller.github.io/wham/"><b>⚙️ WHAM</b></a> &nbsp;•&nbsp;
   <a href="mailto:chengxue.li@stonybrook.edu"><b>✉️ Contact</b></a>
 </p>
@@ -23,7 +23,7 @@ At its core, SPASAM.MSE links the full end-to-end pipeline:
 
 > **Operating model → data generation → estimation model → projections → harvest control rules → implementation error → feedback**
 
-By leveraging WHAM’s **state-space formulation**, SPASAM.MSE can treat key **biological and fishery processes** as **random effects** (as configured) in both **operating** and **estimation** models—making it ideal for controlled experiments on **model misspecification**, **spatial structure**, and **management robustness**.
+By leveraging WHAM’s **state-space platform**, SPASAM.MSE can treat key **biological and fishery processes** as **random effects** (as configured) in both **operating** and **estimation** models—making it ideal for controlled experiments on **model misspecification**, **spatial structure**, and **management robustness**.
 
 ---
 
