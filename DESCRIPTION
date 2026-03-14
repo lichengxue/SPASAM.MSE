@@ -8,23 +8,20 @@ Description: A flexible and extensible framework for conducting spatially explic
     Management Strategy Evaluation (MSE) for marine fish stocks using the Woods Hole
     Assessment Model (WHAM). SPASAM-MSE provides a fully configurable multi-stock,
     multi-region operating model that supports complex spatial population structure,
-    including natal homing, source???sink dynamics, and bidirectional or unidirectional
+    including natal homing, source-sink dynamics, and bidirectional or unidirectional
     movement. Movement processes can be specified as fixed or random effects and may
     vary by age, year, stock, season, and region, with optional environmental covariate
-    effects.
-    
-    The package enables closed-loop MSE by integrating operating models, data
+    effects. The package enables closed-loop MSE by integrating operating models, data
     generation (fishery-dependent and fishery-independent), alternative estimation
     models, projections, harvest control rules, and management implementation error.
     Tools are provided to evaluate assessment bias, uncertainty, and management
     performance metrics (e.g., catch, spawning biomass, fishing mortality, overfishing
-    risk) across space, time, and simulation replicates.
-    
-    SPASAM-MSE includes a comprehensive plotting and reporting pipeline for
-    large-scale simulation experiments, supporting automated generation of PNG, PDF,
-    and HTML outputs. A Shiny-based graphical interface is included to facilitate
-    interactive configuration of biological parameters, fisheries structure, and
-    movement models for reproducible spatial MSE experiments.
+    risk) across space, time, and simulation replicates. SPASAM-MSE includes a
+    comprehensive plotting and reporting pipeline for large-scale simulation
+    experiments, supporting automated generation of PNG, PDF, and HTML outputs. A
+    Shiny-based graphical interface is included to facilitate interactive
+    configuration of biological parameters, fisheries structure, and movement models
+    for reproducible spatial MSE experiments.
 Depends:
     R (>= 4.0.0)
 Imports:
@@ -51,4 +48,4 @@ VignetteBuilder: knitr
 License: MIT + file LICENSE
 Encoding: UTF-8
 RoxygenNote: 7.3.3
-URL: https://github.com/lichengxue/SPASAM-MSE
+URL: https://github.com/lichengxue/SPASAM.MSE
