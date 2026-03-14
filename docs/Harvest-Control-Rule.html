@@ -11,7 +11,7 @@
 
 
 
-<title>Specify Catch Apportionment</title>
+<title>Harvest Control Rule</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1823,328 +1823,231 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">Specify Catch Apportionment</h1>
+<h1 class="title toc-ignore">Harvest Control Rule</h1>
 
 </div>
 
 
-<p>This vignette introduces options for catch apportionment when the
-operating model is spatially explicit while a panmictic model is used as
-the assessment model.</p>
-<div id="load-wham-and-whammse" class="section level3">
-<h3>1. Load “WHAM” and “whamMSE”:</h3>
+<div id="hockey-stick-harvest-control-rule" class="section level2">
+<h2>Hockey-stick Harvest Control Rule</h2>
+<p>This vignette demonstrates how to use the <code>SPASAM.MSE</code>
+(Woods Hole Assessment Model Management Strategy Evaluation) package to
+apply different types of harvest control rule (HCR) in a management
+strategy evaluation (MSE). <strong>Note:</strong> all code shown here is
+for demonstration purposes only; the results are for illustrative use
+and should not be interpreted as reflecting real-world stock
+assessments.</p>
+<div id="load-wham-and-spasam.mse" class="section level3">
+<h3>1. Load <code>wham</code> and <code>SPASAM.MSE</code></h3>
 <pre class="r"><code>library(wham)
-library(whamMSE)
+library(SPASAM.MSE)
 
 main.dir = here::here()</code></pre>
 </div>
 <div id="generate-basic-information" class="section level3">
-<h3>2. Generate basic information</h3>
-<pre class="r"><code>year_start  &lt;- 1  # starting year in the burn-in period
-year_end    &lt;- 20  # end year in the burn-in period
-MSE_years   &lt;- 3     # number of years in the feedback loop
-# Note: no need to include MSE_years in simulation-estimation 
+<h3>2. Generate Basic Information</h3>
+<pre class="r"><code>year_start  &lt;- 1
+year_end    &lt;- 20
+MSE_years   &lt;- 3
 
-info &lt;- generate_basic_info(n_stocks = 2,
-                            n_regions = 2,
-                            n_indices = 4,
-                            n_fleets = 4,
-                            n_seasons = 4,
-                            base.years = year_start:year_end,
-                            n_feedback_years = MSE_years,
-                            life_history = &quot;medium&quot;,
-                            n_ages = 12) 
+info &lt;- generate_basic_info(
+  n_stocks = 2,
+  n_regions = 2,
+  n_indices = 2,
+  n_fleets = 2,
+  n_seasons = 1,
+  base.years = year_start:year_end,
+  n_feedback_years = MSE_years,
+  life_history = &quot;medium&quot;,
+  n_ages = 12
+)
 
-basic_info = info$basic_info # collect basic information
-catch_info = info$catch_info # collect fleet catch information
-index_info = info$index_info # collect survey information
-F_info = info$F # collect fishing information</code></pre>
+basic_info = info$basic_info
+catch_info = info$catch_info
+index_info = info$index_info
+F_info     = info$F</code></pre>
 </div>
-<div id="specify-movement-type-and-movement-rate" class="section level3">
-<h3>3. Specify movement type and movement rate</h3>
-<pre class="r"><code>basic_info &lt;- generate_NAA_where(basic_info = basic_info, move.type = 2) # &quot;bidirectional&quot; movement
-
-move &lt;- generate_move(basic_info = basic_info, move.type = 2, move.rate = c(0.2,0.1), move.re = &quot;constant&quot;)</code></pre>
+<div id="specify-movement" class="section level3">
+<h3>3. Specify Movement</h3>
+<pre class="r"><code>basic_info &lt;- generate_NAA_where(basic_info, move.type = 2)
+move &lt;- generate_move(
+  basic_info = basic_info,
+  move.type = 2,
+  move.rate = c(0.3, 0.1),
+  move.re = &quot;constant&quot;
+)</code></pre>
 </div>
-<div id="configure-selecitvity-and-natural-mortality" class="section level3">
-<h3>4. Configure selecitvity and natural mortality</h3>
+<div id="configure-selectivity" class="section level3">
+<h3>4. Configure Selectivity</h3>
 <pre class="r"><code>n_stocks  &lt;- as.integer(basic_info[&#39;n_stocks&#39;])
 n_regions &lt;- as.integer(basic_info[&#39;n_regions&#39;])
 n_fleets  &lt;- as.integer(basic_info[&#39;n_fleets&#39;])
 n_indices &lt;- as.integer(basic_info[&#39;n_indices&#39;])
 n_ages    &lt;- as.integer(basic_info[&#39;n_ages&#39;])
 
-# Selectivity Configuration
-fleet_pars &lt;- c(5,1)
-index_pars &lt;- c(2,1)
-sel &lt;- list(model=rep(&quot;logistic&quot;,n_fleets+n_indices),
-            initial_pars=c(rep(list(fleet_pars),n_fleets),rep(list(index_pars),n_indices)))
-
-# M Configuration
-M &lt;- list(model=&quot;constant&quot;,initial_means=array(0.2, dim = c(n_stocks,n_regions,n_ages)))</code></pre>
+fleet_pars &lt;- c(5, 1)
+index_pars &lt;- c(2, 1)
+sel &lt;- list(
+  model = rep(&quot;logistic&quot;, n_fleets + n_indices),
+  initial_pars = c(rep(list(fleet_pars), n_fleets), rep(list(index_pars), n_indices))
+)</code></pre>
 </div>
 <div id="configure-numbers-at-age-naa" class="section level3">
-<h3>5. Configure numbers-at-age (NAA)</h3>
-<pre class="r"><code>sigma        &lt;- &quot;rec+1&quot;
-re_cor       &lt;- &quot;iid&quot;
-ini.opt      &lt;- &quot;equilibrium&quot; 
-sigma_vals   &lt;-  array(0.5, dim = c(n_stocks, n_regions, n_ages)) # NAA sigma
+<h3>5. Configure Numbers-at-Age (NAA)</h3>
+<pre class="r"><code>sigma      &lt;- &quot;rec+1&quot;
+re_cor     &lt;- &quot;iid&quot;
+ini.opt    &lt;- &quot;equilibrium&quot;
+Rec_sig    &lt;- 0.5
+NAA_sig    &lt;- 0.2
 
-NAA_re &lt;- list(N1_model=rep(ini.opt,n_stocks),
-               sigma=rep(sigma,n_stocks),
-               cor=rep(re_cor,n_stocks),
-               recruit_model = 2,  # rec random around the mean
-               sigma_vals = sigma_vals) # NAA_where must be specified in basic_info!</code></pre>
+sigma_vals &lt;- array(NAA_sig, dim = c(n_stocks, n_regions, n_ages))
+sigma_vals[,,1] &lt;- Rec_sig
+
+log_N1    &lt;- rep(10, n_stocks)
+log_N1[1] &lt;- log(exp(10) * 2)
+N1_pars   &lt;- generate_ini_N1(basic_info, ini.opt, log_N1)
+
+mean_rec_par &lt;- lapply(1:n_stocks, function(i) exp(log_N1[i]))
+
+NAA_re &lt;- list(
+  N1_model = rep(ini.opt, n_stocks),
+  sigma = rep(sigma, n_stocks),
+  cor = rep(re_cor, n_stocks),
+  recruit_model = 2,
+  recruit_pars = mean_rec_par,
+  sigma_vals = sigma_vals,
+  N1_pars = N1_pars
+)</code></pre>
 </div>
 <div id="generate-wham-input" class="section level3">
-<h3>6. Generate wham input</h3>
-<p>Here we use <code>prepare_wham_input()</code> function to generate a
-wham input using the basic information we set above:</p>
-<pre class="r"><code>input &lt;- prepare_wham_input(basic_info = basic_info, 
-                            selectivity = sel, 
-                            M = M, 
-                            NAA_re = NAA_re, 
-                            move = move,
-                            catch_info = catch_info, 
-                            index_info = index_info, 
-                            F = F_info)</code></pre>
+<h3>6. Generate <code>wham</code> Input</h3>
+<pre class="r"><code>input &lt;- prepare_wham_input(
+  basic_info = basic_info,
+  selectivity = sel,
+  NAA_re = NAA_re,
+  move = move,
+  catch_info = catch_info,
+  index_info = index_info,
+  F = F_info,
+  age_comp = &quot;logistic-normal-miss0&quot;
+)</code></pre>
 </div>
 <div id="generate-operating-model" class="section level3">
-<h3>7. Generate operating model</h3>
-<pre class="r"><code>random = input$random # check what processes are random effects
-input$random = NULL # so inner optimization won&#39;t change simulated RE
-om &lt;- fit_wham(input, do.fit = F, do.brps = T, MakeADFun.silent = TRUE)
-# Note: do.fit must be FALSE (no modeling fitting yet)</code></pre>
+<h3>7. Generate Operating Model</h3>
+<pre class="r"><code>random &lt;- input$random
+input$random &lt;- NULL
+om &lt;- fit_wham(input, do.fit = FALSE, do.brps = TRUE, MakeADFun.silent = TRUE)</code></pre>
 </div>
-<div id="generate-dataset" class="section level3">
-<h3>8. Generate dataset</h3>
-<pre class="r"><code>om_with_data &lt;- update_om_fn(om, seed = 123, random = random)</code></pre>
+<div id="configure-assessment-timing" class="section level3">
+<h3>8. Configure Assessment Timing</h3>
+<pre class="r"><code>assess.interval &lt;- 3
+base.years      &lt;- year_start:year_end
+terminal.year   &lt;- tail(base.years, 1)
+assess.years    &lt;- seq(terminal.year, tail(om$years, 1) - assess.interval, by = assess.interval)
+mods &lt;- list()</code></pre>
 </div>
-<div id="specify-assessment-interval-and-assessment-year-in-the-feedback-loop" class="section level3">
-<h3>9. Specify assessment interval and assessment year in the feedback
-loop</h3>
-<pre class="r"><code>assess.interval &lt;- 3 # Note: assessment interval is 3 years, given the feedback period is 3 years, there will be only 1 assessment
-base.years      &lt;- year_start:year_end # Burn-in period
-first.year      &lt;- head(base.years,1)
-terminal.year   &lt;- tail(base.years,1)
-assess.years    &lt;- seq(terminal.year, tail(om$years,1)-assess.interval,by = assess.interval)</code></pre>
+<div id="re-configure-selectivity-and-naa" class="section level3">
+<h3>9. Re-configure Selectivity and NAA</h3>
+<pre class="r"><code>n_stocks = n_regions = n_fleets = n_indices = 1
+
+sel_em &lt;- list(model=rep(&quot;logistic&quot;, n_fleets + n_indices),
+               initial_pars=c(rep(list(fleet_pars), n_fleets), rep(list(index_pars), n_indices)))
+
+NAA_re_em &lt;- list(N1_model=&quot;equilibrium&quot;, sigma=&quot;rec+1&quot;, cor=&quot;iid&quot;)</code></pre>
 </div>
-<div id="using-panmictic-assessment-model" class="section level3">
-<h3>10. Using panmictic assessment model</h3>
-<p>There are several options for catch apportionment:</p>
-<div id="option-1-weight_type-1-with-method-equal-assign-equal-weights-to-all-regions." class="section level4">
-<h4>Option 1 (weight_type = 1 with method = “equal”): Assign equal
-weights to all regions.</h4>
-<pre class="r"><code>mod = list()
+<div id="run-mse-scenarios.-run-mse-scenarios" class="section level3">
+<h3>10. Run MSE Scenarios. Run MSE Scenarios</h3>
+<div id="em1-panmictic-model-with-75-fxspr" class="section level4">
+<h4>EM1: Panmictic model with 75% FXSPR</h4>
+<pre class="r"><code>om_with_data &lt;- update_om_fn(om, seed = 123, random = random)
 
-n_stocks = n_regions = 1
+hcr &lt;- list()
+hcr$hcr.type &lt;- 1
+hcr$hcr.opts &lt;- list(use_FXSPR = TRUE, percentFXSPR = 75)
 
-n_fleets = n_indices = 2
-
-sel_em &lt;- list(model=rep(&quot;logistic&quot;,n_fleets+n_indices),
-               initial_pars=c(rep(list(fleet_pars),n_fleets),rep(list(index_pars),n_indices)))
-
-NAA_re_em &lt;- list(N1_model=&quot;equilibrium&quot;,sigma=&quot;rec+1&quot;,cor=&quot;iid&quot;)
-
-M_em &lt;- list(model=&quot;constant&quot;,initial_means=array(0.2, dim = c(n_stocks,n_regions,n_ages)))
-
-mod[[1]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 1, method = &quot;equal&quot;, weight_years = 3),
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE
-                           )</code></pre>
+mods[[1]] = loop_through_fn(om = om_with_data,
+                            em_info = info,
+                            random = random,
+                            sel_em = sel_em,
+                            NAA_re_em = NAA_re_em,
+                            move_em = NULL,
+                            age_comp_em = &quot;logistic-normal-miss0&quot;,
+                            em.opt = list(separate.em = TRUE, separate.em.type = 1, do.move = FALSE, est.move = FALSE),
+                            aggregate_catch_info = list(n_fleets = 1, fleet_pointer = c(1,1), use_catch_weighted_waa = TRUE, catch_Neff = 100, catch_cv = 0.1),
+                            aggregate_index_info = list(n_indices = 1, index_pointer = c(1,1), use_catch_weighted_waa = TRUE, index_Neff = 100, index_cv = 0.1),
+                            hcr = hcr,
+                            assess_years = assess.years,
+                            assess_interval = assess.interval,
+                            base_years = base.years,
+                            year.use = 20,
+                            seed = 123)</code></pre>
 </div>
-<div id="option-2-weight_type-2-with-method-fleet_region-use-regional-catch-totals-to-compute-weights." class="section level4">
-<h4>Option 2 (weight_type = 2 with method = “fleet_region”): Use
-regional catch totals to compute weights.</h4>
-<pre class="r"><code>mod[[2]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 2, method = &quot;fleet_region&quot;, weight_years = 3),
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE) </code></pre>
-</div>
-<div id="option-3-weight_type-3-with-method-index_equal-use-survey-based-regional-weighting-then-assigns-equally-among-fleets-in-the-same-region" class="section level4">
-<h4>Option 3 (weight_type = 3, with method = “index_equal”): Use
-survey-based regional weighting, then assigns equally among fleets in
-the same region</h4>
-<pre class="r"><code>mod[[3]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 3, method = &quot;index_equal&quot;, weight_years = 3, survey_pointer = 1), # use index 1
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE)</code></pre>
-</div>
-<div id="option-4-weight_type-4-with-method-user_defined_fleets-use-manually-specified-weights-for-each-region-or-each-fleet" class="section level4">
-<h4>Option 4 (weight_type = 4 with method = “user_defined_fleets”): Use
-manually specified weights for each region or each fleet</h4>
-<pre class="r"><code>mod[[4]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 4, method = &quot;user_defined_fleets&quot;, user_weights = c(0.4,0.4,0.1,0.1)), # user-specified
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE) # average over the most recent 5 years</code></pre>
-</div>
-<div id="option-5-weight_type-4-weights-are-calculated-using-regional-recruitment-which-is-equal-in-this-case." class="section level4">
-<h4>Option 5 (weight_type = 4): Weights are calculated using regional
-recruitment (which is equal in this case).</h4>
-<pre class="r"><code>mod[[5]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 4, method = &quot;user_defined_regions&quot;, user_weights = c(0.5,0.5)), # user-specified
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE) # average over the most recent 5 years</code></pre>
-</div>
-<div id="plot-catch" class="section level4">
-<h4>Plot catch</h4>
-<pre class="r"><code>fleet1catch_m1 &lt;- mod[[1]]$om$rep$pred_catch[,1] # fleet1catch in model 1
-fleet1catch_m2 &lt;- mod[[2]]$om$rep$pred_catch[,1] # fleet1catch in model 2
-fleet1catch_m3 &lt;- mod[[3]]$om$rep$pred_catch[,1] # fleet1catch in model 3
-fleet1catch_m4 &lt;- mod[[4]]$om$rep$pred_catch[,1] # fleet1catch in model 4
-fleet1catch_m5 &lt;- mod[[5]]$om$rep$pred_catch[,1] # fleet1catch in model 5
+<div id="em2-panmictic-model-with-100-fxspr" class="section level4">
+<h4>EM2: Panmictic model with 100% FXSPR</h4>
+<pre class="r"><code>hcr &lt;- list()
+hcr$hcr.type &lt;- 1
+hcr$hcr.opts &lt;- list(use_FXSPR = TRUE, percentFXSPR = 100)
 
-plot(fleet1catch_m1, col = &quot;red&quot;, type = &quot;o&quot;, ylab = &quot;Catch&quot;, xlab = &quot;Year&quot;, main = &quot;Fleet 1 Catch&quot;, ylim = c(0, 5000))
-lines(fleet1catch_m2, col = &quot;blue&quot;, type = &quot;o&quot;)
-lines(fleet1catch_m3, col = &quot;green&quot;, type = &quot;o&quot;)
-lines(fleet1catch_m4, col = &quot;purple&quot;, type = &quot;o&quot;)
-lines(fleet1catch_m5, col = &quot;orange&quot;, type = &quot;o&quot;)
+mods[[2]] = loop_through_fn(om = om_with_data,
+                            em_info = info,
+                            random = random,
+                            sel_em = sel_em,
+                            NAA_re_em = NAA_re_em,
+                            move_em = NULL,
+                            age_comp_em = &quot;logistic-normal-miss0&quot;,
+                            em.opt = list(separate.em = TRUE, separate.em.type = 1, do.move = FALSE, est.move = FALSE),
+                            aggregate_catch_info = list(n_fleets = 1, fleet_pointer = c(1,1), use_catch_weighted_waa = TRUE, catch_Neff = 100, catch_cv = 0.1),
+                            aggregate_index_info = list(n_indices = 1, index_pointer = c(1,1), use_catch_weighted_waa = TRUE, index_Neff = 100, index_cv = 0.1),
+                            hcr = hcr,
+                            assess_years = assess.years,
+                            assess_interval = assess.interval,
+                            base_years = base.years,
+                            year.use = 20,
+                            seed = 123)</code></pre>
+</div>
+<div id="em3-hockey-stick-hcr" class="section level4">
+<h4>EM3: Hockey-stick HCR</h4>
+<pre class="r"><code>hcr &lt;- list()
+hcr$hcr.type &lt;- 3
+hcr$hcr.opts &lt;- list(use_FXSPR = TRUE, max_percent = 80, min_percent = 0.01, BThresh_up = 0.5, BThresh_low = 0)
 
-legend(&quot;topright&quot;, legend=c(&quot;M 1&quot;, &quot;M 2&quot;, &quot;M 3&quot;, &quot;M 4&quot;, &quot;M 5&quot;),
-       col=c(&quot;red&quot;, &quot;blue&quot;, &quot;green&quot;, &quot;purple&quot;, &quot;orange&quot;), lty=c(1,1), cex=0.8)</code></pre>
+mods[[3]] = loop_through_fn(om = om_with_data,
+                            em_info = info,
+                            random = random,
+                            sel_em = sel_em,
+                            NAA_re_em = NAA_re_em,
+                            move_em = NULL,
+                            age_comp_em = &quot;logistic-normal-miss0&quot;,
+                            em.opt = list(separate.em = TRUE, separate.em.type = 1, do.move = FALSE, est.move = FALSE),
+                            aggregate_catch_info = list(n_fleets = 1, fleet_pointer = c(1,1), use_catch_weighted_waa = TRUE, catch_Neff = 100, catch_cv = 0.1),
+                            aggregate_index_info = list(n_indices = 1, index_pointer = c(1,1), use_catch_weighted_waa = TRUE, index_Neff = 100, index_cv = 0.1),
+                            hcr = hcr,
+                            assess_years = assess.years,
+                            assess_interval = assess.interval,
+                            base_years = base.years,
+                            year.use = 20,
+                            seed = 123)</code></pre>
+</div>
+</div>
+<div id="compare-model-performance" class="section level3">
+<h3>11. Compare Model Performance</h3>
+<pre class="r"><code>par(mfrow = c(1,2))
+SSB_s1_m1 &lt;- mods[[1]]$om$rep$SSB[,1]
+SSB_s1_m2 &lt;- mods[[2]]$om$rep$SSB[,1]
+SSB_s1_m3 &lt;- mods[[3]]$om$rep$SSB[,1]
+plot(SSB_s1_m1[1:23], col = &quot;red&quot;, type = &quot;o&quot;, ylab = &quot;SSB&quot;, xlab = &quot;Year&quot;, ylim = c(0,7e4))
+lines(SSB_s1_m2[1:23], col = &quot;blue&quot;, type = &quot;o&quot;)
+lines(SSB_s1_m3[1:23], col = &quot;green&quot;, type = &quot;o&quot;)
+legend(&quot;topright&quot;, legend = c(&quot;EM 1&quot;, &quot;EM 2&quot;, &quot;EM 3&quot;), col = c(&quot;red&quot;, &quot;blue&quot;, &quot;green&quot;), lty = 1, cex = 0.8)
+
+Catch_r1_m1 &lt;- mods[[1]]$om$rep$pred_catch[,1]
+Catch_r1_m2 &lt;- mods[[2]]$om$rep$pred_catch[,1]
+Catch_r1_m3 &lt;- mods[[3]]$om$rep$pred_catch[,1]
+plot(Catch_r1_m1[1:23], col = &quot;red&quot;, type = &quot;o&quot;, ylab = &quot;Catch&quot;, xlab = &quot;Year&quot;, ylim = c(0,1.2e4))
+lines(Catch_r1_m2[1:23], col = &quot;blue&quot;, type = &quot;o&quot;)
+lines(Catch_r1_m3[1:23], col = &quot;green&quot;, type = &quot;o&quot;)</code></pre>
 <div class="float">
-<img role="img" aria-label="Figure 1" src="data:image/png;base64,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" width="600" alt="Figure 1" />
+<img role="img" aria-label="Figure 1" src="data:image/png;base64,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" width="600" alt="Figure 1" />
 <div class="figcaption">Figure 1</div>
 </div>
 </div>

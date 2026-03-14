@@ -69,7 +69,7 @@ This is an illustrative example using **Georges Bank yellowtail flounder**.
 
 ### 1. Load `WHAM` and `SPASAM.MSE`
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 # Install if needed.
 # This fixed-history workflow is currently available in the lab branch.
 # remotes::install_github("lichengxue/SPASAM.MSE@lab", upgrade = "never")
@@ -88,7 +88,7 @@ main.dir <- here::here()
 We use Georges Bank yellowtail flounder ASAP input data and set up a short MSE
 feedback period.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 gb_dat <- read_asap3_dat("Data/GBK.DAT")
 
 input_hist <- prepare_wham_input(gb_dat)
@@ -132,7 +132,7 @@ historical fit.
 
 #### 3.1 Biological inputs for the historical period
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 user_maturity_hist <- array(NA_real_, dim = c(n_stocks, n_hist_years, n_ages))
 user_maturity_hist[, 1:n_hist_years, ] <- input$data$mature
 
@@ -150,7 +150,7 @@ fracyr_spawn <- gb_dat[[1]]$dat$fracyr_spawn
 
 #### 3.2 Observation settings for catch and indices
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 catch_info_hist <- list(
   catch_cv      = 0.05,
   catch_Neff    = 50,
@@ -172,7 +172,7 @@ index_info_hist <- list(
 
 #### 3.3 Build the historical model scaffold
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 info_hist <- SPASAM.MSE::generate_basic_info(
   n_stocks = n_stocks,
   n_regions = n_regions,
@@ -204,7 +204,7 @@ index_info_use_hist$use_index_paa[1:n_hist_years, ] <- input$data$use_index_paa
 
 #### 3.4 Selectivity, natural mortality, and recruitment process
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 sel_hist <- list(
   model = c("age-specific", "logistic", "logistic", "logistic"),
   re    = c("ar1_y", "none", "none", "none"),
@@ -239,7 +239,7 @@ NAA_re_hist <- list(
 
 #### 3.5 Prepare and fit the historical model
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 input_histfit <- prepare_wham_input(
   basic_info  = basic_info_hist,
   selectivity = sel_hist,
@@ -259,7 +259,7 @@ input_histfit$data$use_indices[1:n_hist_years, ]     <- input_e$data$use_indices
 input_histfit$data$use_index_paa[1:n_hist_years, ]   <- input_e$data$use_index_paa
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 generate_remove_years <- function(mat) {
   lz <- lapply(seq_len(ncol(mat)), function(j) which(mat[, j] == 0))
   if (all(lengths(lz) == 0)) return(NULL)
@@ -287,7 +287,7 @@ input_histfit <- update_input_index_info(
 )
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 if (!file.exists("Data/OM.RDS")) {
   OM <- fit_wham(
     input_histfit,
@@ -313,7 +313,7 @@ the feedback years will be allowed to vary by seed.
 
 #### 4.1 Biological inputs over the full modeled period
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 user_maturity <- array(NA_real_, dim = c(n_stocks, n_proj_years, n_ages))
 user_maturity[, 1:n_hist_years, ] <- OM$input$data$mature[, 1:n_hist_years, ]
 for (iy in (n_hist_years + 1L):n_proj_years) {
@@ -336,7 +336,7 @@ user_waa$waa_pointer_M        <- OM$input$data$waa_pointer_M
 
 #### 4.2 Catch and index settings for the OM
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 catch_info <- list(
   catch_cv      = 0.05,
   catch_Neff    = 50,
@@ -358,7 +358,7 @@ index_info <- list(
 
 #### 4.3 Build the projection scaffold
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 info <- SPASAM.MSE::generate_basic_info(
   n_stocks = n_stocks,
   n_regions = n_regions,
@@ -382,7 +382,7 @@ index_info_use <- info$index_info
 
 #### 4.4 Initialize fishing mortality
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 F_info <- info$F
 F_info$F[1:n_hist_years, ] <- OM$rep$Fbar[1:n_hist_years, 1, drop = FALSE]
 ```
@@ -393,7 +393,7 @@ Although the historical fit used recruitment-only random effects, the
 projection OM uses `rec+1` so that the historical stock trajectory can be
 reconstructed more closely when fixed values are inserted.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 sel3 <- list(
   model = c("age-specific", "logistic", "logistic", "logistic"),
   re    = c("ar1_y", "none", "none", "none"),
@@ -432,7 +432,7 @@ NAA_re <- list(
 
 #### 4.6 Build the unfitted projection OM input
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 om_input_P <- wham::prepare_wham_input(
   basic_info  = basic_info,
   selectivity = sel3,
@@ -464,7 +464,7 @@ for (iy in (n_hist_years + 1L):n_proj_years) {
 }
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 loc_zeros_agg <- lapply(seq_len(ncol(input_hist$data$use_indices)), function(j) {
   which(input_hist$data$use_indices[, j] == 0)
 })
@@ -511,7 +511,7 @@ om_input_P <- SPASAM.MSE::update_input_index_info(
 
 ### 5. Compile the unfitted projection OM
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 om_input_P$data$do_simulate_N_re <- 1L
 
 unfitted_om_P <- fit_wham(
@@ -528,7 +528,7 @@ This is the key step. We overwrite the historical `log_NAA` values using the
 fitted historical model so that the historical population trajectory remains
 fixed across seeds. Only the future block is left free and can be simulated.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 unfitted_om_P$input$random <- "log_NAA"
 unfitted_om_P$input$data$do_simulate_N_re <- 1L
 
@@ -547,7 +547,7 @@ if (!is.null(unfitted_om_P$parList$log_NAA)) {
 }
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 logNAA_dim <- dim(unfitted_om_P$input$par$log_NAA)
 future_idx_start <- first_free_year - 1L
 future_idx <- future_idx_start:logNAA_dim[3]
@@ -562,7 +562,7 @@ if (!is.null(unfitted_om_P$env$map)) {
 }
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 last_fixed_idx <- first_free_year - 2L
 if (last_fixed_idx >= 1L) {
   unfitted_om_P$input$par$log_NAA[1, 1, future_idx, ] <-
@@ -584,7 +584,7 @@ unfitted_om_P$parList$logit_selpars <- OM$parList$logit_selpars
 unfitted_om_P$parList$selpars_re    <- OM$parList$selpars_re
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 unfitted_om_P <- fit_wham(
   unfitted_om_P$input,
   do.fit = FALSE,
@@ -599,7 +599,7 @@ Now we simulate the OM while keeping the historical period fixed. The future
 trajectory depends on the seed, but the historical trajectory remains
 unchanged.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 seed <- 12345L
 
 om_future <- update_om_fn(
@@ -616,7 +616,7 @@ om_future <- update_om_fn(
 The historical trajectory should closely match the fitted OM, while the future
 trajectory is free to vary.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 plot(
   om_future$rep$SSB,
   type = "l",
@@ -635,7 +635,7 @@ legend(
 )
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 s <- 1
 r <- 1
 hist_idx <- 1:(n_hist_years - 1L)
@@ -666,12 +666,12 @@ plot(
 abline(v = first_free_year, lty = 2, col = "red")
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 plot(om_future$rep$NAA_devs[, , , 1], type = "l", main = "NAA_devs age 1")
 plot(om_future$rep$pred_NAA[, , , 1], type = "l", main = "pred_NAA age 1")
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 hist_diff <- om_future$rep$NAA[, , 1:n_hist_years, ] -
   OM$rep$NAA[, , 1:n_hist_years, ]
 print(hist_diff)
@@ -694,7 +694,7 @@ FXSPR.
 
 #### 9.1 Define assessment years and EM settings
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 assess_interval <- 2L
 base_years      <- year_start:year_end
 terminal_year   <- tail(base_years, 1)
@@ -729,7 +729,7 @@ update_index_info_list <- list(
 
 #### 9.2 MSE run with 75% FXSPR
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 hcr1 <- list(
   hcr.type = 1,
   hcr.opts = list(use_FXSPR = TRUE, percentFXSPR = 75)
@@ -773,7 +773,7 @@ if (!file.exists("Results/mod1.RDS")) {
 
 #### 9.3 MSE run with 100% FXSPR
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 hcr2 <- list(
   hcr.type = 1,
   hcr.opts = list(use_FXSPR = TRUE, percentFXSPR = 100)
@@ -819,7 +819,7 @@ if (!file.exists("Results/mod2.RDS")) {
 
 Below we compare the realized OM trajectories under the two HCR settings.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 plot(
   mod1$om$rep$SSB,
   type = "l",

@@ -11,7 +11,7 @@
 
 
 
-<title>Specify Catch Apportionment</title>
+<title>Use Actual Stock Assessment</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1689,119 +1689,9 @@ border-radius: 0px;
 
 
 
-<!-- SPASAM_NAV_INJECTED -->
-<style>
-  :root{
-    --bg:#0b1220; --bg2:#0f1b33; --text:#e9eefc; --muted:#b7c3e6;
-    --line:rgba(255,255,255,.10); --accent:#6ea8ff; --accent2:#7ef0d4;
-    --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;
-  }
-  body{
-    background:
-      radial-gradient(1000px 600px at 20% -10%, rgba(110,168,255,.25), transparent 60%),
-      radial-gradient(800px 600px at 90% 10%, rgba(126,240,212,.18), transparent 55%),
-      linear-gradient(180deg,var(--bg),var(--bg2)) !important;
-    color: var(--text) !important;
-  }
-  a{color:var(--accent) !important;}
-  .navbar, nav.navbar, .navbar.navbar-default, .navbar.navbar-inverse,
-  .navbar.navbar-fixed-top, .navbar.navbar-static-top, #navbar{
-    display:none !important;
-  }
-  html, body{ margin:0 !important; }
-  body{ padding-top:0 !important; }
-  .main-container, .container-fluid.main-container, .toc-content, .content{
-    padding-top:0 !important;
-    margin-top:0 !important;
-  }
-  body[style*='padding-top']{ padding-top:0 !important; }
-  .main-container[style*='padding-top']{ padding-top:0 !important; }
-  .nav.spasam-nav{
-    position:sticky !important;
-    top:0 !important;
-    z-index:999999 !important;
-    backdrop-filter:blur(10px);
-    background:rgba(11,18,32,.65);
-    border-bottom:1px solid rgba(255,255,255,.10);
-  }
-  .nav-inner{max-width:1100px;margin:0 auto;padding:10px 18px;display:flex;
-    gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;}
-  .brand .dot{width:10px;height:10px;border-radius:999px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    box-shadow:0 0 0 4px rgba(110,168,255,.15);}
-  .nav-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .nav-links a,.dropbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;
-    border-radius:999px;color:var(--text) !important;border:1px solid rgba(255,255,255,.08);
-    background:rgba(255,255,255,.04);font-size:14px;}
-  .nav-links a:hover,.dropbtn:hover{background:rgba(255,255,255,.08);text-decoration:none;}
-  .icon{width:18px;height:18px;object-fit:contain;}
-  .dropdown{position:relative;}
-  .dropbtn{cursor:pointer;}
-  .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:280px;max-height:70vh;overflow-y:auto;padding:10px;
-    border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);
-    box-shadow:var(--shadow);z-index:99999;}
-  .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text) !important;}
-  .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}
-  .dropdown:hover .dropdown-content{display:block;}
-  .dropdown.open .dropdown-content{display:block;}
-  .nav-version{margin-left:auto;}
-  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);
-    padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}
-  .tocify, .tocify-wrapper, #TOC{
-    background: rgba(15,26,47,.95) !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
-    box-shadow: var(--shadow) !important;
-  }
-  .tocify .list-group-item, .tocify-wrapper .list-group-item, #TOC .list-group-item{
-    background: transparent !important;
-    color: var(--text) !important;
-    border-color: rgba(255,255,255,.10) !important;
-  }
-  .tocify .list-group-item:hover, .tocify-wrapper .list-group-item:hover, #TOC .list-group-item:hover{
-    background: rgba(255,255,255,.06) !important;
-  }
-  .tocify .list-group-item.active, .tocify-wrapper .list-group-item.active, #TOC .list-group-item.active{
-    background: rgba(110,168,255,.18) !important;
-    color: var(--text) !important;
-    border-radius: 10px !important;
-  }
-  .tocify a, .tocify-wrapper a, #TOC a{ color: var(--text) !important; }
-  .tocify a:hover, .tocify-wrapper a:hover, #TOC a:hover{ color: var(--accent) !important; text-decoration:none !important; }
-  .main-container, .container, .container-fluid, .page-inner, .row,
-  .col-xs-12, .col-sm-12, .col-md-9, .col-md-3{
-    background: transparent !important;
-  }
-  pre, code{ background: rgba(255,255,255,.06) !important; color: var(--text) !important;
-    border:1px solid rgba(255,255,255,.10) !important; }
-</style>
 </head>
 
 <body>
-  <!-- SPASAM_NAV_START -->
-  <div class="nav spasam-nav">
-    <div class="nav-inner">
-      <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>
-      <div class="nav-links">
-        <a href="index.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/home_icon.png" alt="Home" />Home</a>
-        <div class="dropdown" id="vignetteDropdown">
-          <button class="dropbtn" type="button"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/vignettes_icon.png" alt="Vignettes" />Vignettes</button>
-          <div class="dropdown-content">
-            <a href="vignettes.html"><b>Browse all vignettes →</b></a>
-          </div>
-        </div>
-        <a href="https://github.com/lichengxue/SPASAM.MSE"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/source_icon.png" alt="Source" />Source</a>
-        <a href="SPASAM-MSE_Manual.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/manual_icon.PNG" alt="Manual" />Manual</a>
-        <a href="projects.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/projects_icon.png" alt="Projects" />Projects</a>
-        <a href="news_updates.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/news_icon.png" alt="News" />News</a>
-        <a href="bug_report.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/bug_report_icon.png" alt="Bug report" />Bug report</a>
-        <a href="mailto:chengxue.li@stonybrook.edu"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/contact_icon.png" alt="Contact" />Contact</a>
-      </div>
-      <div class="nav-version"><span class="kbd">v0.0.0</span></div>
-    </div>
-  </div>
-  <!-- SPASAM_NAV_END -->
 
 
 <div class="container-fluid main-container">
@@ -1823,331 +1713,800 @@ border-radius: 0px;
 
 
 
-<h1 class="title toc-ignore">Specify Catch Apportionment</h1>
+<h1 class="title toc-ignore">Use Actual Stock Assessment</h1>
 
 </div>
 
 
-<p>This vignette introduces options for catch apportionment when the
-operating model is spatially explicit while a panmictic model is used as
-the assessment model.</p>
-<div id="load-wham-and-whammse" class="section level3">
-<h3>1. Load “WHAM” and “whamMSE”:</h3>
-<pre class="r"><code>library(wham)
-library(whamMSE)
+<p>This vignette demonstrates how to use an <strong>actual stock
+assessment model</strong> output to develop an operating model (OM) for
+<code>SPASAM.MSE</code>, while keeping the historical population
+dynamics fixed to the fitted stock trajectory.</p>
+<p>In many MSE examples, process random effects (for example,
+recruitment deviations) are simulated for the entire time series. That
+means the historical population trajectory can vary from one random seed
+to another. However, when an OM is built from a real stock assessment,
+users may prefer the historical period to reflect the fitted trajectory
+of the real stock as closely as possible. This can make the evaluation
+of management procedures more meaningful for management
+applications.</p>
+<p>The key idea in this vignette is:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Fit a stock assessment model to real data</strong>
+<ul>
+<li>Here we use Georges Bank yellowtail flounder data.</li>
+</ul></li>
+<li><strong>Extract estimated parameters and historical process
+deviations</strong>
+<ul>
+<li>These are used to construct an OM for MSE.</li>
+</ul></li>
+<li><strong>Fix the historical period</strong>
+<ul>
+<li>The historical trajectory is held constant across seeds, so the
+underlying population dynamics in the historical period do not
+change.</li>
+</ul></li>
+<li><strong>Simulate only the feedback period</strong>
+<ul>
+<li>Random deviations are still drawn during the feedback years, so
+future trajectories can differ across seeds.</li>
+</ul></li>
+</ol>
+<p>At present, this feature is available only in the <strong>lab
+branch</strong> of <code>SPASAM.MSE</code>. In addition, this workflow
+has only been tested for cases where <strong>recruitment is the only
+process treated as a random effect in the OM</strong>. Users should
+therefore use an OM with <strong>recruitment-only random
+effects</strong> (i.e., no NAA random effects in the OM). Other process
+variation, such as natural mortality, may still be included as fixed
+process structure. In the EM, users may still include any process as
+random effects if desired.</p>
+<p>This vignette provides a full end-to-end example:</p>
+<ul>
+<li>fit the historical stock assessment,</li>
+<li>build the projection OM,</li>
+<li>fix the historical period,</li>
+<li>simulate the future,</li>
+<li>run MSE.</li>
+</ul>
+<p>This is an illustrative example using <strong>Georges Bank yellowtail
+flounder</strong>.</p>
+<div id="load-wham-and-spasam.mse" class="section level3">
+<h3>1. Load <code>WHAM</code> and <code>SPASAM.MSE</code></h3>
+<pre class="r"><code># Install if needed.
+# This fixed-history workflow is currently available in the lab branch.
+# remotes::install_github(&quot;lichengxue/SPASAM.MSE@lab&quot;, upgrade = &quot;never&quot;)
 
-main.dir = here::here()</code></pre>
-</div>
-<div id="generate-basic-information" class="section level3">
-<h3>2. Generate basic information</h3>
-<pre class="r"><code>year_start  &lt;- 1  # starting year in the burn-in period
-year_end    &lt;- 20  # end year in the burn-in period
-MSE_years   &lt;- 3     # number of years in the feedback loop
-# Note: no need to include MSE_years in simulation-estimation 
+library(wham)
+library(SPASAM.MSE)
+library(dplyr)
+library(ggplot2)
+library(here)
 
-info &lt;- generate_basic_info(n_stocks = 2,
-                            n_regions = 2,
-                            n_indices = 4,
-                            n_fleets = 4,
-                            n_seasons = 4,
-                            base.years = year_start:year_end,
-                            n_feedback_years = MSE_years,
-                            life_history = &quot;medium&quot;,
-                            n_ages = 12) 
+main.dir &lt;- here::here()</code></pre>
+</div>
+<div id="read-stock-assessment-data-and-define-global-settings" class="section level3">
+<h3>2. Read stock assessment data and define global settings</h3>
+<p>We use Georges Bank yellowtail flounder ASAP input data and set up a
+short MSE feedback period.</p>
+<pre class="r"><code>gb_dat &lt;- read_asap3_dat(&quot;Data/GBK.DAT&quot;)
 
-basic_info = info$basic_info # collect basic information
-catch_info = info$catch_info # collect fleet catch information
-index_info = info$index_info # collect survey information
-F_info = info$F # collect fishing information</code></pre>
-</div>
-<div id="specify-movement-type-and-movement-rate" class="section level3">
-<h3>3. Specify movement type and movement rate</h3>
-<pre class="r"><code>basic_info &lt;- generate_NAA_where(basic_info = basic_info, move.type = 2) # &quot;bidirectional&quot; movement
+input_hist &lt;- prepare_wham_input(gb_dat)
+input      &lt;- prepare_wham_input(gb_dat)
 
-move &lt;- generate_move(basic_info = basic_info, move.type = 2, move.rate = c(0.2,0.1), move.re = &quot;constant&quot;)</code></pre>
-</div>
-<div id="configure-selecitvity-and-natural-mortality" class="section level3">
-<h3>4. Configure selecitvity and natural mortality</h3>
-<pre class="r"><code>n_stocks  &lt;- as.integer(basic_info[&#39;n_stocks&#39;])
-n_regions &lt;- as.integer(basic_info[&#39;n_regions&#39;])
-n_fleets  &lt;- as.integer(basic_info[&#39;n_fleets&#39;])
-n_indices &lt;- as.integer(basic_info[&#39;n_indices&#39;])
-n_ages    &lt;- as.integer(basic_info[&#39;n_ages&#39;])
+n_stocks  &lt;- 1L
+n_regions &lt;- 1L
+n_ages    &lt;- 6L
+n_indices &lt;- 3L
+n_fleets  &lt;- 1L
+n_seasons &lt;- 1L
 
-# Selectivity Configuration
-fleet_pars &lt;- c(5,1)
-index_pars &lt;- c(2,1)
-sel &lt;- list(model=rep(&quot;logistic&quot;,n_fleets+n_indices),
-            initial_pars=c(rep(list(fleet_pars),n_fleets),rep(list(index_pars),n_indices)))
+year_start &lt;- 1973L
+year_end   &lt;- 2022L
+MSE_years  &lt;- 10L
 
-# M Configuration
-M &lt;- list(model=&quot;constant&quot;,initial_means=array(0.2, dim = c(n_stocks,n_regions,n_ages)))</code></pre>
-</div>
-<div id="configure-numbers-at-age-naa" class="section level3">
-<h3>5. Configure numbers-at-age (NAA)</h3>
-<pre class="r"><code>sigma        &lt;- &quot;rec+1&quot;
-re_cor       &lt;- &quot;iid&quot;
-ini.opt      &lt;- &quot;equilibrium&quot; 
-sigma_vals   &lt;-  array(0.5, dim = c(n_stocks, n_regions, n_ages)) # NAA sigma
+n_hist_years &lt;- year_end - year_start + 1L
+n_proj_years &lt;- n_hist_years + MSE_years
 
-NAA_re &lt;- list(N1_model=rep(ini.opt,n_stocks),
-               sigma=rep(sigma,n_stocks),
-               cor=rep(re_cor,n_stocks),
-               recruit_model = 2,  # rec random around the mean
-               sigma_vals = sigma_vals) # NAA_where must be specified in basic_info!</code></pre>
-</div>
-<div id="generate-wham-input" class="section level3">
-<h3>6. Generate wham input</h3>
-<p>Here we use <code>prepare_wham_input()</code> function to generate a
-wham input using the basic information we set above:</p>
-<pre class="r"><code>input &lt;- prepare_wham_input(basic_info = basic_info, 
-                            selectivity = sel, 
-                            M = M, 
-                            NAA_re = NAA_re, 
-                            move = move,
-                            catch_info = catch_info, 
-                            index_info = index_info, 
-                            F = F_info)</code></pre>
-</div>
-<div id="generate-operating-model" class="section level3">
-<h3>7. Generate operating model</h3>
-<pre class="r"><code>random = input$random # check what processes are random effects
-input$random = NULL # so inner optimization won&#39;t change simulated RE
-om &lt;- fit_wham(input, do.fit = F, do.brps = T, MakeADFun.silent = TRUE)
-# Note: do.fit must be FALSE (no modeling fitting yet)</code></pre>
-</div>
-<div id="generate-dataset" class="section level3">
-<h3>8. Generate dataset</h3>
-<pre class="r"><code>om_with_data &lt;- update_om_fn(om, seed = 123, random = random)</code></pre>
-</div>
-<div id="specify-assessment-interval-and-assessment-year-in-the-feedback-loop" class="section level3">
-<h3>9. Specify assessment interval and assessment year in the feedback
-loop</h3>
-<pre class="r"><code>assess.interval &lt;- 3 # Note: assessment interval is 3 years, given the feedback period is 3 years, there will be only 1 assessment
-base.years      &lt;- year_start:year_end # Burn-in period
-first.year      &lt;- head(base.years,1)
-terminal.year   &lt;- tail(base.years,1)
-assess.years    &lt;- seq(terminal.year, tail(om$years,1)-assess.interval,by = assess.interval)</code></pre>
-</div>
-<div id="using-panmictic-assessment-model" class="section level3">
-<h3>10. Using panmictic assessment model</h3>
-<p>There are several options for catch apportionment:</p>
-<div id="option-1-weight_type-1-with-method-equal-assign-equal-weights-to-all-regions." class="section level4">
-<h4>Option 1 (weight_type = 1 with method = “equal”): Assign equal
-weights to all regions.</h4>
-<pre class="r"><code>mod = list()
+base_years      &lt;- year_start:year_end
+assess_interval &lt;- 2L
 
-n_stocks = n_regions = 1
+stopifnot(MSE_years %% assess_interval == 0L)
 
-n_fleets = n_indices = 2
+assess_years &lt;- seq(
+  tail(base_years, 1),
+  year_end + MSE_years - assess_interval,
+  by = assess_interval
+)
 
-sel_em &lt;- list(model=rep(&quot;logistic&quot;,n_fleets+n_indices),
-               initial_pars=c(rep(list(fleet_pars),n_fleets),rep(list(index_pars),n_indices)))
-
-NAA_re_em &lt;- list(N1_model=&quot;equilibrium&quot;,sigma=&quot;rec+1&quot;,cor=&quot;iid&quot;)
-
-M_em &lt;- list(model=&quot;constant&quot;,initial_means=array(0.2, dim = c(n_stocks,n_regions,n_ages)))
-
-mod[[1]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 1, method = &quot;equal&quot;, weight_years = 3),
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE
-                           )</code></pre>
+# Historical period is fixed.
+# Only years from first_free_year onward are allowed to vary.
+first_free_year &lt;- 51L</code></pre>
 </div>
-<div id="option-2-weight_type-2-with-method-fleet_region-use-regional-catch-totals-to-compute-weights." class="section level4">
-<h4>Option 2 (weight_type = 2 with method = “fleet_region”): Use
-regional catch totals to compute weights.</h4>
-<pre class="r"><code>mod[[2]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 2, method = &quot;fleet_region&quot;, weight_years = 3),
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE) </code></pre>
-</div>
-<div id="option-3-weight_type-3-with-method-index_equal-use-survey-based-regional-weighting-then-assigns-equally-among-fleets-in-the-same-region" class="section level4">
-<h4>Option 3 (weight_type = 3, with method = “index_equal”): Use
-survey-based regional weighting, then assigns equally among fleets in
-the same region</h4>
-<pre class="r"><code>mod[[3]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 3, method = &quot;index_equal&quot;, weight_years = 3, survey_pointer = 1), # use index 1
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE)</code></pre>
-</div>
-<div id="option-4-weight_type-4-with-method-user_defined_fleets-use-manually-specified-weights-for-each-region-or-each-fleet" class="section level4">
-<h4>Option 4 (weight_type = 4 with method = “user_defined_fleets”): Use
-manually specified weights for each region or each fleet</h4>
-<pre class="r"><code>mod[[4]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 4, method = &quot;user_defined_fleets&quot;, user_weights = c(0.4,0.4,0.1,0.1)), # user-specified
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE) # average over the most recent 5 years</code></pre>
-</div>
-<div id="option-5-weight_type-4-weights-are-calculated-using-regional-recruitment-which-is-equal-in-this-case." class="section level4">
-<h4>Option 5 (weight_type = 4): Weights are calculated using regional
-recruitment (which is equal in this case).</h4>
-<pre class="r"><code>mod[[5]] = loop_through_fn(om = om_with_data,
-                           em_info = info, 
-                           random = random,
-                           M_em = M_em, 
-                           sel_em = sel_em,
-                           NAA_re_em = NAA_re_em, 
-                           move_em = NULL,
-                           age_comp_em = &quot;multinomial&quot;,
-                           em.opt = list(separate.em = TRUE, separate.em.type = 1, 
-                                         do.move = FALSE, est.move = FALSE),
-                           aggregate_catch_info = list(n_fleets = 2, # 2 aggregated fleets
-                                                       fleet_pointer = c(1,2,1,2), 
-                                                       # fleet 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # fleet 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE, 
-                                                       catch_Neff = c(100,100), # use ESS = 100 for aggregate fleet
-                                                       catch_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate fleet
-                           aggregate_index_info = list(n_indices = 2, # 2 aggregated indices
-                                                       index_pointer = c(1,2,1,2), 
-                                                       # index 1 (in region 1) and 3 (in region 2) will be aggregated, 
-                                                       # index 2 (in region 1) and 4 (in region 2) will be aggregated 
-                                                       use_catch_weighted_waa=TRUE,
-                                                       index_Neff = c(100,100), # use ESS = 100 for aggregate index
-                                                       index_cv = c(0.1,0.1)), # use CV = 0.1 for aggregate index
-                           catch_alloc = list(weight_type = 4, method = &quot;user_defined_regions&quot;, user_weights = c(0.5,0.5)), # user-specified
-                           assess_years = assess.years, 
-                           assess_interval = assess.interval, 
-                           base_years = base.years,
-                           year.use = 20,
-                           seed = 123,
-                           save.sdrep = TRUE,
-                           save.last.em = TRUE) # average over the most recent 5 years</code></pre>
-</div>
-<div id="plot-catch" class="section level4">
-<h4>Plot catch</h4>
-<pre class="r"><code>fleet1catch_m1 &lt;- mod[[1]]$om$rep$pred_catch[,1] # fleet1catch in model 1
-fleet1catch_m2 &lt;- mod[[2]]$om$rep$pred_catch[,1] # fleet1catch in model 2
-fleet1catch_m3 &lt;- mod[[3]]$om$rep$pred_catch[,1] # fleet1catch in model 3
-fleet1catch_m4 &lt;- mod[[4]]$om$rep$pred_catch[,1] # fleet1catch in model 4
-fleet1catch_m5 &lt;- mod[[5]]$om$rep$pred_catch[,1] # fleet1catch in model 5
+<div id="fit-the-historical-stock-assessment-model" class="section level3">
+<h3>3. Fit the historical stock assessment model</h3>
+<p>We first fit a historical OM to the real stock assessment data. In
+this example, recruitment is the only process treated as random effects
+in the historical fit.</p>
+<div id="biological-inputs-for-the-historical-period" class="section level4">
+<h4>3.1 Biological inputs for the historical period</h4>
+<pre class="r"><code>user_maturity_hist &lt;- array(NA_real_, dim = c(n_stocks, n_hist_years, n_ages))
+user_maturity_hist[, 1:n_hist_years, ] &lt;- input$data$mature
 
-plot(fleet1catch_m1, col = &quot;red&quot;, type = &quot;o&quot;, ylab = &quot;Catch&quot;, xlab = &quot;Year&quot;, main = &quot;Fleet 1 Catch&quot;, ylim = c(0, 5000))
-lines(fleet1catch_m2, col = &quot;blue&quot;, type = &quot;o&quot;)
-lines(fleet1catch_m3, col = &quot;green&quot;, type = &quot;o&quot;)
-lines(fleet1catch_m4, col = &quot;purple&quot;, type = &quot;o&quot;)
-lines(fleet1catch_m5, col = &quot;orange&quot;, type = &quot;o&quot;)
+user_waa_hist &lt;- list()
+user_waa_hist$waa &lt;- array(NA_real_, dim = c(5, n_hist_years, n_ages))
+user_waa_hist$waa[, 1:n_hist_years, ] &lt;- input$data$waa
+user_waa_hist$waa_pointer_fleets   &lt;- input$data$waa_pointer_fleets
+user_waa_hist$waa_pointer_indices  &lt;- input$data$waa_pointer_indices
+user_waa_hist$waa_pointer_totcatch &lt;- input$data$waa_pointer_ssb
+user_waa_hist$waa_pointer_ssb      &lt;- input$data$waa_pointer_ssb
+user_waa_hist$waa_pointer_M        &lt;- input$data$waa_pointer_M
 
-legend(&quot;topright&quot;, legend=c(&quot;M 1&quot;, &quot;M 2&quot;, &quot;M 3&quot;, &quot;M 4&quot;, &quot;M 5&quot;),
-       col=c(&quot;red&quot;, &quot;blue&quot;, &quot;green&quot;, &quot;purple&quot;, &quot;orange&quot;), lty=c(1,1), cex=0.8)</code></pre>
-<div class="float">
-<img role="img" aria-label="Figure 1" src="data:image/png;base64,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" width="600" alt="Figure 1" />
-<div class="figcaption">Figure 1</div>
+fracyr_spawn &lt;- gb_dat[[1]]$dat$fracyr_spawn</code></pre>
+</div>
+<div id="observation-settings-for-catch-and-indices" class="section level4">
+<h4>3.2 Observation settings for catch and indices</h4>
+<pre class="r"><code>catch_info_hist &lt;- list(
+  catch_cv      = 0.05,
+  catch_Neff    = 50,
+  use_agg_catch = 1,
+  use_catch_paa = 1
+)
+
+index_info_hist &lt;- list(
+  index_cv        = rep(0.5, n_indices),
+  index_Neff      = rep(25, n_indices),
+  fracyr_indices  = c(0.25, 0.75, 0.25),
+  q               = rep(0.2, n_indices),
+  use_indices     = rep(1, n_indices),
+  use_index_paa   = rep(1, n_indices),
+  units_indices   = rep(2, n_indices),
+  units_index_paa = rep(2, n_indices)
+)</code></pre>
+</div>
+<div id="build-the-historical-model-scaffold" class="section level4">
+<h4>3.3 Build the historical model scaffold</h4>
+<pre class="r"><code>info_hist &lt;- SPASAM.MSE::generate_basic_info(
+  n_stocks = n_stocks,
+  n_regions = n_regions,
+  n_indices = n_indices,
+  n_fleets = n_fleets,
+  n_seasons = n_seasons,
+  base.years = year_start:year_end,
+  n_feedback_years = 0L,
+  n_ages = n_ages,
+  catch_info = catch_info_hist,
+  index_info = index_info_hist,
+  user_waa = user_waa_hist,
+  user_maturity = user_maturity_hist,
+  fracyr_spawn = fracyr_spawn
+)
+
+basic_info_hist     &lt;- info_hist$basic_info
+catch_info_use_hist &lt;- info_hist$catch_info
+index_info_use_hist &lt;- info_hist$index_info
+F_info_hist         &lt;- info_hist$F
+
+catch_info_use_hist$agg_catch[1:n_hist_years, ]     &lt;- input$data$agg_catch
+catch_info_use_hist$catch_paa[, 1:n_hist_years, ]   &lt;- input$data$catch_paa
+index_info_use_hist$agg_indices[1:n_hist_years, ]   &lt;- input$data$agg_indices
+index_info_use_hist$index_paa[, 1:n_hist_years, ]   &lt;- input$data$index_paa
+index_info_use_hist$use_indices[1:n_hist_years, ]   &lt;- input$data$use_indices
+index_info_use_hist$use_index_paa[1:n_hist_years, ] &lt;- input$data$use_index_paa</code></pre>
+</div>
+<div id="selectivity-natural-mortality-and-recruitment-process" class="section level4">
+<h4>3.4 Selectivity, natural mortality, and recruitment process</h4>
+<pre class="r"><code>sel_hist &lt;- list(
+  model = c(&quot;age-specific&quot;, &quot;logistic&quot;, &quot;logistic&quot;, &quot;logistic&quot;),
+  re    = c(&quot;ar1_y&quot;, &quot;none&quot;, &quot;none&quot;, &quot;none&quot;),
+  initial_pars = list(
+    c(0.1, 0.25, 0.5, 1, 1, 1),
+    c(2, 0.3),
+    c(2, 0.3),
+    c(2, 0.3)
+  ),
+  fix_pars = list(c(4:6), NULL, NULL, NULL)
+)
+
+M_hist &lt;- list(
+  model = &quot;constant&quot;,
+  initial_means = array(
+    c(0.57, 0.33, 0.26, 0.23, 0.22, 0.22),
+    dim = c(n_stocks, n_regions, n_ages)
+  )
+)
+
+sigma_vals_hist &lt;- array(0, dim = c(n_stocks, n_regions, n_ages))
+sigma_vals_hist[, , 1] &lt;- 0.5
+
+NAA_re_hist &lt;- list(
+  N1_model      = rep(&quot;equilibrium&quot;, n_stocks),
+  sigma         = rep(&quot;rec&quot;, n_stocks),
+  cor           = rep(&quot;iid&quot;, n_stocks),
+  recruit_model = 3,
+  sigma_vals    = sigma_vals_hist
+)</code></pre>
+</div>
+<div id="prepare-and-fit-the-historical-model" class="section level4">
+<h4>3.5 Prepare and fit the historical model</h4>
+<pre class="r"><code>input_histfit &lt;- prepare_wham_input(
+  basic_info  = basic_info_hist,
+  selectivity = sel_hist,
+  M           = M_hist,
+  NAA_re      = NAA_re_hist,
+  catch_info  = catch_info_use_hist,
+  index_info  = index_info_use_hist,
+  F           = F_info_hist,
+  age_comp    = &quot;logistic-normal-pool0&quot;
+)
+
+input_histfit &lt;- update_waa(input_histfit, waa_info = info_hist$par_inputs$user_waa)
+
+input_e &lt;- prepare_wham_input(gb_dat)
+input_histfit$data$agg_index_sigma[1:n_hist_years, ] &lt;- input_e$data$agg_index_sigma
+input_histfit$data$use_indices[1:n_hist_years, ]     &lt;- input_e$data$use_indices
+input_histfit$data$use_index_paa[1:n_hist_years, ]   &lt;- input_e$data$use_index_paa</code></pre>
+<pre class="r"><code>generate_remove_years &lt;- function(mat) {
+  lz &lt;- lapply(seq_len(ncol(mat)), function(j) which(mat[, j] == 0))
+  if (all(lengths(lz) == 0)) return(NULL)
+  max_rows &lt;- max(sapply(lz, length))
+  out &lt;- matrix(NA_integer_, nrow = max_rows, ncol = length(lz))
+  for (j in seq_along(lz)) {
+    if (length(lz[[j]])) out[seq_along(lz[[j]]), j] &lt;- lz[[j]]
+  }
+  out
+}
+
+remove_agg_years1 &lt;- generate_remove_years(input_e$data$use_indices)
+remove_paa_years1 &lt;- generate_remove_years(input_e$data$use_index_paa)
+
+input_histfit &lt;- update_input_index_info(
+  input_histfit,
+  agg_index_sigma = input_histfit$data$agg_index_sigma,
+  index_Neff      = input_histfit$data$index_Neff,
+  remove_agg = TRUE,
+  remove_agg_pointer = 1:3,
+  remove_agg_years = remove_agg_years1,
+  remove_paa = TRUE,
+  remove_paa_pointer = 1:3,
+  remove_paa_years = remove_paa_years1
+)</code></pre>
+<pre class="r"><code>if (!file.exists(&quot;Data/OM.RDS&quot;)) {
+  OM &lt;- fit_wham(
+    input_histfit,
+    do.fit = TRUE,
+    do.brps = TRUE,
+    do.retro = FALSE,
+    do.osa = FALSE,
+    MakeADFun.silent = TRUE
+  )
+  saveRDS(OM, &quot;Data/OM.RDS&quot;)
+} else {
+  OM &lt;- readRDS(&quot;Data/OM.RDS&quot;)
+}
+
+check_convergence(OM)</code></pre>
 </div>
 </div>
+<div id="build-the-projection-operating-model" class="section level3">
+<h3>4. Build the projection operating model</h3>
+<p>Next, we extend the model from the historical period into the
+feedback period. The historical years will later be fixed to the fitted
+stock trajectory, while the feedback years will be allowed to vary by
+seed.</p>
+<div id="biological-inputs-over-the-full-modeled-period" class="section level4">
+<h4>4.1 Biological inputs over the full modeled period</h4>
+<pre class="r"><code>user_maturity &lt;- array(NA_real_, dim = c(n_stocks, n_proj_years, n_ages))
+user_maturity[, 1:n_hist_years, ] &lt;- OM$input$data$mature[, 1:n_hist_years, ]
+for (iy in (n_hist_years + 1L):n_proj_years) {
+  user_maturity[, iy, ] &lt;- OM$input$data$mature[, n_hist_years, , drop = FALSE]
+}
+
+user_waa &lt;- list()
+user_waa$waa &lt;- array(NA_real_, dim = c(5, n_proj_years, n_ages))
+user_waa$waa[, 1:n_hist_years, ] &lt;- OM$input$data$waa[, 1:n_hist_years, ]
+for (iy in (n_hist_years + 1L):n_proj_years) {
+  user_waa$waa[, iy, ] &lt;- OM$input$data$waa[, n_hist_years, , drop = FALSE]
+}
+
+user_waa$waa_pointer_fleets   &lt;- OM$input$data$waa_pointer_fleets
+user_waa$waa_pointer_indices  &lt;- OM$input$data$waa_pointer_indices
+user_waa$waa_pointer_totcatch &lt;- OM$input$data$waa_pointer_totcatch
+user_waa$waa_pointer_ssb      &lt;- OM$input$data$waa_pointer_ssb
+user_waa$waa_pointer_M        &lt;- OM$input$data$waa_pointer_M</code></pre>
+</div>
+<div id="catch-and-index-settings-for-the-om" class="section level4">
+<h4>4.2 Catch and index settings for the OM</h4>
+<pre class="r"><code>catch_info &lt;- list(
+  catch_cv      = 0.05,
+  catch_Neff    = 50,
+  use_agg_catch = 1,
+  use_catch_paa = 1
+)
+
+index_info &lt;- list(
+  index_cv        = rep(0.5, n_indices),
+  index_Neff      = rep(25, n_indices),
+  fracyr_indices  = c(0.25, 0.75, 0.25),
+  q               = c(2.110e-4, 2.247e-4, 2.683e-4),
+  use_indices     = rep(1, n_indices),
+  use_index_paa   = rep(1, n_indices),
+  units_indices   = rep(2, n_indices),
+  units_index_paa = rep(2, n_indices)
+)</code></pre>
+</div>
+<div id="build-the-projection-scaffold" class="section level4">
+<h4>4.3 Build the projection scaffold</h4>
+<pre class="r"><code>info &lt;- SPASAM.MSE::generate_basic_info(
+  n_stocks = n_stocks,
+  n_regions = n_regions,
+  n_indices = n_indices,
+  n_fleets = n_fleets,
+  n_seasons = n_seasons,
+  base.years = year_start:year_end,
+  n_feedback_years = MSE_years,
+  n_ages = n_ages,
+  catch_info = catch_info,
+  index_info = index_info,
+  user_waa = user_waa,
+  user_maturity = user_maturity,
+  fracyr_spawn = fracyr_spawn
+)
+
+basic_info     &lt;- info$basic_info
+catch_info_use &lt;- info$catch_info
+index_info_use &lt;- info$index_info</code></pre>
+</div>
+<div id="initialize-fishing-mortality" class="section level4">
+<h4>4.4 Initialize fishing mortality</h4>
+<pre class="r"><code>F_info &lt;- info$F
+F_info$F[1:n_hist_years, ] &lt;- OM$rep$Fbar[1:n_hist_years, 1, drop = FALSE]</code></pre>
+</div>
+<div id="define-selectivity-m-and-process-settings-for-the-om" class="section level4">
+<h4>4.5 Define selectivity, M, and process settings for the OM</h4>
+<p>Although the historical fit used recruitment-only random effects, the
+projection OM uses <code>rec+1</code> so that the historical stock
+trajectory can be reconstructed more closely when fixed values are
+inserted.</p>
+<pre class="r"><code>sel3 &lt;- list(
+  model = c(&quot;age-specific&quot;, &quot;logistic&quot;, &quot;logistic&quot;, &quot;logistic&quot;),
+  re    = c(&quot;ar1_y&quot;, &quot;none&quot;, &quot;none&quot;, &quot;none&quot;),
+  initial_pars = list(
+    c(0.05, 0.3, 0.7, 0.875, 0.9, 1),
+    c(2.305, 0.327),
+    c(1.611, 0.483),
+    c(2.135, 0.217)
+  ),
+  fix_pars = list(c(4:6), NULL, NULL, NULL)
+)
+
+M &lt;- list(
+  model = &quot;constant&quot;,
+  initial_means = array(
+    c(0.57, 0.33, 0.26, 0.23, 0.22, 0.22),
+    dim = c(n_stocks, n_regions, n_ages)
+  )
+)
+
+sigma_vals &lt;- array(0, dim = c(n_stocks, n_regions, n_ages))
+sigma_vals[, , 1] &lt;- exp(OM$parList$log_NAA_sigma[, , 1])
+sigma_vals[, , 2:n_ages] &lt;- exp(OM$parList$log_NAA_sigma[, , 2:n_ages])
+
+recruit_pars_use &lt;- exp(as.numeric(OM$parList$mean_rec_pars[1, ]))
+
+NAA_re &lt;- list(
+  N1_model      = rep(&quot;age-specific-fe&quot;, n_stocks),
+  sigma         = rep(&quot;rec+1&quot;, n_stocks),
+  cor           = rep(&quot;iid&quot;, n_stocks),
+  recruit_model = 3,
+  recruit_pars  = list(recruit_pars_use),
+  sigma_vals    = sigma_vals
+)</code></pre>
+</div>
+<div id="build-the-unfitted-projection-om-input" class="section level4">
+<h4>4.6 Build the unfitted projection OM input</h4>
+<pre class="r"><code>om_input_P &lt;- wham::prepare_wham_input(
+  basic_info  = basic_info,
+  selectivity = sel3,
+  M           = M,
+  NAA_re      = NAA_re,
+  catch_info  = catch_info_use,
+  index_info  = index_info_use,
+  F           = F_info,
+  age_comp    = &quot;logistic-normal-pool0&quot;
+)
+
+waa_info &lt;- info$par_inputs$user_waa
+om_input_P &lt;- SPASAM.MSE::update_waa(om_input_P, waa_info = waa_info)
+
+om_input_P$par$catch_paa_pars &lt;- OM$parList$catch_paa_pars
+om_input_P$par$index_paa_pars &lt;- OM$parList$index_paa_pars
+om_input_P$par$sel_repars     &lt;- OM$parList$sel_repars
+
+for (i in 1:n_regions) {
+  om_input_P$par$log_N1[i, i, ] &lt;- log(OM$rep$N1)[i, i, ]
+}
+
+om_input_P$data$agg_index_sigma[1:n_hist_years, ] &lt;- input_hist$data$agg_index_sigma
+om_input_P$data$use_indices[1:n_hist_years, ]     &lt;- input_hist$data$use_indices
+om_input_P$data$use_index_paa[1:n_hist_years, ]   &lt;- input_hist$data$use_index_paa
+
+for (iy in (n_hist_years + 1L):n_proj_years) {
+  om_input_P$data$agg_index_sigma[iy, ] &lt;- input_hist$data$agg_index_sigma[n_hist_years, ]
+}</code></pre>
+<pre class="r"><code>loc_zeros_agg &lt;- lapply(seq_len(ncol(input_hist$data$use_indices)), function(j) {
+  which(input_hist$data$use_indices[, j] == 0)
+})
+
+loc_zeros_paa &lt;- lapply(seq_len(ncol(input_hist$data$use_index_paa)), function(j) {
+  which(input_hist$data$use_index_paa[, j] == 0)
+})
+
+max_agg &lt;- max(sapply(loc_zeros_agg, length))
+max_paa &lt;- max(sapply(loc_zeros_paa, length))
+
+remove_agg_years1 &lt;- if (max_agg &gt; 0) {
+  out &lt;- matrix(NA_integer_, nrow = max_agg, ncol = length(loc_zeros_agg))
+  for (j in seq_along(loc_zeros_agg)) {
+    if (length(loc_zeros_agg[[j]])) {
+      out[seq_along(loc_zeros_agg[[j]]), j] &lt;- loc_zeros_agg[[j]]
+    }
+  }
+  out
+} else NULL
+
+remove_paa_years1 &lt;- if (max_paa &gt; 0) {
+  out &lt;- matrix(NA_integer_, nrow = max_paa, ncol = length(loc_zeros_paa))
+  for (j in seq_along(loc_zeros_paa)) {
+    if (length(loc_zeros_paa[[j]])) {
+      out[seq_along(loc_zeros_paa[[j]]), j] &lt;- loc_zeros_paa[[j]]
+    }
+  }
+  out
+} else NULL
+
+om_input_P &lt;- SPASAM.MSE::update_input_index_info(
+  om_input_P,
+  agg_index_sigma = om_input_P$data$agg_index_sigma,
+  index_Neff      = om_input_P$data$index_Neff,
+  remove_agg = TRUE,
+  remove_agg_pointer = 1:3,
+  remove_agg_years = remove_agg_years1,
+  remove_paa = TRUE,
+  remove_paa_pointer = 1:3,
+  remove_paa_years = remove_paa_years1
+)</code></pre>
+</div>
+</div>
+<div id="compile-the-unfitted-projection-om" class="section level3">
+<h3>5. Compile the unfitted projection OM</h3>
+<pre class="r"><code>om_input_P$data$do_simulate_N_re &lt;- 1L
+
+unfitted_om_P &lt;- fit_wham(
+  om_input_P,
+  do.fit = FALSE,
+  do.brps = FALSE,
+  MakeADFun.silent = TRUE
+)</code></pre>
+</div>
+<div id="fix-the-historical-period-and-free-only-the-feedback-period" class="section level3">
+<h3>6. Fix the historical period and free only the feedback period</h3>
+<p>This is the key step. We overwrite the historical
+<code>log_NAA</code> values using the fitted historical model so that
+the historical population trajectory remains fixed across seeds. Only
+the future block is left free and can be simulated.</p>
+<pre class="r"><code>unfitted_om_P$input$random &lt;- &quot;log_NAA&quot;
+unfitted_om_P$input$data$do_simulate_N_re &lt;- 1L
+
+unfitted_om_P$input$par$log_N1 &lt;- log(OM$rep$N1)
+if (!is.null(unfitted_om_P$parList$log_N1)) {
+  unfitted_om_P$parList$log_N1 &lt;- log(OM$rep$N1)
+}
+
+hist_idx &lt;- 1:(first_free_year - 2L)
+unfitted_om_P$input$par$log_NAA[1, 1, hist_idx, ] &lt;-
+  log(OM$rep$NAA[1, 1, hist_idx + 1L, ])
+
+if (!is.null(unfitted_om_P$parList$log_NAA)) {
+  unfitted_om_P$parList$log_NAA[1, 1, hist_idx, ] &lt;-
+    log(OM$rep$NAA[1, 1, hist_idx + 1L, ])
+}</code></pre>
+<pre class="r"><code>logNAA_dim &lt;- dim(unfitted_om_P$input$par$log_NAA)
+future_idx_start &lt;- first_free_year - 1L
+future_idx &lt;- future_idx_start:logNAA_dim[3]
+
+m &lt;- array(NA_integer_, dim = logNAA_dim)
+m[1, 1, future_idx, ] &lt;- 1L
+m[!is.na(m)] &lt;- seq_len(sum(!is.na(m)))
+
+unfitted_om_P$input$map$log_NAA &lt;- factor(m)
+if (!is.null(unfitted_om_P$env$map)) {
+  unfitted_om_P$env$map$log_NAA &lt;- unfitted_om_P$input$map$log_NAA
+}</code></pre>
+<pre class="r"><code>last_fixed_idx &lt;- first_free_year - 2L
+if (last_fixed_idx &gt;= 1L) {
+  unfitted_om_P$input$par$log_NAA[1, 1, future_idx, ] &lt;-
+    array(
+      unfitted_om_P$input$par$log_NAA[1, 1, last_fixed_idx, ],
+      dim = c(1, 1, length(future_idx), logNAA_dim[4])
+    )
+
+  if (!is.null(unfitted_om_P$parList$log_NAA)) {
+    unfitted_om_P$parList$log_NAA[1, 1, future_idx, ] &lt;-
+      array(
+        unfitted_om_P$parList$log_NAA[1, 1, last_fixed_idx, ],
+        dim = c(1, 1, length(future_idx), logNAA_dim[4])
+      )
+  }
+}
+
+unfitted_om_P$parList$logit_selpars &lt;- OM$parList$logit_selpars
+unfitted_om_P$parList$selpars_re    &lt;- OM$parList$selpars_re</code></pre>
+<pre class="r"><code>unfitted_om_P &lt;- fit_wham(
+  unfitted_om_P$input,
+  do.fit = FALSE,
+  do.brps = FALSE,
+  MakeADFun.silent = TRUE
+)</code></pre>
+</div>
+<div id="simulate-only-the-future-block" class="section level3">
+<h3>7. Simulate only the future block</h3>
+<p>Now we simulate the OM while keeping the historical period fixed. The
+future trajectory depends on the seed, but the historical trajectory
+remains unchanged.</p>
+<pre class="r"><code>seed &lt;- 12345L
+
+om_future &lt;- update_om_fn(
+  unfitted_om_P,
+  seed = seed,
+  random = &quot;log_NAA&quot;,
+  process_fix = 1,
+  first_free_year = first_free_year
+)</code></pre>
+</div>
+<div id="diagnostics" class="section level3">
+<h3>8. Diagnostics</h3>
+<p>The historical trajectory should closely match the fitted OM, while
+the future trajectory is free to vary.</p>
+<pre class="r"><code>plot(
+  om_future$rep$SSB,
+  type = &quot;l&quot;,
+  main = &quot;SSB with fixed history and simulated feedback period&quot;,
+  xlab = &quot;Year index&quot;,
+  ylab = &quot;SSB&quot;
+)
+lines(1:n_hist_years, OM$rep$SSB[1:n_hist_years], col = &quot;red&quot;, lwd = 2)
+
+legend(
+  &quot;topright&quot;,
+  legend = c(&quot;Projected OM&quot;, &quot;Fitted historical OM&quot;),
+  col = c(&quot;black&quot;, &quot;red&quot;),
+  lwd = c(1, 2),
+  bty = &quot;n&quot;
+)</code></pre>
+<pre class="r"><code>s &lt;- 1
+r &lt;- 1
+hist_idx &lt;- 1:(n_hist_years - 1L)
+
+par(mfrow = c(2, 1), mar = c(4, 4, 2, 1))
+
+plot(
+  hist_idx + 1,
+  exp(om_future$input$par$log_NAA[s, r, hist_idx, 1]),
+  type = &quot;l&quot;,
+  xlab = &quot;Model year&quot;,
+  ylab = &quot;NAA age 1&quot;,
+  main = &quot;Historical check: input log_NAA vs fitted OM rep$NAA&quot;
+)
+lines(
+  hist_idx + 1,
+  OM$rep$NAA[s, r, hist_idx + 1L, 1],
+  col = &quot;red&quot;
+)
+
+plot(
+  om_future$rep$pred_NAA[s, r, , 6],
+  type = &quot;l&quot;,
+  main = &quot;pred_NAA age 6&quot;,
+  xlab = &quot;Year index&quot;,
+  ylab = &quot;pred_NAA age 6&quot;
+)
+abline(v = first_free_year, lty = 2, col = &quot;red&quot;)</code></pre>
+<pre class="r"><code>plot(om_future$rep$NAA_devs[, , , 1], type = &quot;l&quot;, main = &quot;NAA_devs age 1&quot;)
+plot(om_future$rep$pred_NAA[, , , 1], type = &quot;l&quot;, main = &quot;pred_NAA age 1&quot;)</code></pre>
+<pre class="r"><code>hist_diff &lt;- om_future$rep$NAA[, , 1:n_hist_years, ] -
+  OM$rep$NAA[, , 1:n_hist_years, ]
+print(hist_diff)
+
+plot(
+  om_future$rep$SSB[1:n_hist_years],
+  type = &quot;l&quot;,
+  main = &quot;Historical SSB comparison&quot;,
+  xlab = &quot;Year index&quot;,
+  ylab = &quot;SSB&quot;
+)
+lines(OM$rep$SSB[1:n_hist_years], col = &quot;red&quot;)</code></pre>
+</div>
+<div id="run-mse" class="section level3">
+<h3>9. Run MSE</h3>
+<p>We now run MSE using the projected OM with fixed historical dynamics.
+In this example, we compare two harvest control rule settings: 75% FXSPR
+and 100% FXSPR.</p>
+<div id="define-assessment-years-and-em-settings" class="section level4">
+<h4>9.1 Define assessment years and EM settings</h4>
+<pre class="r"><code>assess_interval &lt;- 2L
+base_years      &lt;- year_start:year_end
+terminal_year   &lt;- tail(base_years, 1)
+
+assess_years &lt;- seq(
+  terminal_year,
+  year_end + MSE_years - assess_interval,
+  by = assess_interval
+)
+
+NAA_re_em &lt;- NAA_re
+NAA_re_em$N1_model &lt;- &quot;equilibrium&quot;
+NAA_re_em$sigma    &lt;- &quot;rec&quot;
+NAA_re_em$cor      &lt;- &quot;iid&quot;
+
+update_catch_info_list &lt;- list(
+  agg_catch_sigma = om_input_P$data$agg_catch_sigma,
+  catch_Neff      = om_input_P$data$catch_Neff
+)
+
+update_index_info_list &lt;- list(
+  agg_index_sigma = om_input_P$data$agg_index_sigma,
+  index_Neff      = om_input_P$data$index_Neff,
+  remove_agg = TRUE,
+  remove_agg_pointer = 1:3,
+  remove_agg_years = remove_agg_years1,
+  remove_paa = TRUE,
+  remove_paa_pointer = 1:3,
+  remove_paa_years = remove_paa_years1
+)</code></pre>
+</div>
+<div id="mse-run-with-75-fxspr" class="section level4">
+<h4>9.2 MSE run with 75% FXSPR</h4>
+<pre class="r"><code>hcr1 &lt;- list(
+  hcr.type = 1,
+  hcr.opts = list(use_FXSPR = TRUE, percentFXSPR = 75)
+)
+
+if (!file.exists(&quot;Results/mod1.RDS&quot;)) {
+  mod1 &lt;- loop_through_fn(
+    om = om_future,
+    em_info = info,
+    random = &quot;log_NAA&quot;,
+    M_em = M,
+    sel_em = sel3,
+    NAA_re_em = NAA_re_em,
+    age_comp_em = &quot;logistic-normal-pool0&quot;,
+    em.opt = list(
+      separate.em = FALSE,
+      separate.em.type = 1,
+      do.move = FALSE,
+      est.move = FALSE
+      ),
+    update_index_info = update_index_info_list,
+    update_catch_info = update_catch_info_list,
+    assess_years = assess_years,
+    assess_interval = assess_interval,
+    base_years = base_years,
+    year.use = 50,
+    add.years = TRUE,
+    seed = 12345L,
+    hcr = hcr1,
+    save.sdrep = FALSE,
+    save.last.em = TRUE,
+    FXSPR_init = 0.5,
+    process_fix = 1,
+    first_free_year = 51
+    ) 
+  saveRDS(mod1, &quot;Results/mod1.RDS&quot;)
+  } else {
+    mod1 &lt;- readRDS(&quot;Results/mod1.RDS&quot;)
+  }</code></pre>
+</div>
+<div id="mse-run-with-100-fxspr" class="section level4">
+<h4>9.3 MSE run with 100% FXSPR</h4>
+<pre class="r"><code>hcr2 &lt;- list(
+  hcr.type = 1,
+  hcr.opts = list(use_FXSPR = TRUE, percentFXSPR = 100)
+)
+
+if (!file.exists(&quot;Results/mod2.RDS&quot;)) {
+  mod2 &lt;- loop_through_fn(
+    om = om_future,
+    em_info = info,
+    random = &quot;log_NAA&quot;,
+    M_em = M,
+    sel_em = sel3,
+    NAA_re_em = NAA_re_em,
+    age_comp_em = &quot;logistic-normal-pool0&quot;,
+    em.opt = list(
+      separate.em = FALSE,
+      separate.em.type = 1,
+      do.move = FALSE,
+      est.move = FALSE
+      ),
+    update_index_info = update_index_info_list,
+    update_catch_info = update_catch_info_list,
+    assess_years = assess_years,
+    assess_interval = assess_interval,
+    base_years = base_years,
+    year.use = 50,
+    add.years = TRUE,
+    seed = 12345L,
+    hcr = hcr2,
+    save.sdrep = FALSE,
+    save.last.em = TRUE,
+    FXSPR_init = 0.5,
+    process_fix = 1,
+    first_free_year = 51
+    )
+  saveRDS(mod2, &quot;Results/mod2.RDS&quot;)
+  } else {
+    mod2 &lt;- readRDS(&quot;Results/mod2.RDS&quot;)
+  }</code></pre>
+</div>
+</div>
+<div id="plot-mse-results" class="section level3">
+<h3>10. Plot MSE results</h3>
+<p>Below we compare the realized OM trajectories under the two HCR
+settings.</p>
+<pre class="r"><code>plot(
+  mod1$om$rep$SSB,
+  type = &quot;l&quot;,
+  lwd = 2,
+  col = &quot;blue&quot;,
+  xlab = &quot;Year index&quot;,
+  ylab = &quot;SSB&quot;,
+  main = &quot;MSE comparison: SSB under two HCR settings&quot;
+)
+
+lines(
+  mod2$om$rep$SSB,
+  col = &quot;red&quot;,
+  lwd = 2,
+  lty = 2
+)
+
+abline(v = first_free_year, lty = 3)
+
+legend(
+  &quot;topright&quot;,
+  legend = c(&quot;75% FXSPR&quot;, &quot;100% FXSPR&quot;, &quot;Start of feedback period&quot;),
+  col = c(&quot;blue&quot;, &quot;red&quot;, &quot;black&quot;),
+  lty = c(1, 2, 3),
+  lwd = c(2, 2, 1),
+  bty = &quot;n&quot;
+)</code></pre>
+</div>
+<div id="summary" class="section level3">
+<h3>11. Summary</h3>
+<p>This vignette showed how to build an MSE operating model directly
+from a fitted stock assessment model while keeping the historical
+population trajectory fixed.</p>
+<p>The main advantage of this workflow is that the historical period
+remains anchored to the fitted trajectory of the real stock, rather than
+changing across seeds because of newly simulated historical process
+deviations. This can be especially useful when the goal is to evaluate
+management procedures under a historical stock trajectory that is
+already scientifically accepted or management-relevant.</p>
+<p>In this example:</p>
+<ul>
+<li>the historical stock assessment was fit to real Georges Bank
+yellowtail flounder data,</li>
+<li>estimated parameters and historical trajectory were used to
+construct the OM,</li>
+<li>the historical period was fixed,</li>
+<li>only the feedback period was simulated,</li>
+<li>MSE was run under two HCR settings.</li>
+</ul>
+<p>At present, users should apply this workflow only to OMs where
+<strong>recruitment is the only random process tested in the historical
+fixing workflow</strong>.</p>
 </div>
 
 
@@ -2226,35 +2585,5 @@ $(document).ready(function ()  {
   })();
 </script>
 
-<script>
-  (function(){
-    function killTopPadding(){
-      try {
-        document.documentElement.style.marginTop = '0px';
-        document.body.style.paddingTop = '0px';
-        document.body.style.marginTop = '0px';
-        var mc = document.querySelector('.main-container, .container-fluid.main-container');
-        if(mc){ mc.style.paddingTop='0px'; mc.style.marginTop='0px'; }
-      } catch(e) {}
-    }
-    killTopPadding();
-    window.addEventListener('load', killTopPadding);
-    setTimeout(killTopPadding, 50);
-    setTimeout(killTopPadding, 250);
-    var dd = document.getElementById('vignetteDropdown');
-    if(dd){
-      var btn = dd.querySelector('.dropbtn');
-      if(btn){
-        btn.addEventListener('click', function(e){
-          e.stopPropagation();
-          dd.classList.toggle('open');
-        });
-      }
-      document.addEventListener('click', function(){
-        dd.classList.remove('open');
-      });
-    }
-  })();
-</script>
 </body>
 </html>

@@ -19,8 +19,6 @@ geometry: margin=1in
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
-# SPASAM.MSE User Manual
-
 This manual is a function-by-function reference for the `SPASAM.MSE` code you provided.  
 It is written as a **user manual**, not as a raw export of R help files.
 

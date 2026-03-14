@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-This vignette demonstrates an end-to-end `whamMSE` workflow that includes an
+This vignette demonstrates an end-to-end `SPASAM.MSE` workflow that includes an
 environmental covariate (Ecov) affecting recruitment with a **lag-1 controlling
 effect**. The Ecov time series is modeled with a latent process (here: AR1),
 so the “true” Ecov state is not perfectly observed.
@@ -46,12 +46,12 @@ This is a minimal demonstration: **1 stock, 1 region, 1 fleet, 1 index, 1
 season**. Results are illustrative only and should not be interpreted as a
 real-world stock assessment.
 
-### 1. Load "WHAM" and "whamMSE":
+### 1. Load "WHAM" and "SPASAM.MSE":
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 # Install (if needed):
 # install.packages("remotes")
-# remotes::install_github("lichengxue/whamMSE", dependencies = FALSE)
+# remotes::install_github("lichengxue/SPASAM.MSE", dependencies = FALSE)
 # remotes::install_github("lichengxue/wham", ref = "lab", dependencies = FALSE)
 
 library(wham)
@@ -69,7 +69,7 @@ We define:
 - **Base (burn-in) years**: 2001–2020  
 - **Feedback years**: 3 (so the model years extend to 2023)
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 n_stocks  <- 1
 n_regions <- 1
 n_fleets  <- 1
@@ -104,7 +104,7 @@ basic_info$years
 
 ### 3. Configure Numbers-at-Age (NAA)
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 sigma   <- "rec+1"
 re_cor  <- "iid"
 ini.opt <- "equilibrium"
@@ -130,7 +130,7 @@ The model years are 2001–2023. We provide Ecov observations for 2000–2020 an
 extend the observations to 2023 by holding them at the historical mean (users
 can choose a different projection assumption).
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 n_ecov <- 1
 
 years_ecov_obs <- 2000:2020
@@ -170,7 +170,7 @@ A simple way to think about the effect is:
 
 where \(\beta = -0.3969783\) in this example (a negative effect).
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 Ecov_beta_R <- array(
   -0.3969783,
   dim = c(1, 1, 1),
@@ -195,7 +195,7 @@ Ecov_process_pars <- matrix(
 
 4.3 Build the `ecov` list
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 ecov <- list(
   label = "bt_temp",
   year  = years_ecov_full,
@@ -213,7 +213,7 @@ ecov <- list(
 
 ### 5. Generate `wham` Input
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 input <- prepare_wham_input(
   basic_info = basic_info,
   NAA_re     = NAA_re,
@@ -247,7 +247,7 @@ om$random <- random
 Here we simulate twice with different seeds. We do not modify `Ecov_re`, so the
 latent state is allowed to vary across realizations (replicates).
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 om_A1 <- update_om_fn(om, seed = 123, random = random)
 om_A2 <- update_om_fn(om, seed = 124, random = random)
 
@@ -296,7 +296,7 @@ This guarantees:
 - observations (`Ecov_obs`) can still differ across realizations due to
   observation error.
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 # Start from the original WHAM input again (so we don't carry modifications from earlier)
 inputB <- prepare_wham_input(
   basic_info = basic_info,
@@ -377,7 +377,7 @@ noisy measurements.
 We run a single assessment at the terminal year (2020) to provide advice for
 2021–2023 (`assess_interval = 3`).
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 assess_interval <- 3
 terminal_year   <- max(base_years)
 assess_years <- terminal_year
@@ -446,7 +446,7 @@ mod2$converge_list # 2 = converged
 
 ```
 ### 9. Plot MSE Results
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 # 10. Plot MSE results: EM with Ecov vs. without Ecov
 
 # Years corresponding to indices 20:23
