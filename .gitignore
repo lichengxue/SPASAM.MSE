@@ -1,0 +1,23 @@
+# R session / IDE
+.Rhistory
+.Rapp.history
+.RData
+.Rproj.user/
+
+# Build / check artifacts
+*.tar.gz
+.Rcheck/
+*-Ex.R
+
+# Vignette outputs
+vignettes/*.html
+vignettes/*.pdf
+
+# R Markdown caches
+*_cache/
+cache/
+*.utf8.md
+*.knit.md
+
+# Logs
+*.log
