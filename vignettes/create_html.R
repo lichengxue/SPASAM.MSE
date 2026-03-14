@@ -319,7 +319,7 @@ navbar_html <- c(
   '          </div>',
   '        </div>',
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
-  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.PNG")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
@@ -462,9 +462,16 @@ inject_js <- c(
 members_html <- build_members_html(core_members)
 
 main_dev_html <- sprintf(
-  '<div class="small" style="margin-top:6px;"><b>Main developer</b>: %s &lt;<a href="mailto:%s">%s</a>&gt;</div>',
+  paste0(
+    '<div class="small main-dev-row" style="margin-top:6px;">',
+    '<b>Main developer</b>: ',
+    '<span class="main-dev-name">%s</span> ',
+    '&lt;<a href="mailto:%s">%s</a>&gt;',
+    '</div>'
+  ),
   main_dev_name, email_primary, email_primary
 )
+
 
 alt_email_html <- sprintf(
   '<div class="small" style="margin-top:4px;"><b>Alt</b>: &lt;<a href="mailto:%s">%s</a>&gt;</div>',
@@ -526,7 +533,7 @@ index_out <- c(
   '    .pillrow{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;}',
   '    .pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);',
   '      border:1px solid rgba(255,255,255,.10);font-size:13px;white-space:nowrap;}',
-  '    .logo-row{margin-top:18px;display:flex;align-items:center;gap:22px;flex-wrap:wrap;}',
+  '    .logo-row{margin-top:18px;display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;width:100%;}',
   '    .logo-img{height:280px;width:auto;object-fit:contain;filter:drop-shadow(0 15px 34px rgba(0,0,0,.45));}',
   '    @media (max-width:900px){.logo-img{height:210px;}}',
   '    .card{border-radius:18px;border:1px solid rgba(255,255,255,.10);',
@@ -565,7 +572,7 @@ index_out <- c(
   '          </div>',
   '        </div>',
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
-  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.PNG")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
@@ -651,7 +658,7 @@ index_out <- c(
   '    </div>',
   '    <div class="footer">',
   '      <div>',
-  sprintf('        <div><b>Main developer</b>: %s</div>', main_dev_name),
+  sprintf('        <div><b>Main developer</b>: <span class="main-dev-name">%s</span></div>', main_dev_name),
   sprintf('        <div class="small">&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;</div>',
           email_primary, email_primary, email_secondary, email_secondary),
   '      </div>',
@@ -785,7 +792,7 @@ vignettes_out <- c(
   '          </div>',
   '        </div>',
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
-  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.PNG")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
@@ -813,7 +820,7 @@ vignettes_out <- c(
   vignette_cards_html,
   '    <div class="footer">',
   '      <div>',
-  sprintf('        <div><b>Main developer</b>: %s</div>', main_dev_name),
+  sprintf('        <div><b>Main developer</b>: <span class="main-dev-name">%s</span></div>', main_dev_name),
   sprintf('        <div class="small">&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;</div>',
           email_primary, email_primary, email_secondary, email_secondary),
   '      </div>',
