@@ -551,6 +551,8 @@ index_out <- c(
   '    .footer{margin-top:26px;color:rgba(233,238,252,.85);display:flex;justify-content:space-between;',
   '      gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px;}',
   '    .small{color:var(--muted);font-size:13px;}',
+  '    .main-dev-name{font-size:26px;font-weight:900;color:var(--text);line-height:1.1;}',
+  '    .main-dev-row{line-height:1.5;}',
   '    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;',
   '      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);',
   '      padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}',

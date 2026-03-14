@@ -1,7 +1,7 @@
 Package: SPASAM.MSE
 Title: Spatially Explicit Management Strategy Evaluation for WHAM-Based Stock Assessments
 Type: Package
-Version: 0.1.1
+Version: 1.1.2
 Author: Chengxue Li <chengxue.li@noaa.gov>
 Maintainer: Chengxue Li <chengxue.li@noaa.gov>
 Description: A flexible and extensible framework for conducting spatially explicit
