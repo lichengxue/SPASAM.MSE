@@ -1,7 +1,5 @@
 ---
 title: "Installation"
-author: "Chengxue Li"
-date: "Last update: `r Sys.Date()`"
 output: 
   html_document:
     toc: true

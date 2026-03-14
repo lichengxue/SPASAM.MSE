@@ -1,0 +1,1912 @@
+---
+title: "SPASAM.MSE User Manual"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    theme: flatly
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    latex_engine: xelatex
+geometry: margin=1in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+# SPASAM.MSE User Manual
+
+This manual is a function-by-function reference for the `SPASAM.MSE` code you provided.  
+It is written as a **user manual**, not as a raw export of R help files.
+
+For each main function, the document gives:
+
+- what the function is for  
+- the key arguments a user needs to understand  
+- what the function returns  
+- important implementation details that affect use in a workflow  
+- related functions that are commonly used together  
+
+## General workflow
+
+At a high level, the closed-loop MSE workflow in this code base is:
+
+1. Build OM and EM configuration objects.
+2. Construct an EM input from the current OM state.
+3. Fit the EM and compute catch advice.
+4. Convert advice to the catch structure required by the OM.
+5. Optionally apply implementation error.
+6. Solve for fishing mortality from catch and update the OM.
+7. Simulate forward and repeat for the next assessment year.
+
+The main wrapper that orchestrates this sequence is `loop_through_fn()`.
+
+## Scope of this manual
+
+This manual focuses on the principal functions a user would need to understand to build, run, and diagnose a `SPASAM.MSE` workflow.  
+For files that contain internal support utilities rather than primary user-facing entry points, a short summary is provided instead of full per-function reference text.
+
+# Closed-loop workflow
+
+## `loop_through_fn()`
+
+**Source file:** `loop_through_fn.R`
+
+**Purpose**  
+A wrapper function to iterate through the feedback period in a management strategy evaluation (MSE),
+updating the operating model (OM), refitting the assessment model (EM), and generating catch advice.
+
+**Arguments**  
+- `om`: List. The operating model containing pseudo-data and simulation configurations.  
+
+- `em_info`: List. Information used to generate the assessment model (default = `NULL`).  
+
+- `random`: Character vector specifying the processes treated as random effects in the operating model (default = `"log_NAA"`).  
+
+- `M_em`: Configuration for natural mortality in the assessment model.  
+
+- `sel_em`: Configuration for selectivity in the assessment model.  
+
+- `NAA_re_em`: Configuration for numbers-at-age random effects in the assessment model.  
+
+- `move_em`: Configuration for movement in the assessment model.  
+
+- `catchability_em`: Configuration for survey catchability in the assessment model.  
+
+- `ecov_em`: Configuration for environmental covariates in the assessment model.  
+
+- `age_comp_em`: Character string specifying the likelihood distribution for age-composition data in the assessment model. Options include:  
+
+  - `multinomial`: Default likelihood.  
+  - `dir-mult`  
+  - `dirichlet-miss0`  
+  - `dirichlet-pool0`  
+  - `logistic-normal-miss0`  
+  - `logistic-normal-ar1-miss0`  
+  - `logistic-normal-pool0`  
+  - `logistic-normal-01-infl`  
+  - `logistic-normal-01-infl-2par`  
+  - `mvtweedie`  
+  - `dir-mult-linear`  
+
+- `em.opt`: List containing estimation model options. It includes:  
+
+  - `separate.em`: Logical. Whether to use region-separated estimation models (default = `FALSE`).  
+  - `separate.em.type`: Integer specifying the separation type when `separate.em = TRUE`.  
+    - `1`: Panmictic.  
+    - `2`: Fleets-as-areas.  
+    - `3`: Separate regional estimation models.  
+  - `do.move`: Logical. Whether movement is included in the estimation model (default = `FALSE`).  
+  - `est.move`: Logical. Whether movement parameters are estimated in the estimation model (default = `FALSE`).  
+
+- `aggregate_catch_info`: Optional list containing aggregation settings for catch data. It includes:  
+
+  - `n_fleets`: Integer giving the number of fleets.  
+  - `catch_cv`: Numeric vector of coefficients of variation for each fleet.  
+  - `catch_Neff`: Numeric vector of effective sample sizes for each fleet.  
+  - `use_agg_catch`: Integer vector of `0/1` values indicating whether aggregated catch is used.  
+  - `use_catch_paa`: Integer vector of `0/1` values indicating whether catch age composition is included.  
+  - `fleet_pointer`: Integer vector defining fleet groupings for aggregation (`0` = exclude).  
+  - `use_catch_weighted_waa`: Logical. Whether to use fleet-catch-weighted weight-at-age.  
+
+- `aggregate_index_info`: Optional list containing aggregation settings for index data. It includes:  
+
+  - `n_indices`: Integer giving the number of indices.  
+  - `index_cv`: Numeric vector of coefficients of variation for each index.  
+  - `index_Neff`: Numeric vector of effective sample sizes for each index.  
+  - `fracyr_indices`: Numeric vector giving the fraction of the year for each index.  
+  - `q`: Numeric vector of initial catchability values.  
+  - `use_indices`: Integer vector of `0/1` values indicating whether the index is used.  
+  - `use_index_paa`: Integer vector of `0/1` values indicating whether index age composition is included.  
+  - `units_indices`: Integer vector where `1 = biomass` and `2 = numbers`.  
+  - `units_index_paa`: Integer vector where `1 = biomass` and `2 = numbers`.  
+  - `index_pointer`: Integer vector defining index groupings for aggregation (`0` = exclude).  
+  - `use_index_weighted_waa`: Logical. Whether to use survey-index-weighted weight-at-age.  
+
+- `aggregate_weights_info`: Optional list used to compute weighted average weight-at-age and maturity-at-age. It includes:  
+
+  - `ssb_waa_weights`: List defining how spawning-stock-biomass weight-at-age is weighted.  
+    - `fleet`: Logical. Whether to use fleet-specific weights.  
+    - `index`: Logical. Whether to use index-specific weights.  
+    - `pointer`: Integer pointer identifying the fleet or index group to use.  
+  - `maturity_weights`: List defining how maturity-at-age is weighted.  
+    - `fleet`: Logical. Whether to use fleet-specific weights.  
+    - `index`: Logical. Whether to use index-specific weights.  
+    - `pointer`: Integer pointer identifying the fleet or index group to use.  
+
+- `reduce_region_info`: Optional list used to reduce regions and reassign data. It includes:  
+
+  - `remove_regions`: Integer vector of `0/1` values indicating which regions are removed.  
+  - `reassign`: Numeric value specifying reassignment of removed-region data to retained regions.  
+  - `NAA_where`: Three-dimensional array (`stock × region × age`) indicating stock presence.  
+  - `sel_em`: Selectivity configuration for the reduced-region estimation model.  
+  - `M_em`: Natural mortality configuration for the reduced-region estimation model.  
+  - `NAA_re_em`: Numbers-at-age configuration for the reduced-region estimation model.  
+  - `move_em`: Movement configuration for the reduced-region estimation model.  
+  - `onto_move_list`: List containing ontogenetic movement information.  
+    - `onto_move`: Three-dimensional array (`stock × region × region`).  
+    - `onto_move_pars`: Four-dimensional array (`stock × region × region × 4`).  
+    - `age_mu_devs`: Four-dimensional array (`stock × region × region × age`).  
+
+- `catch_alloc`: List containing catch allocation specifications. It includes:  
+
+  - `weight_type`: Integer (`1` to `4`) specifying the weighting method.  
+  - `method`: Character string specifying the allocation method. Options include:  
+    - `equal`  
+    - `fleet_equal`  
+    - `fleet_region`  
+    - `fleet_gear`  
+    - `fleet_combined`  
+    - `fleet_catch`  
+    - `index_equal`  
+    - `index_gear`  
+    - `multiple_index_equal`  
+    - `multiple_index_gear`  
+    - `user_defined_fleets`  
+    - `user_defined_regions`  
+  - `user_weights`: Numeric vector of user-defined weights that must sum to `1`.  
+  - `weight_years`: Integer giving the number of past years used to average weights.  
+  - `survey_pointer`: Integer vector identifying the survey indices used for weighting when `weight_type = 3`.  
+
+- `implementation_error`: Optional list used to add variability to realized catch. It includes:  
+
+  - `method`: Character specifying the distribution type. Options are `lognormal`, `normal`, `uniform`, or `constant`.  
+  - `mean`: Numeric mean of the error distribution.  
+  - `cv`: Numeric coefficient of variation.  
+  - `sd`: Numeric standard deviation.  
+  - `min`: Numeric lower bound for the uniform distribution.  
+  - `max`: Numeric upper bound for the uniform distribution.  
+  - `constant_value`: Numeric fixed multiplier used when `method = "constant"`.  
+
+- `filter_indices`: Optional integer vector of `0/1` values used to exclude survey indices by region.  
+
+- `update_catch_info`: Optional list used to update catch CV and effective sample size values in the estimation model. It includes:  
+
+  - `agg_catch_sigma`: Matrix of catch CV values.  
+  - `catch_Neff`: Matrix of effective sample sizes for catch data. Must match the dimensions of `agg_catch_sigma`.  
+
+- `update_index_info`: Optional list used to update index CV and effective sample size values in the estimation model. It includes:  
+
+  - `agg_index_sigma`: Matrix of aggregated survey-index CV values.  
+  - `index_Neff`: Matrix of effective sample sizes for index data.  
+  - `remove_agg`: Logical. Whether aggregated index observations are removed for selected pointers and years.  
+  - `remove_agg_pointer`: Integer vector of index pointers to remove.  
+  - `remove_agg_years`: Integer vector or matrix of years to remove aggregated observations.  
+  - `remove_paa`: Logical. Whether index age-composition observations are removed.  
+  - `remove_paa_pointer`: Integer vector of index pointers to remove index age composition.  
+  - `remove_paa_years`: Integer vector or matrix of years to remove index age-composition data.  
+
+- `hcr`: List defining the harvest control rule. It includes:  
+
+  - `hcr.type`: Integer specifying the HCR type.  
+    - `1`: `F_XSPR`  
+    - `2`: Constant catch  
+    - `3`: Hockey-stick rule  
+  - `hcr.opts`: List of HCR options. Possible elements include:  
+    - `use_FXSPR`  
+    - `percentSPR`  
+    - `percentFXSPR`  
+    - `use_FMSY`  
+    - `percentFMSY`  
+    - `avg_yrs`  
+    - `max_percent`  
+    - `min_percent`  
+    - `BThresh_up`  
+    - `BThresh_low`  
+    - `cont.M.re`  
+    - `cont.move.re`  
+
+- `user_SPR_weights_info`: List used to update SPR weights for calculating biological reference points. It includes:  
+
+  - `method`: Character specifying how weights are assigned to regions or stocks.  
+  - `weight_years`: Integer giving the number of years used to average catch or index values.  
+  - `index_pointer`: Integer giving the index number used when `method = "index_region"`.  
+
+- `assess_years`: Integer vector of assessment years.  
+
+- `assess_interval`: Integer giving the number of years between assessments.  
+
+- `base_years`: Integer vector of burn-in years.  
+
+- `year.use`: Integer giving the number of years used in each estimation model (default = `20`).  
+
+- `add.years`: Logical. Whether to use the full available time series in each estimation model (default = `FALSE`).  
+
+- `by_fleet`: Logical. Whether to calculate fleet-specific fishing mortality (default = `TRUE`).  
+
+- `FXSPR_init`: Optional numeric initial value used for reference-point calculations.  
+
+- `do.retro`: Logical. Whether to run retrospective analysis (default = `FALSE`).  
+
+- `do.osa`: Logical. Whether to calculate one-step-ahead residuals (default = `FALSE`).  
+
+- `do.brps`: Logical. Whether to calculate biological reference points in the operating model (default = `FALSE`).  
+
+- `seed`: Integer random seed.  
+
+- `save.sdrep`: Logical. Whether to save `sdrep` objects (default = `FALSE`).  
+
+- `save.last.em`: Logical. Whether to save the final estimation model object (default = `FALSE`).  
+
+- `process_fix`: Integer flag controlling whether operating model process states are kept fixed during the historical period when updating the operating model with `update_om_fn()`. If `process_fix = 1`, only years from `first_free_year` onward are updated for the process specified by `random`; earlier years remain fixed. Default = `0`.  
+
+- `first_free_year`: Integer specifying the first model year that is allowed to vary when `process_fix = 1`. For example, if years `1:50` should remain fixed and only feedback years should be simulated, use `first_free_year = 51`. If `process_fix = 0`, this argument is passed through but not used.  
+
+**Returns**  
+List with elements:
+
+- `om`: Updated operating model.  
+- `em_list`: List of estimation model results.  
+- `par.est`: Parameter estimates.  
+- `par.se`: Standard errors for parameter estimates.  
+- `adrep.est`: ADMB report values.  
+- `adrep.se`: Standard errors for ADMB report values.  
+- `opt_list`: Optimization results.  
+- `converge_list`: Convergence checks.  
+- `catch_advice`: Advised catch.  
+- `catch_realized`: Realized catch.  
+- `em_full`: Full estimation model outputs.  
+- `em_input`: Final estimation model input.  
+- `runtime`: Elapsed run time.  
+- `seed.save`: Final random seed.  
+
+**Related functions**  
+`make_em_input()`, `update_om_fn()`, `advice_fn()`
+
+# Assessment input construction
+
+## `make_em_input()`
+
+**Source file:** `make_em_input.R`
+
+**Purpose**  
+This function generates input data for the estimation model used in
+management strategy evaluation. It constructs the necessary parameters
+and structures for the assessment model.
+
+**Arguments**  
+- `om`: List. The operating model containing observed data and simulation outputs.  
+
+- `em_info`: List. A set of estimation model parameters used to define the model structure.  
+
+- `M_em`: List defining natural mortality random effects.  
+
+- `sel_em`: List defining selectivity random effects.  
+
+- `NAA_re_em`: List defining numbers-at-age random effects.  
+
+- `move_em`: List defining movement random effects.  
+
+- `em.opt`: List containing options for movement and model structure in the estimation model. It includes:  
+
+  - `separate.em`: Logical. If `TRUE`, no global SPR is used; if `FALSE`, global SPR is allowed.  
+  - `separate.em.type`: Integer (`1` to `3`) specifying the assessment model type when `separate.em = TRUE`.  
+    - `1`: Panmictic (spatially aggregated).  
+    - `2`: Fleets-as-areas.  
+    - `3`: Separate assessment models for each region (`n_regions` models).  
+  - `do.move`: Logical. Whether movement is included when `separate.em = FALSE`.  
+  - `est.move`: Logical. Whether movement rates are estimated when `separate.em = FALSE`.  
+
+- `em_years`: Vector of years used in the assessment model.  
+
+- `year.use`: Integer giving the number of years used in the assessment model.  
+
+- `age_comp_em`: Character string specifying the likelihood distribution for age-composition data. Options include:  
+
+  - `multinomial`: Default likelihood.  
+  - `dir-mult`  
+  - `dirichlet-miss0`  
+  - `dirichlet-pool0`  
+  - `logistic-normal-miss0`  
+  - `logistic-normal-ar1-miss0`  
+  - `logistic-normal-pool0`  
+  - `logistic-normal-01-infl`  
+  - `logistic-normal-01-infl-2par`  
+  - `mvtweedie`  
+  - `dir-mult-linear`  
+
+- `aggregate_catch_info`: Optional list containing user-specified catch aggregation settings for panmictic models. It includes:  
+
+  - `n_fleets`: Integer giving the number of fleets.  
+  - `catch_cv`: Numeric vector (`n_fleets`) of annual aggregate-catch CV values by fleet.  
+  - `catch_Neff`: Numeric vector (`n_fleets`) of effective sample sizes for fleet catches.  
+  - `use_agg_catch`: Integer vector (`n_fleets`) of `0/1` values indicating whether aggregate catch is used.  
+  - `use_catch_paa`: Integer vector (`n_fleets`) of `0/1` values indicating whether catch age-composition observations are used.  
+  - `fleet_pointer`: Integer vector (`n_fleets`) defining fleet grouping (`0` = exclude).  
+  - `use_catch_weighted_waa`: Logical. Whether to use fleet-catch-weighted weight-at-age.  
+
+- `aggregate_index_info`: Optional list containing user-specified index aggregation settings for panmictic models. It includes:  
+
+  - `n_indices`: Integer giving the number of indices.  
+  - `index_cv`: Numeric vector (`n_indices`) of annual aggregate-index CV values.  
+  - `index_Neff`: Numeric vector (`n_indices`) of effective sample sizes for survey indices.  
+  - `fracyr_indices`: Numeric vector (`n_indices`) giving the fraction of the year for each survey index.  
+  - `q`: Numeric vector (`n_indices`) of initial survey catchability values.  
+  - `use_indices`: Integer vector (`n_indices`) of `0/1` values indicating whether survey indices are used.  
+  - `use_index_paa`: Integer vector (`n_indices`) of `0/1` values indicating whether age-composition observations are used.  
+  - `units_indices`: Integer vector (`n_indices`) where `1 = biomass` and `2 = numbers`.  
+  - `units_index_paa`: Integer vector (`n_indices`) where `1 = biomass` and `2 = numbers`.  
+  - `index_pointer`: Integer vector (`n_indices`) defining index grouping (`0` = exclude).  
+  - `use_index_weighted_waa`: Logical. Whether to use survey-index-weighted weight-at-age.  
+
+- `aggregate_weights_info`: Optional list specifying how weighted averages are computed for weight-at-age (`waa`) and maturity-at-age during data aggregation. This is used for panmictic and fleets-as-areas models only. It includes:  
+
+  - `ssb_waa_weights`: List controlling weight-at-age used for spawning stock biomass.  
+    - `fleet`: Logical. Whether to use fleet-specific weights.  
+    - `index`: Logical. Whether to use index-specific weights.  
+    - `pointer`: Integer pointing to the selected fleet or index group.  
+  - `maturity_weights`: List controlling maturity-at-age weighting for spawning stock biomass.  
+    - `fleet`: Logical. Whether to use fleet-specific weights.  
+    - `index`: Logical. Whether to use index-specific weights.  
+    - `pointer`: Integer pointing to the selected fleet or index group.  
+
+- `filter_indices`: Optional integer vector of `0/1` values indicating which indices are excluded from the assessment model.  
+
+- `reduce_region_info`: Optional list used to remove specific regions from the assessment model. If `NULL`, no changes are applied. Expected components include:  
+
+  - `remove_regions`: Integer vector (`n_regions`) of `0/1` values indicating which regions are included.  
+  - `reassign`: Numeric value specifying reassignment of surveys from removed regions to retained regions.  
+  - `NAA_where_em`: Integer array (`n_stocks × n_regions × n_ages`) with `0/1` values indicating whether a stock of a given age can be present in a region.  
+  - `sel_em`: Selectivity configuration for the reduced assessment model.  
+  - `M_em`: Natural mortality configuration for the reduced assessment model.  
+  - `NAA_re_em`: Numbers-at-age configuration for the reduced assessment model.  
+  - `catchability_em`: Catchability configuration for the reduced assessment model.  
+  - `move_em`: Movement configuration for the reduced assessment model.  
+  - `ecov_em`: Environmental covariate configuration for the reduced assessment model.  
+  - `onto_move_list`: List of ontogenetic movement information for the reduced assessment model.  
+    - `onto_move`: Array with dimensions `n_stocks × n_regions × (n_regions - 1)` describing age-specific movement type.  
+    - `onto_move_pars`: Array with dimensions `n_stocks × n_regions × (n_regions - 1) × 4` describing movement parameters.  
+    - `age_mu_devs`: Array with dimensions `n_stocks × n_regions × (n_regions - 1) × n_ages` describing user-specified deviations in mean movement across ages.  
+
+- `update_catch_info`: Optional list used to update catch CV and effective sample size values in the estimation model. It includes:  
+
+  - `agg_catch_sigma`: Matrix giving catch CV values, either full (`n_years × n_fleets`) or subset (`length(ind_em) × n_fleets`).  
+  - `catch_Neff`: Matrix with the same dimensions as `agg_catch_sigma`.  
+
+- `update_index_info`: Optional list used to update index CV and effective sample size values in the estimation model. It includes:  
+
+  - `agg_index_sigma`: Matrix giving index CV values, either full (`n_years × n_indices`) or subset (`length(ind_em) × n_indices`).  
+  - `index_Neff`: Matrix with the same dimensions as `agg_index_sigma`.  
+
+**Returns**  
+List. A `wham` input object prepared for stock assessment.
+
+**Related functions**  
+`loop_through_fn()`
+
+## `filter_and_generate_em_info()`
+
+**Source file:** `filter_and_generate_em_info.R`
+
+**Purpose**  
+This function filters fleets and indices based on region specifications,
+removes indices marked for exclusion, and ensures correct renumbering.
+It also extracts and assembles the weight-at-age (`WAA`) matrix
+for each region based on fleet, region, index, and stock assignments.
+
+**Arguments**  
+- `em_info`: List containing the original estimation model input data.  
+
+- `fleet_regions`: Integer vector specifying the region assignment of each fleet.  
+
+- `index_regions`: Integer vector specifying the region assignment of each index.  
+
+- `filter_indices`: Optional integer vector indicating which indices to keep (`1`) or exclude (`0`).  
+
+- `reduce_region_info`: Optional list specifying region modifications. If `NULL`, no modifications are applied. Expected components include:  
+
+  - `remove_regions`: Indicates which regions should be removed from the model.  
+  - `reassign`: Specifies reassignment of surveys from removed regions to retained regions.  
+  - `NAA_where`: Specifies recruitment assignments after region reduction.  
+  - `sel_em`: Selectivity settings that may change after region reduction.  
+  - `M_em`: Natural mortality settings that may change after region reduction.  
+  - `NAA_re_em`: Numbers-at-age settings that may change after region reduction.  
+  - `move_em`: Movement settings that may change after region reduction.  
+  - `catchability_em`: Catchability settings that may change after region reduction.  
+  - `onto_move_list`: List containing movement-related parameters.  
+    - `onto_move`: Array with dimensions `n_stocks × n_regions × (n_regions - 1)` specifying movement rules between stocks and regions.  
+    - `onto_move_pars`: Array with dimensions `n_stocks × n_regions × (n_regions - 1) × 4` specifying movement parameters.  
+    - `age_mu_devs`: Array with dimensions `n_stocks × n_regions × (n_regions - 1) × n_ages` storing age-based movement deviations. If `onto_move == 5`, values are extracted from `basic_info`.  
+
+- `aggregate_weights_info`: Optional list specifying how weighted averages are computed for weight-at-age (`waa`) and maturity-at-age during data aggregation. This is used for panmictic and fleets-as-areas models only. It includes:  
+
+  - `ssb_waa_weights`: List controlling weight-at-age used for spawning stock biomass.  
+    - `fleet`: Logical. Whether to use fleet-specific weights.  
+    - `index`: Logical. Whether to use index-specific weights.  
+    - `pointer`: Integer pointing to the selected fleet or index group.  
+  - `maturity_weights`: List controlling maturity-at-age weighting for spawning stock biomass.  
+    - `fleet`: Logical. Whether to use fleet-specific weights.  
+    - `index`: Logical. Whether to use index-specific weights.  
+    - `pointer`: Integer pointing to the selected fleet or index group.  
+
+**Returns**  
+A list containing modified `em_info` objects for each region, with filtered fleets, filtered indices, renumbered index regions, and extracted weight-at-age matrices.
+
+**Related functions**  
+No related-function block was documented in the source file.
+
+## `generate_basic_info_em()`
+
+**Source file:** `generate_basic_info_em.R`
+
+**Purpose**  
+This helper function generates basic biological and fishery information
+for simulation-estimation and management strategy evaluation (MSE).
+It builds on `generate_basic_info()` by allowing parameter values
+to be inherited from an existing estimation model (EM) setup.
+
+**Arguments**  
+- `em_info`: List containing parameter inputs from a previously defined estimation model.  
+
+- `em_years`: Numeric vector of years to be used for the estimation model.  
+
+- `n_stocks`: Integer. Optional number of stocks; defaults to `em_info$par_inputs$n_stocks`.  
+
+- `n_regions`: Integer. Optional number of regions; defaults to `em_info$par_inputs$n_regions`.  
+
+- `n_fleets`: Integer. Optional number of fleets; defaults to `em_info$par_inputs$n_fleets`.  
+
+- `n_indices`: Integer. Optional number of indices; defaults to `em_info$par_inputs$n_indices`.  
+
+- `n_seasons`: Integer. Optional number of seasons; defaults to `em_info$par_inputs$n_seasons`.  
+
+- `filter_indices`: Optional integer vector of `0/1` values specifying which indices are excluded from the assessment model.  
+
+**Returns**  
+A list containing the generated biological and fishery information,
+formatted for input into WHAM or other stock assessment models.
+
+**Related functions**  
+`generate_basic_info()`, `prepare_wham_input()`
+
+## `generate_basic_info_em_SEP()`
+
+**Source file:** `generate_basic_info_em_SEP.R`
+
+**Purpose**  
+This helper function generates basic biological and fishery information
+for simulation-estimation and management strategy evaluation (MSE).
+It builds on `generate_basic_info()` by allowing parameter values
+to be inherited from an existing estimation model (EM) setup.
+
+**Arguments**  
+- `em_info`: List containing parameter inputs from a previously defined estimation model.  
+
+- `em_years`: Numeric vector of years to be used for the estimation model.  
+
+- `n_stocks`: Integer. Optional number of stocks. Defaults to `em_info$par_inputs$n_stocks`.  
+
+- `n_regions`: Integer. Optional number of regions. Defaults to `em_info$par_inputs$n_regions`.  
+
+- `n_fleets`: Integer. Optional number of fleets. Defaults to `em_info$par_inputs$n_fleets`.  
+
+- `n_indices`: Integer. Optional number of indices. Defaults to `em_info$par_inputs$n_indices`.  
+
+- `n_seasons`: Integer. Optional number of seasons. Defaults to `em_info$par_inputs$n_seasons`.  
+
+- `filter_indices`: Optional integer vector of `0/1` values indicating which indices are excluded from the assessment model.  
+
+**Returns**  
+A list containing the generated biological and fishery information,
+formatted for input into WHAM or other stock assessment models.
+
+**Related functions**  
+`generate_basic_info()`, `prepare_wham_input()`
+
+## `update_em_with_basic_info()`
+
+**Source file:** `update_em_with_basic_info.R`
+
+**Purpose**  
+Updates the estimation model (`em_info`) by incorporating aggregated data
+from `aggregate_catch_info` and `aggregate_index_info`. This function adjusts
+`par_inputs` and weight-at-age (`user_waa`) to match the new fleet, region,
+index, and stock structure while handling fleet or index exclusions (`fleet_pointer == 0`).
+
+**Arguments**  
+- `om`: List. An operating model containing observed data such as `agg_catch` and `agg_indices`.  
+
+- `em_info`: List containing the estimation model information. It includes:  
+
+  - `par_inputs`: Model parameters, including fleet and index configurations.  
+  - `user_waa`: Weight-at-age information for fleets, indices, and stocks.  
+
+- `aggregate_catch_info`: List containing aggregated fleet catch information. It includes:  
+
+  - `fleet_pointer`: Vector mapping original fleets to aggregated fleets, where `0` means exclude.  
+  - `agg_catch`: Aggregated catch values per fleet.  
+  - `catch_cv`: Catch coefficients of variation.  
+  - `catch_Neff`: Effective sample sizes for catch composition.  
+  - `use_agg_catch`: Indicator for whether aggregated catch is used.  
+  - `use_catch_paa`: Indicator for whether catch age composition is used.  
+
+- `aggregate_index_info`: List containing aggregated survey index information. It includes:  
+
+  - `index_pointer`: Vector mapping original indices to aggregated indices, where `0` means exclude.  
+  - `agg_indices`: Aggregated index values.  
+  - `index_cv`: Index coefficients of variation.  
+  - `index_Neff`: Effective sample sizes for index composition.  
+  - `fracyr_indices`: Fraction of the year for each index.  
+  - `q`: Catchability values.  
+  - `use_indices`: Indicator for whether indices are used.  
+  - `use_index_paa`: Indicator for whether index age composition is used.  
+
+- `ind_em`: Vector of indices specifying the years included in the estimation model.  
+
+**Returns**  
+List. Updated `em_info` with:
+
+- `par_inputs`: Adjusted estimation model parameters reflecting the new structure.  
+- `user_waa`: Updated weight-at-age object with dimensions `(n_fleets + n_regions + n_indices + n_stocks, n_ages)`.  
+- `basic_info$waa`: Normalized weight-at-age data ensuring proper scaling.  
+
+**Related functions**  
+No related-function block was documented in the source file.
+
+## `reduce_input()`
+
+**Source file:** `reduce_input.R`
+
+**Purpose**  
+Internal function called by `fit_peel()` for `i` in `1:n.peels`.
+Creates the input for a model with `i` years of data peeled off (calls `fit_tmb()`).
+It reduces the year dimension of all data, parameters, and maps so the model can project correctly from the peeled input.
+
+**Arguments**  
+- `input`: List containing `data`, `parameters`, `map`, and `random` elements, typically output from `prepare_wham_input()`. This is not the output from `prepare_projection()` or `project_wham()`.  
+
+- `years_peeled`: Vector indicating which years in `input$years` should be peeled from the model input.  
+
+- `retro`: Logical (`TRUE`/`FALSE`) indicating whether the reduction is for a retrospective peel (default = `TRUE`).  
+
+**Returns**  
+No return block was documented in the source file.
+
+**Related functions**  
+No related-function block was documented in the source file.
+
+# Advice, allocation, and implementation error
+
+## `advice_fn()`
+
+**Source file:** `advice_fn.R`
+
+**Purpose**  
+A function to generate catch advice based on different harvest control rules (HCRs)
+for use in management strategy evaluation (MSE).
+
+**Arguments**  
+- `em`: A fitted WHAM estimation model.  
+
+- `pro.yr`: Integer giving the number of years for projection.  
+
+- `hcr`: List defining the harvest control rule. It includes:  
+
+  - `hcr.type`: Integer specifying the rule type.  
+    - `1`: `F_XSPR`  
+    - `2`: Constant catch  
+    - `3`: Hockey-stick rule  
+
+  - `hcr.opts`: List of options controlling the selected HCR. Possible elements include:  
+
+    - `use_FXSPR`: Logical. Use `F%SPR`-based projections (default = `TRUE`).  
+    - `percentFXSPR`: Numeric. Percent of `F%SPR` to apply (default = `75`).  
+    - `use_FMSY`: Logical. Use `FMSY`-based projections (default = `FALSE`).  
+    - `percentFMSY`: Numeric. Percent of `FMSY` to apply (default = `75`).  
+    - `avg_yrs`: Integer. Number of years to average over (default = `5`).  
+    - `cont.M.re`: Logical. Continue `M` random effects (default = `FALSE`).  
+    - `cont.move.re`: Logical. Continue movement random effects (default = `NULL` if there is one region).  
+    - `max_percent`: Numeric. Maximum percent of `F%SPR` or `FMSY` (default = `75`).  
+    - `min_percent`: Numeric. Minimum percent of `F%SPR` or `FMSY` (default = `0.01`).  
+    - `BThresh_up`: Numeric. Upper biomass threshold (default = `0.5`).  
+    - `BThresh_low`: Numeric. Lower biomass threshold (default = `0.1`).  
+
+**Returns**  
+A matrix containing the projected catch advice for `pro.yr` years.
+
+**Related functions**  
+`project_wham()`
+
+## `calculate_catch_advice()`
+
+**Source file:** `calculate_catch_advice.R`
+
+**Purpose**  
+This function distributes total catch into region- and gear-specific fleets
+based on different weighting methods, including `"fleet_region"`, `"fleet_gear"`,
+`"fleet_combined"`, `"fleet_catch"`, `"index_equal"`, `"index_gear"`,
+`"multiple_index_equal"`, `"multiple_index_gear"`, or user-specified weights.
+
+**Arguments**  
+- `om`: List. The operating model containing input data, fleet information, and index information.  
+
+- `advice`: Matrix or vector of catch advice. If it is a matrix, its dimensions are typically `(n_years, n_fleets)`, where each column represents a gear type. If it is a vector, it represents total annual catch.  
+
+- `aggregate_catch_info`: List containing fleet allocation information. It includes:  
+
+  - `fleet_pointer`: Vector indicating the gear-type assignment for each fleet.  
+
+- `aggregate_index_info`: List containing index-region allocation information. It includes:  
+
+  - `index_pointer`: Vector indicating the index-region assignment.  
+
+- `final_year`: Integer giving the last year to consider when calculating historical catch weights.  
+
+- `catch_alloc`: List containing specifications for catch allocation. It includes:  
+
+  - `weight_type`: Integer (`1` to `4`) indicating the type of weighting used.  
+    - `1`: Equal weighting across fleets.  
+    - `2`: Weighting based on past catch data.  
+    - `3`: Weighting based on past survey index data.  
+    - `4`: User-specified weights.  
+
+  - `method`: Character string specifying the allocation method. Options include:  
+
+    - `"equal"`: Total catch is equally allocated to all fleets across regions.  
+    - `"gear_equal"`: Gear-specific total catch is equally allocated to fleets using the same gear type.  
+    - `"fleet_region"`: Total catch is allocated to each region based on historical regional catch, then the regional catch is equally distributed among all fleets within the region.  
+    - `"fleet_gear"`: Total catch is allocated to each gear type based on historical gear-specific catch, then the gear-specific catch is equally distributed among regions that use this gear.  
+    - `"fleet_combined"`: Total catch is allocated based on historical regional and gear-specific catch.  
+    - `"fleet_catch"`: Total catch is allocated based on historical fleet-specific catch within each region.  
+    - `"index_equal"`: Total catch is allocated to each region based on historical survey catch, then the regional catch is distributed among fleets based on historical gear-specific catch.  
+    - `"index_gear"`: Total catch is allocated based on historical region-specific survey catch and then distributed among fleets based on historical gear-specific catch.  
+    - `"multiple_index_equal"`: Total catch is allocated to each region based on historical survey catch from multiple surveys, then the regional catch is equally distributed among fleets within the region.  
+    - `"multiple_index_gear"`: Total catch is allocated to each region based on multiple historical survey-based catch estimates, then distributed among fleets within the region based on historical gear-specific catch.  
+    - `"user_defined_fleets"`: Catch allocation is based on user-defined weights for each fleet.  
+    - `"user_defined_regions"`: Catch is allocated based on user-defined weights for regions, then equally distributed among fleets within the region.  
+
+  - `user_weights`: Optional numeric vector of length `n_regions` or `n_fleets`. Used when `weight_type = 4`. Values should sum to `1`.  
+
+  - `weight_years`: Integer giving the number of years to average when calculating historical catch weights.  
+
+  - `survey_pointer`: Integer or vector specifying which survey index type to use for weighting when `weight_type = 3`.  
+
+**Returns**  
+A matrix of dimension `(n_years, n_fleets)` representing region-specific
+and gear-specific catch advice.
+
+**Related functions**  
+No related-function block was documented in the source file.
+
+## `add_implementation_error()`
+
+**Source file:** `add_implementation_error.R`
+
+**Purpose**  
+Adds implementation error to catch advice in a Management Strategy Evaluation (MSE) framework.  
+Supports log-normal, normal, uniform, or constant multipliers to simulate realistic deviations
+between recommended and realized catch.
+
+**Arguments**  
+- `catch_advice`: A numeric matrix of catch advice with dimensions `[n_years, n_fleets]`.  
+  Can also be a vector or a matrix with dimensions `(1,1)` (i.e., a single value).  
+
+- `method`: Character specifying the implementation error distribution. Options include:  
+
+  - `lognormal`: Multiplies catch advice by `exp(N(mean, sd))`, where `sd` is derived from `cv` if not provided.  
+  - `normal`: Adds error to catch via `1 + N(mean, sd)`.  
+  - `uniform`: Multiplies catch advice by a uniform multiplier between `min` and `max`.  
+  - `constant`: Multiplies catch advice by a fixed value (`constant_value`).  
+
+- `mean`: Numeric. The mean of the error distribution. For log-normal, this value is on the log scale.  
+
+- `cv`: Numeric. Coefficient of variation. Used only for log-normal error if `sd` is not provided.  
+
+- `sd`: Numeric. Standard deviation of the error distribution. Required for `normal`, optional for `lognormal`.  
+
+- `min`: Numeric. Minimum multiplier. Used only when `method = "uniform"`.  
+
+- `max`: Numeric. Maximum multiplier. Used only when `method = "uniform"`.  
+
+- `constant_value`: Numeric. Fixed multiplier applied when `method = "constant"`.  
+  If `constant_value` is not provided and `cv` is specified, the multiplier defaults to the mean
+  of a log-normal distribution with the given CV. If neither is provided, it defaults to `1`.  
+
+- `seed`: Integer (optional). Random seed used for reproducibility when stochastic error methods are applied.  
+
+**Returns**  
+A numeric matrix of the same dimensions as `catch_advice`, representing the realized catch after applying implementation error.
+
+**Related functions**  
+No related-function block was documented in the source file.
+
+---
+
+## `update_SPR_weights()`
+
+**Source file:** `update_SPR_weights.R`
+
+**Purpose**  
+Updates the weights used to calculate spawning potential ratio (SPR)-based biological reference points
+in spatially explicit assessment models. This function sets region- or stock-specific weights
+for averaging metrics such as weight-at-age and maturity-at-age in the reference point calculations.
+
+**Important details**  
+This function is intended for use only in spatially explicit estimation models. It modifies the weighting applied
+to regional data when computing spawning potential ratio (SPR) and associated reference points. The default method
+applies equal weights, while alternative methods use historical catch or index data to determine weights dynamically.
+
+**Arguments**  
+- `em_input`: List. Input list for the estimation model (typically created by `make_em_input`).  
+  Must include `em_input$data$agg_catch`, `em_input$data$fleet_regions`, and other standard WHAM data structures.  
+
+- `method`: Character specifying how weights are assigned to regions or stocks. Options include:  
+
+  - `equal`: Assigns equal weights across all stocks or regions (default).  
+  - `fleet_region`: Assigns weights based on average catch per region over the last `weight_years`.  
+    Requires complete fleet coverage across regions.  
+  - `index_region`: Assigns weights based on average index values over the last `weight_years`.  
+    Requires `index_pointer`.  
+
+- `weight_years`: Integer. Number of years at the end of the time series used to average catch or index values (default = `1`).  
+
+- `index_pointer`: Integer specifying which index is used when `method = "index_region"`.  
+
+**Returns**  
+An updated version of `em_input`, with SPR weighting information added to  
+`em_input$data$SPR_weights` and `em_input$data$SPR_weight_type`.
+
+**Related functions**  
+No related-function block was documented in the source file.
+
+# Operating model update and simulation
+
+## `update_om_fn()`
+
+**Source file:** `update_om_fn.R`
+
+**Purpose**
+This function updates fishing mortality (F) in the operating model, projects the
+population forward, and generates new simulated data based on the updated F time
+series. It can either:
+1. behave like the original function and replace all simulated random effects, or
+2. keep the historical process fixed and only overwrite the future portion of
+`log_NAA` when `process_fix = 1`.
+
+**Arguments**  
+- `om`: A fitted or unfitted operating model object that includes both the burn-in period and the feedback years.  
+
+- `interval.info`: A list containing the projected catch information passed from the estimation model to the operating model. It includes:  
+
+  - `years`: A vector of projection years to be updated in the operating model.  
+  - `catch`: A matrix of projected catch values with dimensions `n_years x n_fleets`, or another compatible structure expected by the update function.  
+
+- `seed`: Integer seed used to simulate new data, ensuring reproducibility of the operating model update (default = `123`).  
+
+- `random`: Character vector naming the process components treated as random effects in the operating model (default = `log_NAA`).  
+
+- `method`: Character string specifying the optimization method used to solve for fishing mortality `F`. Supported options are `nlminb` (default) and `BFGS`.  
+
+- `by_fleet`: Logical. If `TRUE`, fishing mortality is estimated separately for each fleet. If `FALSE`, a single global fishing mortality is estimated and applied (default = `TRUE`).  
+
+- `do.brps`: Logical. If `TRUE`, biological reference points are calculated when updating the operating model (default = `FALSE`).  
+
+- `process_fix`: Integer or logical flag controlling whether the historical process trajectory is preserved. If `1` or `TRUE`, the historical process is kept fixed and only future `log_NAA` values are overwritten. If `0` or `FALSE`, all simulated random effects are overwritten as in the original implementation (default = `0`).  
+
+- `first_free_year`: Integer giving the first model year that is allowed to change when `process_fix = 1`. For example, `first_free_year = 51` means years `1:50` remain fixed and only years `51:end` are overwritten in `log_NAA` (default = `51L`).  
+
+**Returns**
+Updated operating model object.
+
+**Related functions**
+`get_F_from_Catch`, `update_om_F`
+
+## `get_F_from_Catch()`
+
+**Source file:** `get_F_from_Catch.R`
+
+**Purpose**  
+This function estimates fleet-specific or global fishing mortality (F) using Newton's method.
+
+**Arguments**  
+
+- `om`: A fitted operating model containing stock and fleet information.  
+
+- `Catch`: Numeric vector of catch values for each fleet.  
+
+- `year`: Integer. The year for which F is estimated.  
+
+- `method`: Character. The optimization method used for solving F. Options include:  
+
+  - `nlminb` (default): Uses `nlminb` optimization.  
+  - `BFGS`: Uses `optim` with the BFGS method.  
+
+- `by_fleet`: Logical. If TRUE, estimates F separately for each fleet. If FALSE, estimates a single global F (default = FALSE).  
+
+**Returns**  
+
+A numeric vector of estimated fleet-specific F values.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `update_om_F()`
+
+**Source file:** `update_om_F.R`
+
+**Purpose**  
+This function updates fishing mortality (F) in the operating model (`om`) for a specified year
+and ensures consistency in future F projections.
+
+**Arguments**  
+
+- `om`: A fitted operating model that includes burn-in and feedback years.  
+
+- `year`: Integer. The year for which fishing mortality is being updated.  
+
+- `Fsolve`: Numeric vector. Estimated fishing mortality values for each fleet.  
+
+**Returns**  
+
+An updated operating model (`om`) with:
+
+- Updated F time series.  
+- Adjusted F deviation parameters (`F_pars`) for model consistency.  
+
+**Related functions**  
+
+`get_F_from_Catch`, `update_om_fn`
+
+## `generate_data()`
+
+**Source file:** `generate_data.R`
+
+**Purpose**  
+Function to use the operating model to generate data.
+
+**Arguments**  
+
+- `om`: Operating model.  
+
+- `seed`: Seed used to generate data.  
+
+**Returns**  
+
+An operating model with simulated data.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+# Core configuration builders
+
+## `generate_basic_info()`
+
+**Source file:** `generate_basic_info.R`
+
+**Purpose**  
+The `generate_basic_info()` function creates biological and fishery information necessary
+for simulation-estimation and management strategy evaluation (MSE). This function defines
+stock structure, fleet operations, life history parameters, fishing mortality, and
+movement dynamics, among other essential components.
+
+**Arguments**  
+
+- `n_stocks`: Integer. Number of stocks.  
+
+- `n_regions`: Integer. Number of regions.  
+
+- `n_indices`: Integer. Number of indices.  
+
+- `n_fleets`: Integer. Number of fleets.  
+
+- `n_seasons`: Integer. Number of seasons.  
+
+- `base.years`: Integer vector. Model years (or "burn-in" period in MSE).  
+
+- `n_feedback_years`: Integer. Optional. Number of years in the MSE feedback loop.  
+
+- `life_history`: Character. Fish life history, parameters obtained from
+  Wiedenmann et al. 2017 (https://doi.org/10.1139/cjfas-2016-0381). Options:
+
+  - `medium` - Median-lived species (default).  
+  - `short` - Short-lived species.  
+  - `long` - Long-lived species.  
+
+- `n_ages`: Integer. Number of ages.  
+
+- `F_info`: List. Historical fishing pressure or user-specified fishing mortality values:  
+
+  - `$F.year1` - Fishing mortality in the first year.  
+  - `$Fhist` - Pattern of historical fishing mortality. Options include:  
+
+    - `constant` - Constant across years.  
+    - `updown` - Increase to `Fmax` until change point, then decrease to `Fmin`.  
+    - `downup` - Decrease to `Fmin` until change point, then increase to `Fmax`.  
+    - `F-H-L` - Constant `F.year1*Fmax` until change point, followed by constant `F.year1*Fmin`.  
+    - `F-L-H` - Constant `F.year1*Fmin` until change point, followed by constant `F.year1*Fmax`.  
+
+  - `$Fmax` - Maximum F (or multiplier when `Fhist = "F-H-L"`).  
+  - `$Fmin` - Minimum F (or multiplier when `Fhist = "F-H-L"`).  
+  - `$change_time` - Proportion of the time series (0–1) indicating when the change in fishing mortality occurs.  
+  - `$user_F` - Optional matrix (`n_years x n_fleets`) of user-specified fishing mortality values.  
+
+- `catch_info`: List. Fleet catch information:  
+
+  - `$catch_cv` – Vector of length `n_fleets`, or a single value applied to all fleets, specifying CV for each fleet catch.  
+  - `$catch_Neff` – Vector of length `n_fleets`, or a single value applied to all fleets, specifying effective sample sizes for fleet catch age composition.  
+  - `$use_agg_catch` – Vector of length `n_fleets`, or a single value applied to all fleets, with 0/1 flags indicating whether aggregate catch data are used.  
+  - `$use_catch_paa` – Vector of length `n_fleets`, or a single value applied to all fleets, with 0/1 flags indicating whether age composition data for catch are used.  
+
+- `index_info`: List. Survey index information:  
+
+  - `$index_cv` – Vector of length `n_indices`, or a single value applied to all indices, specifying CV for each survey index.  
+  - `$index_Neff` – Vector of length `n_indices`, or a single value applied to all indices, specifying effective sample sizes for survey age composition.  
+  - `$fracyr_indices` – Vector of length `n_indices`, or a single value applied to all indices, specifying the fraction of the year when surveys occur.  
+  - `$q` – Vector of length `n_indices`, or a single value applied to all indices, specifying survey catchabilities.  
+  - `$use_indices` – Vector of length `n_indices`, or a single value applied to all indices, with 0/1 flags indicating whether aggregate index data are used.  
+  - `$use_index_paa` – Vector of length `n_indices`, or a single value applied to all indices, with 0/1 flags indicating whether age composition data for indices are used.  
+  - `$units_indices` – Vector of length `n_indices`, or a single value applied to all indices, where 1 = biomass and 2 = numbers for aggregate index data.  
+  - `$units_index_paa` – Vector of length `n_indices`, or a single value applied to all indices, where 1 = biomass and 2 = numbers for index age composition data.  
+
+- `fracyr_spawn`: Numeric. Fraction of the year when spawning occurs.  
+
+- `fracyr_seasons`: Numeric vector. Optional. User-defined seasonal fractions summing to 1.  
+
+- `fleet_regions`: Integer vector. Optional. User-defined region allocation for each fleet.  
+
+- `index_regions`: Integer vector. Optional. User-defined region allocation for each index.  
+
+- `user_waa`: Numeric vector, matrix, or array. Optional. User-defined weight-at-age data. If a vector of length `n_ages`, the same values are used for all fleets, indices, regions, and stocks. If a matrix of dimension `(n_fleets + n_regions + n_indices + n_stocks) x n_ages`, user must provide pointer vectors. If a 3D array of dimension `(n_fleets + n_regions + n_indices + n_stocks, n_years_model, n_ages)`, values are used as-is and pointer vectors must also be provided.  
+
+- `user_maturity`: Numeric vector, matrix, or array. Optional. User-defined maturity-at-age data. Can be a vector of length `n_ages` (same across stocks and years), a matrix of dimension `n_stocks x n_ages` (same across years), or a 3D array of dimension `n_stocks x n_years_model x n_ages`.  
+
+- `bias.correct.process`: Logical. Whether to apply process error bias correction.  
+
+- `bias.correct.observation`: Logical. Whether to apply observation error bias correction.  
+
+- `bias.correct.BRPs`: Logical. Whether to apply biological reference point bias correction.  
+
+- `mig_type`: Integer. Migration type:  
+
+  - `0` – Movement occurs after survival.  
+  - `1` – Movement and mortality occur simultaneously.  
+
+- `XSPR_R_opt`: Integer. Recruitment used to calculate SPR-based reference points:  
+
+  - `1` – Annual recruitment estimates.  
+  - `2` – Average recruitment estimates (Default).  
+  - `3` – Annual expected recruitment.  
+  - `4` – Average expected recruitment.  
+  - `5` – Bias-corrected expected recruitment.  
+
+- `move_dyn`: Integer. Movement dynamics:  
+
+  - `0` – Natal homing only.  
+  - `1` – Meta-population or flexible movement dynamics.  
+
+- `onto_move`: Integer array (`n_stocks x n_regions x (n_regions - 1)`). Age-specific movement type:  
+
+  - `0` – Constant movement rate across ages (default).  
+  - `1` – Increasing logistic (2 parameters: midpoint and slope).  
+  - `2` – Decreasing logistic (2 parameters: midpoint and slope).  
+  - `3` – Double-logistic (4 parameters: increasing + decreasing logistic).  
+  - `4` – Double-normal (4 parameters: peak, width1, width2, and scale).  
+
+- `onto_move_pars`: Numeric array (`n_stocks x n_regions x (n_regions - 1) x 4`). Parameters controlling the shape of the age-specific movement curves. Required when `onto_move` is nonzero.  
+
+- `apply_re_trend`: Logical. Whether to apply a linear temporal trend to the **random effects** in movement (`mu_re`). Defaults to `FALSE`.  
+
+- `trend_re_rate`: Numeric array (`n_stocks x n_ages x n_seasons x n_regions x (n_regions - 1)`). Annual slope applied to movement random effects when `apply_re_trend = TRUE`.  
+
+- `apply_mu_trend`: Logical. Whether to apply a linear temporal trend to the **mean movement** (`trans_mu`). Defaults to `FALSE`.  
+
+- `trend_mu_rate`: Numeric array (`n_stocks x n_ages x n_seasons x n_regions x (n_regions - 1)`). Annual slope applied to mean movement when `apply_mu_trend = TRUE`.  
+
+- `age_mu_devs`: Numeric array (`n_stocks x n_regions x (n_regions - 1) x n_ages`). Optional user-defined deviations for age-specific movement. Required when `onto_move = 4`.  
+
+**Returns**  
+
+A list containing:
+
+- `$basic_info` - General biological and fishery details.  
+- `$catch_info` - Fleet-specific catch data.  
+- `$index_info` - Survey-related data.  
+- `$F` - Fishing mortality settings.  
+- `$par_inputs` - A list of input parameters for model setup.  
+
+**Related functions**  
+
+`prepare_wham_input`
+
+## `initial_input_no_asap_fn()`
+
+**Source file:** `initial_input_no_asap_fn.r`
+
+**Purpose**  
+Function to prepare wham input without ASAP file.
+
+**Arguments**  
+
+- `input`: Initial wham input.  
+
+- `basic_info`: A list of basic information.  
+
+**Returns**  
+
+wham input file
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `generate_ini_N1()`
+
+**Source file:** `generate_ini_N1.R`
+
+**Purpose**  
+Generate initial numbers-at-age.
+
+**Arguments**  
+
+- `basic_info`: list specifying options for numbers-at-age random effects, initial parameter values, and recruitment model (see details).  
+
+- `ini.opt`: N1_model.  
+
+- `log_N1`: a vector (length = n_stocks) of log number-at-age 1 at equilibrium.  
+
+- `N1_F`: a vector (length = n_stocks) of fishing mortality at equilibrium. Options include:  
+
+  - **"age-specific-fe"**: (default) age- and region-specific fixed effects parameters.  
+  - **"equilibrium"**: 2 fixed effects parameters: an initial recruitment and an instantaneous fishing mortality rate to generate an equilibruim abundance at age.  
+  - **"iid-re"**: (default) age- and region-specific iid random effects parameters. 2 parameters: mean and sd for log NAA.  
+  - **"ar1-re"**: (default) age- and region-specific random effects parameters. 3 parameters: mean and sd, and cor for log NAA.  
+
+- `init_NAA`: a matrix (`n_ages x n_stocks`) of initial numbers-at-age.  
+
+**Returns**  
+
+an array of numbers-at-age (`n_stocks x n_regions x n_ages`)
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+# Movement configuration
+
+## `generate_NAA_where()`
+
+**Source file:** `generate_NAA_where.R`
+
+**Purpose**  
+The `generate_NAA_where()` function is used to generate an array (`n_stocks`, `n_regions`, `n_ages`)
+which determines whether or not (T/F) the stock from a certain age can be present in a specific region.
+
+**Arguments**  
+
+- `basic_info`: Information generated by `generate_basic_info`.  
+
+- `move.type`: Movement type:  
+
+  - `1` single stock movement (i.e. only stock 1 can move), with region-specific movement rates.  
+  - `2` bidirectional movement (i.e. all stocks can move), with region-specific movement rates (default).  
+  - `3` no movement.  
+
+**Returns**  
+
+A list of information that will be used to prepare wham input.
+
+**Related functions**  
+
+`prepare_wham_input` and `generate_move`
+
+## `generate_move()`
+
+**Source file:** `generate_move.R`
+
+**Purpose**  
+The `generate_move()` function is used to configure movement random effects.
+
+**Arguments**  
+
+- `basic_info`: Information generated by `generate_basic_info`.  
+  Note: `NAA_where` has to be specified in `basic_info` using `generate_NAA_where()`.  
+
+- `move.type`: Movement type.  
+
+  - `1` single stock movement (i.e. only stock 1 can move), with region-specific movement rates.  
+  - `2` bidirectional movement (i.e. all stocks can move), with region-specific movement rates (default).  
+  - `3` no movement.  
+
+- `move.rate`: Movement rates (default = `c(0.3, 0.1)`).  
+
+- `move.re`: Movement random effects.  
+
+  - `constant` constant movement rate across years and ages (default).  
+  - `iid_y` movement rate deviations vary by year, but uncorrelated (IID).  
+  - `iid_a` movement rate deviations vary by age, but uncorrelated (IID).  
+  - `ar1_y` movement rate deviations correlated by year (AR1).  
+  - `ar1_a` movement rate deviations correlated by age (AR1).  
+  - `iid_y","iid_a` vector, movement rate deviations vary by year and ages, but uncorrelated (2D-IID).  
+  - `ar1_y","ar1_a` vector, movement rate deviations vary by year and ages (2D-AR1).  
+
+- `move.sigma`: Standard deviation for movement random effects (default = `0.2`).  
+
+- `prior.sigma`: Standard deviation for normal priors on mean movement (default = `0.2`).  
+
+- `move.rho_a`: Correlation for movement random effects by ages, only used if `move.re = "ar1_a"` (default = `0.5`).  
+
+- `move.rho_y`: Correlation for movement random effects by years, only used if `move.re = "ar1_y"` (default = `0.5`).  
+
+- `use.prior`: Logical, whether to use priors for movement estimation (default = `FALSE`).  
+
+- `move_dyn`: Movement dynamics. `0 = natal homing`, `1 = meta-population`.  
+
+**Returns**  
+
+A named list with the following components:
+
+- **$stock_move**: Length = `n_stocks`, TRUE/FALSE whether each stock can move. If not provided, movement will be defined below for all stocks.  
+- **$separable**: Length = `n_stocks`, TRUE/FALSE whether movement should be modeled separably from mortality or both occurring simultaneously.  
+- **$must_move**: Array (`n_stocks x n_seasons x n_regions`) 0/1 indicator whether movement from a region must occur.  
+- **$can_move**: Array (`n_stocks x n_seasons x n_regions x n_regions`) 0/1 indicator whether movement can occur from one region to another.  
+- **$mean_vals**: Array (`n_stocks x n_seasons x n_regions x n_regions - 1`) of initial movement rate parameters from each region.  
+- **$sigma_vals**: Array (`n_stocks x n_seasons x n_regions x n_regions - 1`) of initial standard deviations for random effects.  
+- **$cor_vals**: Array (`n_stocks x n_seasons x n_regions x n_regions - 1 x 2`) of initial correlation values for random effects.  
+- **$use_prior**: Array (`n_stocks x n_seasons x n_regions x n_regions - 1`) 0/1 indicator whether to include prior for mean movement parameters in joint log-likelihood.  
+- **$prior_sigma**: Array (`n_stocks x n_seasons x n_regions x n_regions - 1`) of standard deviation parameters for normal priors on mean movement parameters on transformed scale (`-Inf`, `Inf`).  
+
+**Related functions**  
+
+`set_move` and `generate_NAA_where`
+
+## `fix_move()`
+
+**Source file:** `fix_move.R`
+
+**Purpose**  
+a function to fix movement rate in the input.
+
+**Arguments**  
+
+- `input`: wham input.  
+
+**Returns**  
+
+No return block was documented in the source file.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `compute_age_mu_devs()`
+
+**Source file:** `compute_age_mu_devs.R`
+
+**Purpose**  
+This function calculates the deviation of movement rates at age from the minimum movement rate
+for each region-to-region pair, ensuring that all deviations are greater than or equal to zero.
+The function also saves the baseline movement rates, which can be used to reconstruct the
+original movement matrix.
+
+**Arguments**  
+
+- `move_matrix`: A 3D array of movement rates with dimensions `(n_regions, n_regions-1, n_ages)`.  
+  Each entry represents the movement rate from one region to another across different ages.  
+
+- `n_stocks`: An integer specifying the number of stocks for which deviations should be computed.  
+
+**Returns**  
+
+A list containing:
+
+- **`age_mu_devs`**: A 4D array of movement deviations with dimensions `(n_stocks, n_regions, n_regions-1, n_ages)`, ensuring all values are non-negative.  
+- **`baseline_move`**: A 3D array `(n_regions, n_regions-1, n_ages)` representing the minimum movement rate for each region-pair across ages, used as a baseline.  
+- **`mean_vals`**: A 4D array `(n_stocks, n_seasons, n_regions, n_regions-1)` representing the minimum movement rate for each region-pair across stocks and season, used as a baseline mean movement rate.  
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `Specify_move()`
+
+**Source file:** `Specify_move.R`
+
+**Purpose**  
+This function launches the Shiny app included in the package.
+
+**Arguments**  
+
+No formal argument documentation was found in the source file.
+
+**Returns**  
+
+No return block was documented in the source file.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+# Aggregation and observation design
+
+## `make_aggregate_data()`
+
+**Source file:** `make_aggregate_data.R`
+
+**Purpose**  
+Aggregates catch and index data from the operating model (`om`) and updates
+the estimation model (`em_info`) with the aggregated data. It also adjusts
+`par_inputs` and weight-at-age (`user_waa`) to reflect the modified fleet,
+region, index, and stock structure.
+
+**Important details**  
+
+- Fleets and indices with `fleet_pointer = 0` or `index_pointer = 0` are ignored during aggregation.  
+- **Aggregated parameters** (`catch_cv`, `index_cv`, `q`, etc.) will return **vectors of length equal to the number of aggregated fleets or indices**.  
+- If `aggregate_catch_info` or `aggregate_index_info` are missing values, they are replaced with the first element of `em_info$par_inputs`.  
+- Weight-at-age (`waa`) is aggregated based on fleet or index weights, using either **catch-weighted averages or equal proportions**.  
+
+**Arguments**  
+
+- `om`: List. The operating model containing observed data.  
+
+- `em_info`: List. The estimation model information.  
+
+- `aggregate_catch_info`: List (optional). User-specified catch aggregation settings for panmictic models using aggregate catch.  
+
+  - `$n_fleets` Integer. Number of fleets.  
+  - `$catch_cv` Numeric vector (`n_fleets`). CVs for annual aggregate catches by fleet.  
+  - `$catch_Neff` Numeric vector (`n_fleets`). Effective sample sizes for fleet catches.  
+  - `$use_agg_catch` Integer vector (`n_fleets`). 0/1 values flagging whether to use aggregate catches.  
+  - `$use_catch_paa` Integer vector (`n_fleets`). 0/1 values flagging whether to use proportions at age observations.  
+  - `$fleet_pointer` Integer vector (`n_fleets`). Defines fleet grouping (`0` = exclude).  
+  - `$use_catch_weighted_waa` Logical. Whether to use weighted weight-at-age based on fleet catches.  
+
+- `aggregate_index_info`: List (optional). User-specified index aggregation settings for panmictic models using aggregate indices.  
+
+  - `$n_indices` Integer. Number of indices.  
+  - `$index_cv` Numeric vector (`n_indices`). CVs for annual aggregate index catches.  
+  - `$index_Neff` Numeric vector (`n_indices`). Effective sample sizes for survey indices.  
+  - `$fracyr_indices` Numeric vector (`n_indices`). Fraction of the year for each survey index.  
+  - `$q` Numeric vector (`n_indices`). Initial survey catchabilities.  
+  - `$use_indices` Integer vector (`n_indices`). 0/1 values flagging whether to use survey indices.  
+  - `$use_index_paa` Integer vector (`n_indices`). 0/1 values flagging whether to use proportions at age observations.  
+  - `$units_indices` Integer vector (`n_indices`). 1/2 values flagging whether aggregate observations are biomass (1) or numbers (2).  
+  - `$units_index_paa` Integer vector (`n_indices`). 1/2 values flagging whether composition observations are biomass (1) or numbers (2).  
+  - `$index_pointer` Integer vector (`n_indices`). Defines index grouping (`0` = exclude).  
+  - `$use_index_weighted_waa` Logical. Whether to use weighted weight-at-age based on survey catches.  
+
+- `aggregate_weights_info`: List (optional). Specifies how to compute weighted averages for
+  weight-at-age (`waa`) and maturity-at-age during data aggregation (For panmictic and fleets-as-areas models only).
+  Used for aggregating across fleets or indices to form total/stock/regional summaries.
+
+  - `$ssb_waa_weights` List. Settings for weighting weight-at-age used for spawning stock biomass.  
+
+    - `$fleet` Logical. Whether to use fleet-specific weights.  
+    - `$index` Logical. Whether to use index-specific weights.  
+    - `$pointer` Integer. Index pointing to the selected fleet or index group (e.g., 1 means the first valid fleet group).  
+
+  - `$maturity_weights` List. Settings for weighting maturity-at-age used for spawning stock biomass.  
+
+    - `$fleet` Logical. Whether to use fleet-specific weights.  
+    - `$index` Logical. Whether to use index-specific weights.  
+    - `$pointer` Integer. Index pointing to the selected fleet or index group.  
+
+- `ind_em`: Vector. Indices specifying the years for which the estimation model should use data.  
+
+**Returns**  
+
+List. An updated `em_info` object with:
+
+- Aggregated `catch_info` (`agg_catch`, `catch_paa`).  
+- Aggregated `index_info` (`agg_indices`, `index_paa`).  
+- Updated `par_inputs` with fleet/index aggregations.  
+- Updated weight-at-age (`user_waa`) and `basic_info$waa`.  
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `aggregate_em_data()`
+
+**Source file:** `aggregate_em_data.R`
+
+**Purpose**  
+This function processes and aggregates catch and index data from the operating model
+for use in the estimation model (`em_info`). It accounts for multiple fleets and indices
+and adjusts aggregation based on fleet and index pointers.
+
+**Arguments**  
+
+- `data`: List. The operating model output, including:  
+
+  - `$agg_catch` - Aggregated catch data.  
+  - `$catch_paa` - Proportions-at-age for catch.  
+  - `$agg_indices` - Aggregated index data.  
+  - `$index_paa` - Proportions-at-age for indices.  
+
+- `em_info`: List. The estimation model inputs, including `par_inputs` and fleet/index settings.  
+
+- `aggregate_catch_info`: List. Contains fleet aggregation details, including:  
+
+  - `$fleet_pointer` - Vector mapping original fleets to aggregated fleets (`0` = exclude).  
+
+- `aggregate_index_info`: List. Contains index aggregation details, including:  
+
+  - `$index_pointer` - Vector mapping original indices to aggregated indices (`0` = exclude).  
+
+- `ind_em`: Vector. Indexing the estimation model years within the dataset.  
+
+- `n_fleets`: Integer. The number of fleets in the estimation model.  
+
+- `n_indices`: Integer. The number of indices in the estimation model.  
+
+**Returns**  
+
+List. A modified `info` list containing aggregated `catch_info` and `index_info`:
+
+- `$catch_info$agg_catch` - Aggregated catch data for the estimation model.  
+- `$catch_info$catch_paa` - Aggregated catch-at-age data.  
+- `$index_info$agg_indices` - Aggregated index data.  
+- `$index_info$index_paa` - Aggregated index-at-age data.  
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `update_input_catch_info()`
+
+**Source file:** `update_input_catch_info.R`
+
+**Purpose**  
+Updates `input$data$agg_catch_sigma` and `input$data$catch_Neff` using the provided CV and Neff matrices.
+Optionally removes catch data (aggregated or PAA) for specified fleets and years, and updates internal flags accordingly.
+
+**Important details**  
+
+If `ind_em` is specified, only those rows are updated in the input matrices.
+Removal of aggregated catch or PAA observations is handled by setting corresponding flags and array elements to zero.
+
+**Arguments**  
+
+- `input`: List. A WHAM input list that must contain `input$data`.  
+
+- `agg_catch_sigma`: Numeric matrix. Aggregated catch standard deviations (CVs) to update.
+  Can be full size (`n_years × n_fleets`) or a subset of rows (`length(ind_em) × n_fleets`).  
+
+- `catch_Neff`: Numeric matrix. Effective sample size for catch data. Must match the dimensions of `agg_catch_sigma`.  
+
+- `remove_agg`: Logical. Whether to remove aggregated catch observations for specific fleets/years.  
+
+- `remove_agg_pointer`: Integer vector. Fleet pointers (columns) for which aggregated catch data should be removed.  
+
+- `remove_agg_years`: Integer vector or matrix. Years (rows) to remove aggregated catch data. Can be a vector (applies to all fleets) or a matrix with dimensions [years × fleets].  
+
+- `remove_paa`: Logical. Whether to remove catch PAA observations for specific fleets/years.  
+
+- `remove_paa_pointer`: Integer vector. Fleet pointers (columns) for which catch PAA data should be removed.  
+
+- `remove_paa_years`: Integer vector or matrix. Years (rows) to remove catch PAA data. Can be a vector (applies to all fleets) or a matrix with dimensions [years × fleets].  
+
+- `ind_em`: Integer vector or `NULL`. Row indices (years) to update. If `NULL`, updates all rows.  
+
+**Returns**  
+
+The modified `input` list with updated `agg_catch_sigma`, `catch_Neff`, and updated catch flags.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `update_input_index_info()`
+
+**Source file:** `update_input_index_info.R`
+
+**Purpose**  
+Updates `input$data$agg_index_sigma` and `input$data$index_Neff` using the provided CV and Neff matrices.
+Optionally removes index data (aggregated or PAA) for specified indices (pointers) and years, and updates internal flags accordingly.
+
+**Important details**  
+
+If `ind_em` is specified, only those rows are updated in the input matrices.
+Removal of aggregated index or PAA observations is handled by setting corresponding flags and array elements to zero.
+The function automatically calls `set_osa_obs()` at the end to refresh OSA flags.
+
+**Arguments**  
+
+- `input`: List. A WHAM input list that must contain `input$data`.  
+
+- `agg_index_sigma`: Numeric matrix. Aggregated index standard deviations (CVs) to update.
+  Can be full size (`n_years × n_indices`) or a subset of rows (`length(ind_em) × n_indices`).  
+
+- `index_Neff`: Numeric matrix. Effective sample size for index data. Must match the dimensions of `agg_index_sigma`.  
+
+- `remove_agg`: Logical. Whether to remove aggregated index observations for specific indices/years.  
+
+- `remove_agg_pointer`: Integer vector. Index pointers (columns) for which aggregated index data should be removed.  
+
+- `remove_agg_years`: Integer vector or matrix. Years (rows) to remove aggregated index data. Can be a vector (applies to all pointers) or a matrix with dimensions [years × pointers].  
+
+- `remove_paa`: Logical. Whether to remove index PAA observations for specific indices/years.  
+
+- `remove_paa_pointer`: Integer vector. Index pointers (columns) for which index PAA data should be removed.  
+
+- `remove_paa_years`: Integer vector or matrix. Years (rows) to remove index PAA data. Can be a vector (applies to all pointers) or a matrix with dimensions [years × pointers].  
+
+- `ind_em`: Integer vector or `NULL`. If provided, only updates rows corresponding to these indices. If `NULL`, updates all rows.  
+
+**Returns**  
+
+The modified `input` list with updated `agg_index_sigma`, `index_Neff`, and updated index flags.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+# Weight-at-age utilities
+
+## `set_WAA()`
+
+**Source file:** `set_WAA.R`
+
+**Purpose**  
+Populate `input$data$waa` and related WAA pointer vectors. This function fills the weight-at-age array from one of three sources:
+
+- a user-supplied WAA object in `waa_info$waa`  
+- ASAP input objects stored in `input$asap3`  
+- a fallback internally generated WAA object when neither of the above is available  
+
+**Important details**  
+
+When `waa_info$waa` is supplied, the function expects a three-dimensional array. The second dimension is model year and the third dimension is age. If that array is not three-dimensional, the function stops.
+
+When ASAP input is available, the function builds `data$waa` by combining:
+
+- fleet catch WAA  
+- index WAA  
+- spawning biomass WAA  
+
+It also updates WAA pointer vectors so downstream WHAM code knows which WAA slice to use for fleets, indices, spawning biomass, and natural mortality.
+
+When neither user WAA nor ASAP input is available, the function creates a simple fallback WAA object and records this in the input log.
+
+**Arguments**  
+
+- `input`: WHAM input list. The function reads and updates `input$data`, and optionally uses `input$asap3`.  
+
+- `waa_info`: Optional list of WAA overrides. Supported elements include:  
+
+  - `waa`: user-supplied WAA array.  
+  - `waa_pointer_ssb`: pointer vector for spawning biomass WAA.  
+  - `waa_pointer_M`: pointer vector for natural mortality WAA.  
+  - `waa_pointer_fleets`: pointer vector for fleet WAA, when fleet pointers exist.  
+  - `waa_pointer_indices`: pointer vector for index WAA, when index pointers exist.  
+
+**Returns**  
+
+An updated `input` object with `data$waa` and the relevant WAA pointer vectors populated or modified.
+
+**Related functions**  
+
+`update_waa()`
+
+## `update_waa()`
+
+**Source file:** `update_waa.R`
+
+**Purpose**  
+This function updates the weight-at-age (WAA) data and associated pointers in
+the input list based on provided `waa_info`. It replaces `input$data$waa`
+and ensures that relevant pointers (`waa_pointer_ssb`, `waa_pointer_M`, etc.)
+are correctly assigned.
+
+**Arguments**  
+
+- `input`: A list containing `data` and optional `log` elements. `data` must include
+  stock, fleet, and index information.  
+
+- `waa_info`: A list containing the weight-at-age (WAA) array and associated pointers.
+  The list may include:
+
+  - `waa`: A 3D array `(n_sources, n_years, n_ages)` representing weight-at-age data.  
+  - `waa_pointer_ssb`: A numeric vector specifying WAA matrix indices for SSB.  
+  - `waa_pointer_M`: A numeric vector specifying WAA matrix indices for natural mortality.  
+  - `waa_pointer_fleets`: A numeric vector specifying WAA matrix indices for fleets.  
+  - `waa_pointer_indices`: A numeric vector specifying WAA matrix indices for indices.  
+
+**Returns**  
+
+The modified `input` list with updated `data$waa` and associated pointers.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+# Reporting and diagnostics
+
+## `plot_mse_output()`
+
+**Source file:** `plot_mse_output.R`
+
+**Purpose**  
+This function creates a comprehensive set of plots to visualize MSE (Management Strategy Evaluation)
+results from a list of model simulations. Outputs can be saved as individual PNG files or as a single
+interactive HTML or PDF report.
+
+**Arguments**  
+
+- `mods`: A list of model outputs from multiple simulations and estimation models.  
+
+- `main_dir`: The main directory path where results should be saved.  
+
+- `output_dir`: Folder name inside `main_dir` where plots/reports will be saved (default: `"Report"`).  
+
+- `output_format`: Output type: `"png"`, `"html"`, or `"pdf"`.  
+
+- `width`: Width of each plot in inches.  
+
+- `height`: Height of each plot in inches.  
+
+- `dpi`: Resolution of saved plots in dots per inch.  
+
+- `col.opt`: Color palette option for `viridis`-based scales.  
+
+- `method`: `method = NULL`: global median; `method = "mean"`: median of means; `method = "median"`: median of medians.  
+
+- `outlier.opt`: `outlier.opt = NA` (default): no outliers will be shown; `outlier.opt = 0 - 25`: 26 different shapes to use.  
+
+- `plot.style`: `plot.style = "median_iqr"` (Default): only median and IQR will be displayed in the boxplot (no outliers will be displayed); `method = "boxplot"`: boxplot including median, IQR, and outliers.  
+
+- `show.whisker`: Logical. Whether to show 1.5 IQR as a whisker.  
+
+- `f.ymin`: Numeric value specifying the lower limit of the y-axis for F-based performance plots (Default = `NULL`).  
+
+- `f.ymax`: Numeric value specifying the upper limit of the y-axis for F-based performance plots (Default = `NULL`).  
+
+- `start.years`: The first year used in short-term performance summaries.  
+
+- `use.n.years.first`: Number of years to summarize at the beginning of the time series.  
+
+- `use.n.years.last`: Number of years to summarize at the end of the time series.  
+
+- `new_model_names`: Optional character vector of custom model names.  
+
+- `base.model`: Model name used as a baseline for relative difference plots.  
+
+**Returns**  
+
+No return block was documented in the source file.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+## `plot_all_time_series_per_realization()`
+
+**Source file:** `plot_all_time_series_per_realization.R`
+
+**Purpose**  
+Create time-series line plots of operating model SSB, global Fbar, and Catch
+for each realization in an MSE run, overlaid across estimation models.
+Plots are written to a single multi-page PDF, with three pages per realization:
+
+1. SSB time series,  
+2. global Fbar time series, and  
+3. Catch time series.  
+
+The function works for both single- and multi-realization objects:
+
+- If `mods` is a simple list of models (single realization), it is internally wrapped as a one-element list.  
+- If `mods` is a list of realizations, each realization is assumed to be a list of models with an `$om` component.  
+
+**Important details**  
+
+The function first detects whether `mods` represents a single or
+multiple realizations using:
+
+    is.nsim <- is.list(mods[[1]]) && !is.null(mods[[1]][[1]]$om)
+
+If `is.nsim` is `FALSE`, a single realization is assumed and
+`mods` is wrapped as `list(mods)` for consistent indexing.
+
+For each realization `r` in `realizations_to_plot`:
+
+- SSB: `mods[[r]][[m]]$om$rep$SSB` is extracted for each model `m`, then plotted as lines over `Year`.  
+- Fbar: the global Fbar column is assumed to be the last column of `om$rep$Fbar`, i.e. `n_fleets + n_regions + 1`, where `n_fleets <- om$input$data$n_fleets[1]` and `n_regions <- om$input$data$n_regions[1]`.  
+- Catch: `mods[[r]][[m]]$om$rep$pred_catch` (typically multiple columns for fleets/regions) is pivoted to long format and plotted by `Label` (column name) and `Model`.  
+
+Each of the three plots (SSB, Fbar, Catch) is printed as a separate page in
+the PDF for that realization.
+
+**Arguments**  
+
+- `mods`: A list of MSE results, either:  
+
+  - a simple list of models for a single realization (`list(Mod1, Mod2, ...)`), or  
+  - a list of realizations, where each realization is a list of models (`list(real1 = list(Mod1, Mod2, ...), real2 = list(...), ...)`).  
+
+  Each model is expected to contain an `$om` component with:
+  `$om$years`, `$om$rep$SSB`, `$om$rep$Fbar`,
+  and `$om$rep$pred_catch`, as well as
+  `$om$input$data$n_fleets` and `$om$input$data$n_regions`.  
+
+- `main.dir`: Character path to the main output directory.  
+
+- `sub.dir`: Character folder name inside `main.dir` where the PDF will be written. The directory is created if it does not exist.  
+
+- `width`: Numeric, width of each PDF page in inches (default: `10`).  
+
+- `height`: Numeric, height of each PDF page in inches (default: `7`).  
+
+- `dpi`: Resolution hint (dots per inch). Included for interface consistency with other plotting functions; not directly used by the `pdf` device.  
+
+- `col.opt`: Character string passed to `scale_color_viridis_d(option = ...)` to control the viridis palette option (default: `D`).  
+
+- `new_model_names`: Optional character vector of custom model names. If provided, must have length equal to the number of models in each realization. These labels replace `Model1`, `Model2`, etc.  
+
+- `pdf_name`: Name of the output PDF file (default: `All_TS_by_realization.pdf`).  
+
+- `realizations_to_plot`: Optional integer vector of realization indices to include. If `NULL`, all realizations are plotted (`seq_len(n_realizations)`).  
+
+**Returns**  
+
+Invisibly returns `NULL`. The main side effect is the creation of a
+multi-page PDF file at:
+`file.path(main.dir, sub.dir, pdf_name)`.
+
+**Related functions**  
+
+`plot_NAA_tile_by_realization` for NAA deviation tiles by realization, and other MSE summary plotting functions in this package.
+
+## `plot_NAA_tile_by_realization()`
+
+**Source file:** `plot_NAA_tile_by_realization.R`
+
+**Purpose**  
+Create heatmap (tile) plots of numbers-at-age deviations (`NAA_devs`) across
+years and ages, for each realization in an MSE run. The function can plot
+either the operating model (OM) deviations or the estimation model (EM)
+deviations, optionally looping over all assessments and models.
+
+For `type = "OM"`, the function:
+
+- assumes `mods` is a list of realizations, each containing at least one model with an `$om` component,  
+- extracts `NAA_devs` from the OM report object (`mod$rep$NAA_devs`) for each stock and region, and  
+- plots deviations as tiles over `Year` (x-axis) and `Age` (y-axis), faceted by `Stock` and `Region` with one row per realization.  
+
+For `type = "EM"`, the function:
+
+- assumes `mods` is a list of realizations, each being a list of models with elements `$em_list` (assessment fits) and `$em_input`,  
+- loops over assessments within each realization and across all models,  
+- extracts `NAA_devs` for each stock and region from the EM report object, and  
+- plots deviations as tiles over `Year` and `Age`, faceted by a combined label of model, stock, and region.  
+
+All plots are written to a single multi-page PDF in
+`file.path(main.dir, sub.dir, pdf_name)`.
+
+**Important details**  
+
+The function checks for a "multi-simulation" structure in `mods` by
+testing if `mods[[1]]` is a list and if `mods[[1]][[1]]$om` is
+non-`NULL`. If this is not the case, the function stops with an error,
+as it expects `mods` to be a list of realizations.
+
+For OM plots (`type = "OM"`), the code uses:
+
+- `mod$env$data` to obtain dimensions (`n_ages`, `n_stocks`, `n_regions`, `n_years_proj`),  
+- `mod$rep$NAA_devs[s, rn, , ]` as the age-by-year deviations for stock `s` and region `rn`, and  
+- `mod$years_full` when projection years exist, otherwise `mod$years`.  
+
+For EM plots (`type = "EM"`), the function loops over assessments within
+each model and realization:
+
+- `em_list[[x]]$NAA_devs[s, rn, , ]` is used as the age-by-year deviations for assessment `x`,  
+- `em_input_list[[x]]$years_full` provides the full year vector, and  
+- a combined facet label `ModelX_stock_s_region_r` is built for each model/stock/region combination.  
+
+The color scale for deviations uses `viridis::scale_fill_viridis()`.
+
+**Arguments**  
+
+- `mods`: A list of MSE results. For OM plots, this must be a list of realizations, each containing at least one model with an `$om` component (with `$env$data`, `$rep`, `$years`, etc.). For EM plots, each realization must be a list of models, each having `$em_list` (a list of assessment fits with `NAA_devs`) and `$em_input` (input lists with `years_full`).  
+
+- `type`: Character string indicating which component to plot: `OM` for operating model `NAA_devs`, or `EM` for estimation model `NAA_devs`.  
+
+- `em_index`: Optional integer index of the estimation model to focus on. Currently not used; reserved for potential future extensions.  
+
+- `main.dir`: Character path to the main output directory.  
+
+- `sub.dir`: Character folder name inside `main.dir` where the PDF will be written. The directory is created if it does not exist.  
+
+- `pdf_name`: Name of the output PDF file (default: `NAA_tile_by_realization.pdf`).  
+
+- `width,height`: Numeric width and height (in inches) for the PDF device. If both are `NULL`, defaults depend on `type`:  
+
+  - `type == "OM"`: `width = 15`, `height = 5`  
+  - `type == "EM"`: `width = 10`, `height = 10`  
+
+- `fontfam`: Optional font family name passed to the PDF device. Currently not explicitly used in the plotting theme but can be set via global theme modifications if desired.  
+
+- `realizations_to_plot`: Optional integer vector of realization indices to include. If `NULL`, all realizations (`seq_len(length(mods))`) are plotted.  
+
+- `new_model_names`: Optional character vector of new model names for EM plots. If provided, must have length equal to the number of models in each realization, and will be used to relabel the `Model` factor.  
+
+**Returns**  
+
+Invisibly returns `NULL`. The primary side effect is the creation of a
+multi-page PDF of NAA deviation tiles in `file.path(main.dir, sub.dir, pdf_name)`.
+
+**Related functions**  
+
+Other diagnostic plots in the package (e.g. terminal SSB/F bias plots) for
+assessing estimation performance across realizations and assessments.
+
+## `plot_terminal_ssb_f_bias_by_assessment()`
+
+**Source file:** `plot_terminal_ssb_f_bias_by_assessment.R`
+
+**Purpose**  
+For each assessment in the feedback loop (each element of `em_list`),
+compute the terminal-year global SSB and F bias for every estimation model
+and realization, relative to the corresponding operating model (OM) values
+for that year. SSB is row-summed across regions for both OM and EM; F uses
+the global F column (last column of `Fbar`) in both OM and EM.
+
+For assessment `k`, the function:
+
+- Takes the EM's terminal-year global SSB (sum over regions) and aligns it with the OM global SSB in the same year.  
+- Takes the EM's terminal-year global F (last column of `Fbar`) and aligns it with the OM global F in the same year.  
+- Computes relative bias: `Bias = (EM)/(OM) - 1` separately for SSB and F.  
+- Collects these across estimation models and realizations and produces a boxplot- or median-IQR-style summary, faceted by `SSB` and `F`.  
+
+One PNG file is saved per assessment in:
+`file.path(main.dir, sub.dir, "Diagnostics")`, with names like
+`Terminal_bias_assessment_01.png`.
+
+**Important details**  
+
+The function assumes:
+
+- OM SSB is in `om$rep$SSB`, with columns = regions.  
+- OM F is in `om$rep$Fbar`, with columns = fleets, regions, and a final global column; the last column is taken as global F.  
+- Each EM object in `em_list[[k]]` has `SSB` (or `rep$SSB`) and `Fbar` (or `rep$Fbar`) with the same structure as the OM.  
+- The EM terminal-year index (number of rows in EM SSB) is interpreted as the year index in the OM; the function aligns OM and EM by this index for each assessment.  
+
+**Arguments**  
+
+- `mods`: A list of model outputs. For single-simulation runs (`is.nsim = FALSE`) this is typically `list(Mod1, Mod2, ...)` where each `ModX` has components `$om` and `$em_list`. For multi-simulation runs (`is.nsim = TRUE`) this is typically `list(sim1 = list(Mod1, Mod2, ...), sim2 = list(...), ...)`.  
+
+- `is.nsim`: Logical; `FALSE` if `mods` is a simple list of models, `TRUE` if `mods` is a list of simulations each containing a list of models.  
+
+- `main.dir`: Main output directory.  
+
+- `sub.dir`: Subdirectory (relative to `main.dir`) where the `Diagnostics` folder will be created and PNGs saved.  
+
+- `width,height`: Figure size passed to `ggsave()` (in inches).  
+
+- `dpi`: Resolution (dots per inch) for the saved PNG.  
+
+- `col.opt`: Viridis color option (passed to `scale_color_viridis_d(option = ...)`).  
+
+- `plot.style`: Either `boxplot` or `median_iqr` to control the style of the summary graphic.  
+
+- `outlier.opt`: Passed to `geom_boxplot(outlier.shape = ...)` when `plot.style = "boxplot"`. Use `NA` to hide outliers.  
+
+- `show.whisker`: Logical; if `TRUE` and `plot.style = "median_iqr"`, draw whiskers at 1.5×IQR (clipped to observed min/max).  
+
+- `new_model_names`: Optional character vector of new model names to use on the x-axis and in the legend. Length must match the number of models.  
+
+**Returns**  
+
+A named list of `ggplot` objects (one per assessment) is
+returned (invisibly). PNG files are written to
+`file.path(main.dir, sub.dir, "Diagnostics")`.
+
+**Related functions**  
+
+No related-function block was documented in the source file.
+
+# Internal support files
+
+## Diagnostics helpers in `Diagnostics.R`
+
+**Source file:** `Diagnostics.R`
+
+This file contains three utility functions that are useful for checking fishing mortality updates in the feedback period, but they are more diagnostic helpers than primary package entry points.
+
+### `Get_F_catch()`
+Computes the fishing mortality needed to match a target catch in a single year. It uses the OM report quantities for abundance, natural mortality, selectivity, and WAA, then minimizes the squared difference between predicted and target catch.
+
+### `Update_F()`
+Takes the fishing mortality solved from a target catch and converts it into an updated fleet-by-age fishing mortality matrix for the specified year.
+
+### `check_om_feedback_F()`
+Creates a diagnostic summary of feedback-period fishing mortality behavior and can write a PDF summary table. Use this when you want to verify that solved fishing mortality values during the feedback loop are behaving as expected.
+
+## Internal plotting helpers in `helper.R`
+
+**Source file:** `helper.R`
+
+This file contains a large collection of supporting plotting functions used by the higher-level reporting functions, especially `plot_mse_output()`. These helpers generate time-series plots, performance summaries, status plots, relative trajectory plots, variation plots, Kobe-style summaries, and model-comparison graphics.
+
+Because these helper functions are internal support tools rather than primary user-facing entry points, they are not documented individually in this manual. In normal use, users call the higher-level plotting wrappers such as:
+
+- `plot_mse_output()`  
+- `plot_all_time_series_per_realization()`  
+- `plot_NAA_tile_by_realization()`  
+- `plot_terminal_ssb_f_bias_by_assessment()`  
+
+and let those wrappers call the helper functions internally.
+
+# Function index
+
+## Closed-loop workflow
+- `loop_through_fn()`  
+
+## Assessment input construction
+- `make_em_input()`  
+- `filter_and_generate_em_info()`  
+- `generate_basic_info_em()`  
+- `generate_basic_info_em_SEP()`  
+- `update_em_with_basic_info()`  
+- `reduce_input()`  
+
+## Advice, allocation, and implementation error
+- `advice_fn()`  
+- `calculate_catch_advice()`  
+- `add_implementation_error()`  
+- `update_SPR_weights()`  
+
+## Operating model update and simulation
+- `update_om_fn()`  
+- `get_F_from_Catch()`  
+- `update_om_F()`  
+- `generate_data()`  
+
+## Core configuration builders
+- `generate_basic_info()`  
+- `initial_input_no_asap_fn()`  
+- `generate_ini_N1()`  
+
+## Movement configuration
+- `generate_NAA_where()`  
+- `generate_move()`  
+- `fix_move()`  
+- `compute_age_mu_devs()`  
+- `Specify_move()`  
+
+## Aggregation and observation design
+- `make_aggregate_data()`  
+- `aggregate_em_data()`  
+- `update_input_catch_info()`  
+- `update_input_index_info()`  
+
+## Weight-at-age utilities
+- `set_WAA()`  
+- `update_waa()`  
+
+## Reporting and diagnostics
+- `plot_mse_output()`  
+- `plot_all_time_series_per_realization()`  
+- `plot_NAA_tile_by_realization()`  
+- `plot_terminal_ssb_f_bias_by_assessment()`  
+
+## Internal support files
+- `Diagnostics.R` helpers  
+- `helper.R` plotting helpers  

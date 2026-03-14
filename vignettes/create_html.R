@@ -1,22 +1,22 @@
 # build_docs_site.R
 # ------------------------------------------------------------
-# SPASAM.MSE GitHub Pages site builder (OFFICIAL FINAL)
+# SPASAM.MSE GitHub Pages site builder
 #
 # What this script does
 # - Renders:
-#     vignettes/*.Rmd   -> docs/
-#     news/*.Rmd        -> docs/
-#     bug_report/*.Rmd  -> docs/
-#     projects/*.Rmd    -> docs/   (NEW: Projects are NOT vignettes)
-# - Flattens nested HTML into docs/ (so relative links work everywhere)
+#     vignettes/*.Rmd              -> docs/
+#     news/*.Rmd                   -> docs/
+#     bug_report/*.Rmd             -> docs/
+#     projects/*.Rmd               -> docs/
+#     docs/SPASAM-MSE_Manual.RMD   -> docs/SPASAM-MSE_Manual.html
+# - Flattens nested HTML into docs/
 # - Writes docs/index.html (landing page)
+# - Writes docs/vignettes.html (dedicated vignette browser page)
 # - Injects a single custom navbar + CSS + JS into all other docs/*.html
 #
 # IMPORTANT:
-# - Icons/logos are sourced ONLINE from GitHub (raw.githubusercontent.com)
-# - No local copying of icons into docs/icons
-# - Projects link points to docs/projects.html (NOT repo R/ folder)
-# - Projects are NOT listed in the Vignettes dropdown
+# - Icons/logos are sourced ONLINE from GitHub raw URLs
+# - Projects are NOT listed as vignettes
 # ------------------------------------------------------------
 
 suppressPackageStartupMessages({
@@ -44,6 +44,10 @@ wham_link <- "https://timjmiller.github.io/wham/"
 
 docs_dir  <- "docs"
 
+# Manual file in docs/
+manual_rmd  <- file.path(docs_dir, "SPASAM-MSE_Manual.RMD")
+manual_html <- "SPASAM-MSE_Manual.html"
+
 # Icons live INSIDE repo (path relative to repo root)
 icons_path_in_repo <- "docs/icons"
 
@@ -59,6 +63,18 @@ core_members <- list(
   list(name = "Timothy Miller",    org = "NOAA Federal (NEFSC)", email = "timothy.j.miller@noaa.gov")
 )
 
+# Optional manual short descriptions for vignette cards
+# Names should match the .Rmd filename without extension
+vignette_desc_map <- c(
+  "getting_started" = "Start here for installation, basic setup, and the overall SPASAM.MSE workflow.",
+  "movement_models" = "Examples of movement configuration, connectivity assumptions, and movement random effects.",
+  "mse_workflow"    = "Closed-loop MSE workflow from OM to EM to projections and management feedback.",
+  "plotting_output" = "Examples for plotting, diagnostics, summaries, and automated reporting outputs."
+)
+
+# Optional featured vignettes (filenames without .Rmd)
+featured_vignettes <- c("getting_started", "mse_workflow", "movement_models")
+
 # ----------------------------
 # Helpers
 # ----------------------------
@@ -66,7 +82,6 @@ ensure_dir <- function(path) {
   if (!dir.exists(path)) dir.create(path, recursive = TRUE)
 }
 
-# ---- Version helpers ----
 get_site_version <- function() {
   has_git <- nzchar(Sys.which("git"))
   is_git_repo <- dir.exists(".git")
@@ -120,22 +135,13 @@ flatten_html <- function(root = docs_dir) {
   invisible(NULL)
 }
 
-to_html <- function(rmd_files) sub("\\.Rmd$", ".html", basename(rmd_files))
+to_html <- function(rmd_files) sub("\\.[Rr]md$", ".html", basename(rmd_files))
 
-build_vignette_links <- function(vignette_files) {
-  if (length(vignette_files) == 0) return('<a href="#">(No vignettes yet)</a>')
-  
-  vignettes <- lapply(vignette_files, function(file) {
-    nm  <- basename(file)
-    ttl <- gsub("_", " ", sub("\\.Rmd$", "", nm))
-    url <- sub("\\.Rmd$", ".html", nm)
-    list(name = ttl, url = url)
-  })
-  
-  paste0(
-    vapply(vignettes, function(v) sprintf('<a href="%s">%s</a>', v$url, v$name), character(1)),
-    collapse = "\n"
-  )
+pretty_title <- function(x) {
+  x <- sub("\\.[Rr]md$", "", basename(x))
+  x <- gsub("_", " ", x)
+  x <- gsub("-", " ", x)
+  tools::toTitleCase(x)
 }
 
 build_members_html <- function(members) {
@@ -150,6 +156,97 @@ build_members_html <- function(members) {
   )
 }
 
+build_vignette_info <- function(vignette_files, desc_map = NULL) {
+  if (length(vignette_files) == 0) return(list())
+  
+  info <- lapply(vignette_files, function(file) {
+    nm   <- sub("\\.[Rr]md$", "", basename(file))
+    ttl  <- pretty_title(file)
+    html <- paste0(nm, ".html")
+    desc <- if (!is.null(desc_map) && nm %in% names(desc_map)) desc_map[[nm]] else
+      "Documentation vignette for SPASAM.MSE."
+    
+    list(
+      key = nm,
+      title = ttl,
+      html = html,
+      desc = desc
+    )
+  })
+  
+  info[order(vapply(info, `[[`, character(1), "title"))]
+}
+
+build_vignette_cards <- function(vignette_info, featured = NULL) {
+  if (length(vignette_info) == 0) {
+    return('<div class="empty-state">No vignettes found yet.</div>')
+  }
+  
+  is_featured <- vapply(vignette_info, function(x) x$key %in% featured, logical(1))
+  featured_info <- vignette_info[is_featured]
+  other_info    <- vignette_info[!is_featured]
+  
+  make_cards <- function(x, featured_flag = FALSE) {
+    if (length(x) == 0) return("")
+    paste0(
+      vapply(x, function(v) {
+        badge <- if (featured_flag) '<div class="card-badge">Featured</div>' else ''
+        sprintf(
+          paste0(
+            '<a class="vig-card" href="%s" data-title="%s" data-desc="%s">',
+            '%s',
+            '<div class="vig-card-title">%s</div>',
+            '<div class="vig-card-desc">%s</div>',
+            '<div class="vig-card-foot">Open vignette <span aria-hidden="true">→</span></div>',
+            '</a>'
+          ),
+          v$html,
+          tolower(v$title),
+          tolower(v$desc),
+          badge,
+          v.title <- v$title,
+          v.desc <- v$desc
+        )
+      }, character(1)),
+      collapse = "\n"
+    )
+  }
+  
+  out <- c()
+  
+  if (length(featured_info) > 0) {
+    out <- c(
+      out,
+      '<div class="vig-section-block">',
+      '  <div class="section-head-row">',
+      '    <h2>Featured vignettes</h2>',
+      '    <div class="section-sub">A few good entry points for new users.</div>',
+      '  </div>',
+      '  <div class="vig-grid">',
+      make_cards(featured_info, featured_flag = TRUE),
+      '  </div>',
+      '</div>'
+    )
+  }
+  
+  if (length(other_info) > 0) {
+    out <- c(
+      out,
+      '<div class="vig-section-block">',
+      '  <div class="section-head-row">',
+      '    <h2>All vignettes</h2>',
+      '    <div class="section-sub">Browse the full documentation collection.</div>',
+      '  </div>',
+      '  <div class="vig-grid" id="all-vignette-grid">',
+      make_cards(other_info, featured_flag = FALSE),
+      '  </div>',
+      '</div>'
+    )
+  }
+  
+  paste(out, collapse = "\n")
+}
+
 # ----------------------------
 # 0) Ensure docs/
 # ----------------------------
@@ -157,20 +254,27 @@ ensure_dir(docs_dir)
 
 # ----------------------------
 # 1) Render Rmd pages into docs/
-#    NOTE: Projects are rendered from projects/ (NOT vignettes/)
 # ----------------------------
-vignette_files   <- list.files("vignettes",  pattern = "\\.Rmd$", full.names = TRUE)
-news_files       <- list.files("news",       pattern = "\\.Rmd$", full.names = TRUE)
-bug_report_files <- list.files("bug_report", pattern = "\\.Rmd$", full.names = TRUE)
-projects_files   <- list.files("projects",   pattern = "\\.Rmd$", full.names = TRUE)
+vignette_files   <- list.files("vignettes",  pattern = "\\.[Rr]md$", full.names = TRUE)
+news_files       <- list.files("news",       pattern = "\\.[Rr]md$", full.names = TRUE)
+bug_report_files <- list.files("bug_report", pattern = "\\.[Rr]md$", full.names = TRUE)
+projects_files   <- list.files("projects",   pattern = "\\.[Rr]md$", full.names = TRUE)
 
-# Safety: ensure no "projects" accidentally gets into vignette dropdown
+# Safety: ensure no "projects" accidentally gets into vignette list
 vignette_files <- vignette_files[!grepl("projects", basename(vignette_files), ignore.case = TRUE)]
 
 render_many(vignette_files, docs_dir)
 render_many(news_files, docs_dir)
 render_many(bug_report_files, docs_dir)
-render_many(projects_files, docs_dir)  # NEW
+render_many(projects_files, docs_dir)
+
+# Render manual in docs/ if present
+if (file.exists(manual_rmd)) {
+  rmarkdown::render(input = manual_rmd, output_dir = docs_dir, quiet = TRUE)
+  message(sprintf("Wrote: %s", file.path(docs_dir, manual_html)))
+} else {
+  warning(sprintf("Manual file not found: %s", manual_rmd), call. = FALSE)
+}
 
 # Flatten nested HTML so links work from root docs/
 flatten_html(docs_dir)
@@ -178,18 +282,27 @@ flatten_html(docs_dir)
 # ----------------------------
 # 2) Navigation link targets
 # ----------------------------
-vignette_links <- build_vignette_links(vignette_files)
+news_html      <- if (length(news_files) > 0) to_html(news_files)[1] else "#"
+bug_html       <- if (length(bug_report_files) > 0) to_html(bug_report_files)[1] else "#"
+projects_html  <- if (length(projects_files) > 0) to_html(projects_files)[1] else "projects.html"
+vignettes_html <- "vignettes.html"
 
-news_html <- if (length(news_files) > 0) to_html(news_files)[1] else "#"
-bug_html  <- if (length(bug_report_files) > 0) to_html(bug_report_files)[1] else "#"
+vignette_info  <- build_vignette_info(vignette_files, vignette_desc_map)
+featured_links <- vignette_info[vapply(vignette_info, function(x) x$key %in% featured_vignettes, logical(1))]
 
-# Projects page:
-# - Recommended file: projects/projects.Rmd
-# - Recommended output: docs/projects.html
-projects_html <- if (length(projects_files) > 0) to_html(projects_files)[1] else "projects.html"
+featured_dropdown_links <- if (length(featured_links) > 0) {
+  paste0(
+    vapply(featured_links, function(v) {
+      sprintf('<a href="%s">%s</a>', v$html, v$title)
+    }, character(1)),
+    collapse = "\n"
+  )
+} else {
+  ""
+}
 
 # ----------------------------
-# 3) NAVBAR HTML (Projects points to projects.html)
+# 3) NAVBAR HTML
 # ----------------------------
 navbar_html <- c(
   '  <!-- SPASAM_NAV_START -->',
@@ -201,10 +314,12 @@ navbar_html <- c(
   '        <div class="dropdown" id="vignetteDropdown">',
   sprintf('          <button class="dropbtn" type="button"><img class="icon" src="%s" alt="Vignettes" />Vignettes</button>', icon_url("vignettes_icon.png")),
   '          <div class="dropdown-content">',
-  vignette_links,
+  if (nzchar(featured_dropdown_links)) featured_dropdown_links else NULL,
+  sprintf('            <a href="%s"><b>Browse all vignettes →</b></a>', vignettes_html),
   '          </div>',
   '        </div>',
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.PNG")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
@@ -217,7 +332,7 @@ navbar_html <- c(
 )
 
 # ----------------------------
-# 4) CSS + JS injection (site-wide)
+# 4) Shared CSS + JS injection
 # ----------------------------
 inject_css <- c(
   "<style>",
@@ -234,14 +349,10 @@ inject_css <- c(
   "    color: var(--text) !important;",
   "  }",
   "  a{color:var(--accent) !important;}",
-  
-  "  /* Hide default rmarkdown/bootstrap navbar */",
   "  .navbar, nav.navbar, .navbar.navbar-default, .navbar.navbar-inverse,",
   "  .navbar.navbar-fixed-top, .navbar.navbar-static-top, #navbar{",
   "    display:none !important;",
   "  }",
-  
-  "  /* Remove reserved top padding */",
   "  html, body{ margin:0 !important; }",
   "  body{ padding-top:0 !important; }",
   "  .main-container, .container-fluid.main-container, .toc-content, .content{",
@@ -250,8 +361,6 @@ inject_css <- c(
   "  }",
   "  body[style*='padding-top']{ padding-top:0 !important; }",
   "  .main-container[style*='padding-top']{ padding-top:0 !important; }",
-  
-  "  /* Navbar */",
   "  .nav.spasam-nav{",
   "    position:sticky !important;",
   "    top:0 !important;",
@@ -274,21 +383,17 @@ inject_css <- c(
   "  .icon{width:18px;height:18px;object-fit:contain;}",
   "  .dropdown{position:relative;}",
   "  .dropbtn{cursor:pointer;}",
-  "  .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;",
+  "  .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:280px;max-height:70vh;overflow-y:auto;padding:10px;",
   "    border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);",
   "    box-shadow:var(--shadow);z-index:99999;}",
   "  .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text) !important;}",
   "  .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}",
   "  .dropdown:hover .dropdown-content{display:block;}",
   "  .dropdown.open .dropdown-content{display:block;}",
-  
   "  .nav-version{margin-left:auto;}",
-  
   "  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;",
   "    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);",
   "    padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}",
-  
-  "  /* Dark sidebar/TOC */",
   "  .tocify, .tocify-wrapper, #TOC{",
   "    background: rgba(15,26,47,.95) !important;",
   "    border: 1px solid rgba(255,255,255,.10) !important;",
@@ -309,13 +414,10 @@ inject_css <- c(
   "  }",
   "  .tocify a, .tocify-wrapper a, #TOC a{ color: var(--text) !important; }",
   "  .tocify a:hover, .tocify-wrapper a:hover, #TOC a:hover{ color: var(--accent) !important; text-decoration:none !important; }",
-  
-  "  /* prevent white blocks */",
   "  .main-container, .container, .container-fluid, .page-inner, .row,",
   "  .col-xs-12, .col-sm-12, .col-md-9, .col-md-3{",
   "    background: transparent !important;",
   "  }",
-  
   "  pre, code{ background: rgba(255,255,255,.06) !important; color: var(--text) !important;",
   "    border:1px solid rgba(255,255,255,.10) !important; }",
   "</style>"
@@ -337,24 +439,25 @@ inject_js <- c(
   "    window.addEventListener('load', killTopPadding);",
   "    setTimeout(killTopPadding, 50);",
   "    setTimeout(killTopPadding, 250);",
-  
   "    var dd = document.getElementById('vignetteDropdown');",
-  "    if(!dd) return;",
-  "    var btn = dd.querySelector('.dropbtn');",
-  "    if(!btn) return;",
-  "    btn.addEventListener('click', function(e){",
-  "      e.stopPropagation();",
-  "      dd.classList.toggle('open');",
-  "    });",
-  "    document.addEventListener('click', function(){",
-  "      dd.classList.remove('open');",
-  "    });",
+  "    if(dd){",
+  "      var btn = dd.querySelector('.dropbtn');",
+  "      if(btn){",
+  "        btn.addEventListener('click', function(e){",
+  "          e.stopPropagation();",
+  "          dd.classList.toggle('open');",
+  "        });",
+  "      }",
+  "      document.addEventListener('click', function(){",
+  "        dd.classList.remove('open');",
+  "      });",
+  "    }",
   "  })();",
   "</script>"
 )
 
 # ----------------------------
-# 5) Build docs/index.html (landing page)
+# 5) Build docs/index.html
 # ----------------------------
 members_html <- build_members_html(core_members)
 
@@ -405,7 +508,7 @@ index_out <- c(
   '    .icon{width:18px;height:18px;object-fit:contain;}',
   '    .dropdown{position:relative;}',
   '    .dropbtn{cursor:pointer;}',
-  '    .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;',
+  '    .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:280px;max-height:70vh;overflow-y:auto;padding:10px;',
   '      border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);',
   '      box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:9999;}',
   '    .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text);}',
@@ -444,13 +547,11 @@ index_out <- c(
   '    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;',
   '      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);',
   '      padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}',
-  
   '    .h1row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;}',
   '    .buildtag{color:var(--muted);font-size:12px;white-space:nowrap;}',
   '  </style>',
   '</head>',
   '<body>',
-  
   '  <div class="nav">',
   '    <div class="nav-inner">',
   '      <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>',
@@ -459,10 +560,12 @@ index_out <- c(
   '        <div class="dropdown" id="vignetteDropdown">',
   sprintf('          <button class="dropbtn" type="button"><img class="icon" src="%s" alt="Vignettes" />Vignettes</button>', icon_url("vignettes_icon.png")),
   '          <div class="dropdown-content">',
-  vignette_links,
+  if (nzchar(featured_dropdown_links)) featured_dropdown_links else NULL,
+  sprintf('            <a href="%s"><b>Browse all vignettes →</b></a>', vignettes_html),
   '          </div>',
   '        </div>',
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.PNG")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
   sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
@@ -470,24 +573,20 @@ index_out <- c(
   '      </div>',
   '    </div>',
   '  </div>',
-  
   '  <div class="wrap">',
   '    <div class="hero">',
   '      <div class="hero-grid">',
   '        <div>',
-  
   '          <div class="h1row">',
   sprintf('            <h1>%s</h1>', pkg_name),
   sprintf('            <div class="buildtag">Build: <span class="kbd">%s</span> • %s</div>', site_version, build_date),
   '          </div>',
-  
   '          <div class="subtitle">',
   '            SPASAM-MSE (Spatial Processes and Stock Assessment Methods - Management Strategy Evaluation) is a',
   '            spatially explicit, closed-loop MSE platform built on WHAM (Woods Hole Assessment Model), a',
   '            state-space, age-structured stock assessment framework used in NOAA/NEFSC applications.',
   '          </div>',
   sprintf('          <div class="subtitle" style="margin-top:8px;">WHAM: <a href="%s" target="_blank">%s</a></div>', wham_link, wham_link),
-  
   '          <div class="pillrow">',
   '            <div class="pill">Multi-stock • Multi-region</div>',
   '            <div class="pill">Connectivity • Mixing • Natal homing • Metapopulation</div>',
@@ -501,34 +600,26 @@ index_out <- c(
   '            <div class="pill">Parallel simulations</div>',
   '            <div class="pill">Automated reporting</div>',
   '          </div>',
-  
   '          <div class="logo-row">',
-  sprintf('            <img class="logo-img" src="%s" alt="NOAA logo" />', icon_url("NOAA_logo.png")),
   sprintf('            <img class="logo-img" src="%s" alt="SPASAM.MSE logo" />', icon_url("SPASAM.MSE_logo.png")),
   '          </div>',
-  
   '        </div>',
-  
   '        <div class="card">',
   '          <h2>Quick install</h2>',
   '          <p class="small">Development version from GitHub:</p>',
   sprintf('          <p style="margin-top:10px;"><span class="kbd">remotes::install_github("%s/%s")</span></p>', repo_owner, repo_slug),
   sprintf('          <p class="small" style="margin-top:12px;">Package name: <span class="kbd">%s</span></p>', pkg_name),
-  
   '          <div class="members">',
   main_dev_html,
   alt_email_html,
   '          </div>',
-  
   '          <div class="members">',
   '            <div class="small" style="margin-bottom:6px;"><b>Core SPASAM members</b>:</div>',
   members_html,
   '          </div>',
   '        </div>',
-  
   '      </div>',
   '    </div>',
-  
   '    <div class="section">',
   '      <div class="card">',
   '        <h2>What SPASAM-MSE does</h2>',
@@ -544,7 +635,6 @@ index_out <- c(
   '          <li>Evaluate trade-offs and risk across regions and stocks under closed-loop feedback.</li>',
   '        </ul>',
   '      </div>',
-  
   '      <div class="card">',
   '        <h2>Core capabilities</h2>',
   '        <ul class="list">',
@@ -559,7 +649,6 @@ index_out <- c(
   '        </ul>',
   '      </div>',
   '    </div>',
-  
   '    <div class="footer">',
   '      <div>',
   sprintf('        <div><b>Main developer</b>: %s</div>', main_dev_name),
@@ -568,24 +657,23 @@ index_out <- c(
   '      </div>',
   sprintf('      <div class="small">Source: <a href="%s">%s</a></div>', repo_base, repo_base),
   '    </div>',
-  
   '  </div>',
-  
   '  <script>',
   '    (function(){',
   '      var dd = document.getElementById("vignetteDropdown");',
   '      if(!dd) return;',
   '      var btn = dd.querySelector(".dropbtn");',
-  '      btn.addEventListener("click", function(e){',
-  '        e.stopPropagation();',
-  '        dd.classList.toggle("open");',
-  '      });',
+  '      if(btn){',
+  '        btn.addEventListener("click", function(e){',
+  '          e.stopPropagation();',
+  '          dd.classList.toggle("open");',
+  '        });',
+  '      }',
   '      document.addEventListener("click", function(){',
   '        dd.classList.remove("open");',
   '      });',
   '    })();',
   '  </script>',
-  
   '</body>',
   '</html>'
 )
@@ -594,8 +682,186 @@ writeLines(index_out, file.path(docs_dir, "index.html"), useBytes = TRUE)
 message("Wrote: docs/index.html")
 
 # ----------------------------
-# 6) Inject navbar + CSS + JS into every other docs/*.html
-#    IMPORTANT: always refresh injection each build (no stale content)
+# 6) Build docs/vignettes.html
+# ----------------------------
+vignette_cards_html <- build_vignette_cards(vignette_info, featured_vignettes)
+n_vignettes <- length(vignette_info)
+
+vignettes_out <- c(
+  '<!DOCTYPE html>',
+  '<html lang="en">',
+  '<head>',
+  '  <meta charset="utf-8" />',
+  '  <meta name="viewport" content="width=device-width, initial-scale=1" />',
+  sprintf('  <title>%s | Vignettes</title>', pkg_name),
+  '  <style>',
+  '    :root{',
+  '      --bg:#0b1220; --bg2:#0f1b33; --text:#e9eefc; --muted:#b7c3e6;',
+  '      --line:rgba(255,255,255,.10); --accent:#6ea8ff; --accent2:#7ef0d4;',
+  '      --shadow:0 10px 30px rgba(0,0,0,.35); --radius:18px;',
+  '    }',
+  '    *{box-sizing:border-box;}',
+  '    body{margin:0;font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial,sans-serif;',
+  '      color:var(--text);line-height:1.6;',
+  '      background:',
+  '        radial-gradient(1000px 600px at 20% -10%, rgba(110,168,255,.25), transparent 60%),',
+  '        radial-gradient(800px 600px at 90% 10%, rgba(126,240,212,.18), transparent 55%),',
+  '        linear-gradient(180deg,var(--bg),var(--bg2));}',
+  '    a{color:var(--accent);text-decoration:none;}',
+  '    a:hover{text-decoration:underline;}',
+  '    .nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);',
+  '      background:rgba(11,18,32,.65);border-bottom:1px solid var(--line);}',
+  '    .nav-inner{max-width:1100px;margin:0 auto;padding:10px 18px;display:flex;',
+  '      gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}',
+  '    .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;}',
+  '    .brand .dot{width:10px;height:10px;border-radius:999px;',
+  '      background:linear-gradient(135deg,var(--accent),var(--accent2));',
+  '      box-shadow:0 0 0 4px rgba(110,168,255,.15);}',
+  '    .nav-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}',
+  '    .nav-links a,.dropbtn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;',
+  '      border-radius:999px;color:var(--text);border:1px solid rgba(255,255,255,.08);',
+  '      background:rgba(255,255,255,.04);font-size:14px;}',
+  '    .nav-links a:hover,.dropbtn:hover{background:rgba(255,255,255,.08);text-decoration:none;}',
+  '    .icon{width:18px;height:18px;object-fit:contain;}',
+  '    .dropdown{position:relative;}',
+  '    .dropbtn{cursor:pointer;}',
+  '    .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:280px;max-height:70vh;overflow-y:auto;padding:10px;',
+  '      border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);',
+  '      box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:9999;}',
+  '    .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text);}',
+  '    .dropdown-content a:hover{background:rgba(255,255,255,.06);text-decoration:none;}',
+  '    .dropdown:hover .dropdown-content{display:block;}',
+  '    .dropdown.open .dropdown-content{display:block;}',
+  '    .wrap{max-width:1100px;margin:0 auto;padding:26px 18px 80px;}',
+  '    .hero{margin-top:18px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);',
+  '      border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:28px;}',
+  '    h1{margin:0 0 8px 0;font-size:34px;line-height:1.15;}',
+  '    h2{margin:0;font-size:22px;line-height:1.2;}',
+  '    .subtitle{color:var(--muted);margin-top:8px;font-size:15px;max-width:850px;}',
+  '    .meta-row{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;}',
+  '    .pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);',
+  '      border:1px solid rgba(255,255,255,.10);font-size:13px;white-space:nowrap;}',
+  '    .search-wrap{margin-top:20px;}',
+  '    .search-box{width:100%;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.12);',
+  '      background:rgba(255,255,255,.06);color:var(--text);font-size:15px;outline:none;}',
+  '    .search-box::placeholder{color:var(--muted);}',
+  '    .vig-section-block{margin-top:26px;}',
+  '    .section-head-row{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:14px;}',
+  '    .section-sub{color:var(--muted);font-size:14px;}',
+  '    .vig-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;}',
+  '    .vig-card{display:block;padding:18px;border-radius:18px;border:1px solid rgba(255,255,255,.10);',
+  '      background:rgba(255,255,255,.04);box-shadow:0 10px 30px rgba(0,0,0,.25);',
+  '      transition:transform .15s ease, background .15s ease, border-color .15s ease;',
+  '      text-decoration:none !important;color:var(--text) !important;position:relative;}',
+  '    .vig-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.06);border-color:rgba(110,168,255,.35);}',
+  '    .card-badge{display:inline-block;margin-bottom:10px;padding:4px 9px;border-radius:999px;',
+  '      background:rgba(110,168,255,.14);border:1px solid rgba(110,168,255,.22);font-size:12px;color:var(--text);}',
+  '    .vig-card-title{font-size:18px;font-weight:700;line-height:1.25;margin-bottom:10px;color:var(--text);}',
+  '    .vig-card-desc{font-size:14px;color:var(--muted);min-height:58px;}',
+  '    .vig-card-foot{margin-top:14px;font-size:14px;color:var(--accent);font-weight:600;}',
+  '    .empty-state{padding:18px;border-radius:18px;border:1px solid rgba(255,255,255,.10);',
+  '      background:rgba(255,255,255,.04);color:var(--muted);}',
+  '    .no-results{display:none;margin-top:16px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.10);',
+  '      background:rgba(255,255,255,.04);color:var(--muted);}',
+  '    .footer{margin-top:34px;color:rgba(233,238,252,.85);display:flex;justify-content:space-between;',
+  '      gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px;}',
+  '    .small{color:var(--muted);font-size:13px;}',
+  '    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;',
+  '      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);',
+  '      padding:2px 6px;border-radius:8px;font-size:12px;color:var(--text);}',
+  '  </style>',
+  '</head>',
+  '<body>',
+  '  <div class="nav">',
+  '    <div class="nav-inner">',
+  '      <div class="brand"><span class="dot"></span><span>SPASAM-MSE</span></div>',
+  '      <div class="nav-links">',
+  sprintf('        <a href="index.html"><img class="icon" src="%s" alt="Home" />Home</a>', icon_url("home_icon.png")),
+  '        <div class="dropdown" id="vignetteDropdown">',
+  sprintf('          <button class="dropbtn" type="button"><img class="icon" src="%s" alt="Vignettes" />Vignettes</button>', icon_url("vignettes_icon.png")),
+  '          <div class="dropdown-content">',
+  if (nzchar(featured_dropdown_links)) featured_dropdown_links else NULL,
+  sprintf('            <a href="%s"><b>Browse all vignettes →</b></a>', vignettes_html),
+  '          </div>',
+  '        </div>',
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Source" />Source</a>', repo_base, icon_url("source_icon.png")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Manual" />Manual</a>', manual_html, icon_url("manual_icon.PNG")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Projects" />Projects</a>', projects_html, icon_url("projects_icon.png")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="News" />News</a>', news_html, icon_url("news_icon.png")),
+  sprintf('        <a href="%s"><img class="icon" src="%s" alt="Bug report" />Bug report</a>', bug_html, icon_url("bug_report_icon.png")),
+  sprintf('        <a href="mailto:%s"><img class="icon" src="%s" alt="Contact" />Contact</a>', email_primary, icon_url("contact_icon.png")),
+  '      </div>',
+  sprintf('      <div class="nav-version"><span class="kbd">%s</span></div>', site_version),
+  '    </div>',
+  '  </div>',
+  '  <div class="wrap">',
+  '    <div class="hero">',
+  '      <h1>Vignettes</h1>',
+  '      <div class="subtitle">',
+  '        Browse SPASAM.MSE documentation, workflow guides, and worked examples. This page is designed to scale better than a long navbar dropdown when the number of vignettes grows.',
+  '      </div>',
+  '      <div class="meta-row">',
+  sprintf('        <div class="pill">%d vignette%s</div>', n_vignettes, if (n_vignettes == 1) "" else "s"),
+  '        <div class="pill">Searchable</div>',
+  '        <div class="pill">Featured entry points</div>',
+  '      </div>',
+  '      <div class="search-wrap">',
+  '        <input id="vignetteSearch" class="search-box" type="text" placeholder="Search vignettes by title or description..." />',
+  '      </div>',
+  '      <div id="noVignetteResults" class="no-results">No vignettes match your search.</div>',
+  '    </div>',
+  vignette_cards_html,
+  '    <div class="footer">',
+  '      <div>',
+  sprintf('        <div><b>Main developer</b>: %s</div>', main_dev_name),
+  sprintf('        <div class="small">&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;</div>',
+          email_primary, email_primary, email_secondary, email_secondary),
+  '      </div>',
+  sprintf('      <div class="small">Source: <a href="%s">%s</a></div>', repo_base, repo_base),
+  '    </div>',
+  '  </div>',
+  '  <script>',
+  '    (function(){',
+  '      var dd = document.getElementById("vignetteDropdown");',
+  '      if(dd){',
+  '        var btn = dd.querySelector(".dropbtn");',
+  '        if(btn){',
+  '          btn.addEventListener("click", function(e){',
+  '            e.stopPropagation();',
+  '            dd.classList.toggle("open");',
+  '          });',
+  '        }',
+  '        document.addEventListener("click", function(){',
+  '          dd.classList.remove("open");',
+  '        });',
+  '      }',
+  '      var input = document.getElementById("vignetteSearch");',
+  '      var cards = Array.prototype.slice.call(document.querySelectorAll(".vig-card"));',
+  '      var nores = document.getElementById("noVignetteResults");',
+  '      if(input){',
+  '        input.addEventListener("input", function(){',
+  '          var q = (input.value || "").toLowerCase().trim();',
+  '          var visible = 0;',
+  '          cards.forEach(function(card){',
+  '            var txt = (card.getAttribute("data-title") || "") + " " + (card.getAttribute("data-desc") || "");',
+  '            var match = txt.indexOf(q) !== -1;',
+  '            card.style.display = match ? "" : "none";',
+  '            if(match) visible++;',
+  '          });',
+  '          if(nores) nores.style.display = visible === 0 ? "block" : "none";',
+  '        });',
+  '      }',
+  '    })();',
+  '  </script>',
+  '</body>',
+  '</html>'
+)
+
+writeLines(vignettes_out, file.path(docs_dir, "vignettes.html"), useBytes = TRUE)
+message("Wrote: docs/vignettes.html")
+
+# ----------------------------
+# 7) Inject navbar + CSS + JS into every other docs/*.html
 # ----------------------------
 inject_into_html <- function(html_file,
                              navbar_html,
@@ -612,7 +878,7 @@ inject_into_html <- function(html_file,
     x <- x[-seq(start_nav[1], end_nav[1])]
   }
   
-  # Remove prior marker line if present (we'll re-add)
+  # Remove prior marker line if present
   marker_line <- paste0("<!-- ", marker, " -->")
   x <- x[!grepl(marker_line, x, fixed = TRUE)]
   
@@ -648,7 +914,7 @@ inject_into_html <- function(html_file,
 }
 
 all_html <- list.files(docs_dir, pattern = "\\.html$", full.names = TRUE)
-all_html <- all_html[basename(all_html) != "index.html"]
+all_html <- all_html[!basename(all_html) %in% c("index.html", "vignettes.html")]
 
 changed <- vapply(all_html, function(f) {
   inject_into_html(f, navbar_html, inject_css, inject_js)
@@ -657,11 +923,12 @@ changed <- vapply(all_html, function(f) {
 message(sprintf("Processed: %d pages", sum(changed)))
 
 # ----------------------------
-# 7) Sanity checks
+# 8) Sanity checks
 # ----------------------------
 message("----- Sanity checks -----")
 message(sprintf("Site version: %s", site_version))
 message(sprintf("Build date: %s", build_date))
+message(sprintf("Manual exists: %s", file.exists(file.path(docs_dir, manual_html))))
 message("docs HTML files:")
 print(list.files(docs_dir, pattern = "\\.html$", full.names = FALSE))
 message("NOTE: Icons/logos are loaded ONLINE from GitHub raw URLs.")

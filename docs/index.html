@@ -34,7 +34,7 @@
     .icon{width:18px;height:18px;object-fit:contain;}
     .dropdown{position:relative;}
     .dropbtn{cursor:pointer;}
-    .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:260px;padding:10px;
+    .dropdown-content{display:none;position:absolute;top:40px;left:0;min-width:280px;max-height:70vh;overflow-y:auto;padding:10px;
       border-radius:14px;background:rgba(15,26,47,.98);border:1px solid rgba(255,255,255,.10);
       box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:9999;}
     .dropdown-content a{display:block;padding:10px 12px;border-radius:10px;color:var(--text);}
@@ -86,10 +86,11 @@
         <div class="dropdown" id="vignetteDropdown">
           <button class="dropbtn" type="button"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/vignettes_icon.png" alt="Vignettes" />Vignettes</button>
           <div class="dropdown-content">
-<a href="Installation.html">Installation</a>
+            <a href="vignettes.html"><b>Browse all vignettes →</b></a>
           </div>
         </div>
         <a href="https://github.com/lichengxue/SPASAM.MSE"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/source_icon.png" alt="Source" />Source</a>
+        <a href="SPASAM-MSE_Manual.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/manual_icon.PNG" alt="Manual" />Manual</a>
         <a href="projects.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/projects_icon.png" alt="Projects" />Projects</a>
         <a href="news_updates.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/news_icon.png" alt="News" />News</a>
         <a href="bug_report.html"><img class="icon" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/bug_report_icon.png" alt="Bug report" />Bug report</a>
@@ -103,7 +104,7 @@
         <div>
           <div class="h1row">
             <h1>SPASAM.MSE</h1>
-            <div class="buildtag">Build: <span class="kbd">v0.0.0</span> • 2026-01-02</div>
+            <div class="buildtag">Build: <span class="kbd">v0.0.0</span> • 2026-03-14</div>
           </div>
           <div class="subtitle">
             SPASAM-MSE (Spatial Processes and Stock Assessment Methods - Management Strategy Evaluation) is a
@@ -125,7 +126,6 @@
             <div class="pill">Automated reporting</div>
           </div>
           <div class="logo-row">
-            <img class="logo-img" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/NOAA_logo.png" alt="NOAA logo" />
             <img class="logo-img" src="https://raw.githubusercontent.com/lichengxue/SPASAM.MSE/main/docs/icons/SPASAM.MSE_logo.png" alt="SPASAM.MSE logo" />
           </div>
         </div>
@@ -194,10 +194,12 @@
       var dd = document.getElementById("vignetteDropdown");
       if(!dd) return;
       var btn = dd.querySelector(".dropbtn");
-      btn.addEventListener("click", function(e){
-        e.stopPropagation();
-        dd.classList.toggle("open");
-      });
+      if(btn){
+        btn.addEventListener("click", function(e){
+          e.stopPropagation();
+          dd.classList.toggle("open");
+        });
+      }
       document.addEventListener("click", function(){
         dd.classList.remove("open");
       });

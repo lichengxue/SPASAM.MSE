@@ -1,0 +1,63 @@
+---
+title: "MSE Output Report"
+output: html_document
+params:
+  mods: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(ggplot2); library(dplyr); library(tidyr); library(fmsb)
+library(ggpubr); library(gridExtra); library(ggtern)
+mods <- params$mods
+is.nsim <- if (!is.list(mods[[1]][[1]][[1]])) FALSE else TRUE
+output_dir <- '.'
+width <- 10; height <- 7; dpi <- 300; col.opt <- 'D'
+new_model_names <- c("M1", "M2", "M3", "M4", "M5")
+base.model <- 'M1'
+start.years <- 31
+use.n.years.first <- 5
+use.n.years.last <- 5
+```
+
+```{r all-plots}
+plot_relative_trajectories1(mods, is.nsim, '.', output_dir, base.model, new_model_names, width, height, dpi, col.opt)
+plot_relative_trajectories2(mods, is.nsim, '.', output_dir, base.model, new_model_names, width, height, dpi, col.opt)
+plot_ssb_time_series(mods, is.nsim, '.', output_dir, 'SSB', width, height, dpi, col.opt, new_model_names)
+plot_fbar_time_series(mods, is.nsim, '.', output_dir, 'Fbar', width, height, dpi, col.opt, new_model_names)
+plot_catch_time_series(mods, is.nsim, '.', output_dir, 'Catch', width, height, dpi, col.opt, new_model_names)
+plot_ssb_performance(mods, is.nsim, '.', output_dir, 'SSB', width, height, dpi, col.opt, new_model_names, use.n.years.last)
+plot_ssb_performance(mods, is.nsim, '.', output_dir, 'SSB', width, height, dpi, col.opt, new_model_names, use.n.years.last, base.model)
+plot_fbar_performance(mods, is.nsim, '.', output_dir, 'Fbar', width, height, dpi, col.opt, new_model_names, use.n.years.last)
+plot_fbar_performance(mods, is.nsim, '.', output_dir, 'Fbar', width, height, dpi, col.opt, new_model_names, use.n.years.last, base.model)
+plot_catch_performance(mods, is.nsim, '.', output_dir, 'Catch', width, height, dpi, col.opt, new_model_names, use.n.years.last)
+plot_catch_performance(mods, is.nsim, '.', output_dir, 'Catch', width, height, dpi, col.opt, new_model_names, use.n.years.last, base.model)
+plot_ssb_performance2(mods, is.nsim, '.', output_dir, 'SSB', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years)
+plot_ssb_performance2(mods, is.nsim, '.', output_dir, 'SSB', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years, base.model)
+plot_fbar_performance2(mods, is.nsim, '.', output_dir, 'Fbar', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years)
+plot_fbar_performance2(mods, is.nsim, '.', output_dir, 'Fbar', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years, base.model)
+plot_catch_performance2(mods, is.nsim, '.', output_dir, 'Catch', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years)
+plot_catch_performance2(mods, is.nsim, '.', output_dir, 'Catch', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years, base.model)
+plot_catch_variation(mods, is.nsim, '.', output_dir, 'Catch', width, height, dpi, col.opt, new_model_names)
+plot_catch_variation(mods, is.nsim, '.', output_dir, 'Catch', width, height, dpi, col.opt, new_model_names, base.model)
+plot_ssb_variation(mods, is.nsim, '.', output_dir, 'SSB', width, height, dpi, col.opt, new_model_names)
+plot_ssb_variation(mods, is.nsim, '.', output_dir, 'SSB', width, height, dpi, col.opt, new_model_names, base.model)
+plot_fbar_variation(mods, is.nsim, '.', output_dir, 'Fbar', width, height, dpi, col.opt, new_model_names)
+plot_fbar_variation(mods, is.nsim, '.', output_dir, 'Fbar', width, height, dpi, col.opt, new_model_names, base.model)
+plot_ssb_status(mods, is.nsim, '.', output_dir, 'SSB_status', width, height, dpi, col.opt, new_model_names, use.n.years.last, base.model = NULL)
+plot_ssb_status(mods, is.nsim, '.', output_dir, 'SSB_status', width, height, dpi, col.opt, new_model_names, use.n.years.last, base.model, plot_prob = FALSE)
+plot_ssb_status2(mods, is.nsim, '.', output_dir, 'SSB_status', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years, base.model = NULL)
+plot_ssb_status2(mods, is.nsim, '.', output_dir, 'SSB_status', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years, base.model, plot_prob = FALSE)
+plot_fbar_status(mods, is.nsim, '.', output_dir, 'Fbar_status', width, height, dpi, col.opt, new_model_names, use.n.years.last, base.model = NULL)
+plot_fbar_status(mods, is.nsim, '.', output_dir, 'Fbar_status', width, height, dpi, col.opt, new_model_names, use.n.years.last, base.model, plot_prob = FALSE)
+plot_fbar_status2(mods, is.nsim, '.', output_dir, 'Fbar_status', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years, base.model = NULL)
+plot_fbar_status2(mods, is.nsim, '.', output_dir, 'Fbar_status', width, height, dpi, col.opt, new_model_names, use.n.years.first, start.years, base.model, plot_prob = FALSE)
+plot_kobe_status(mods, is.nsim, '.', output_dir, width, height, dpi, col.opt, new_model_names, use.n.years.last, show_density = FALSE)
+plot_kobe_status(mods, is.nsim, '.', output_dir, width, height, dpi, col.opt, new_model_names, use.n.years.last, show_density = TRUE)
+plot_model_performance_radar(mods, is.nsim, '.', output_dir, width, height, dpi, col.opt, use.n.years.first, use.n.years.last, start.years, new_model_names)
+plot_model_performance_triangle(mods, is.nsim, '.', output_dir, width, height, dpi, new_model_names, col.opt, use.n.years.first, use.n.years.last, start.years)
+plot_model_performance_bar(mods, is.nsim, '.', output_dir, new_model_names, width, height, dpi, col.opt, use.n.years.first, use.n.years.last, start.years)
+plot_AAV_performance(mods, is.nsim,'.', output_dir, width, height, dpi, new_model_names, col.opt)
+plot_mean_rec_par(mods, is.nsim, '.', output_dir, width, height, dpi, col.opt, new_model_names)
+plot_NAA_sigma_par(mods, is.nsim, '.', output_dir, width, height, dpi, col.opt, new_model_names)
+```

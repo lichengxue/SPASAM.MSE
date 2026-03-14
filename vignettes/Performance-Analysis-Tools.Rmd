@@ -1,0 +1,192 @@
+---
+title: "Comprehensive Output Analysis Tools"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    includes:
+      in_header: header.html
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+This vignette introduces how to use `plot_mse_output()` function to 
+summarize and visualize the results of management strategy evaluation.
+`plot_mse_output()` function is capable of summarizing management
+strategy evaluation results from one realization and from n
+realizations, when using parallel computing (see Example 5 for more
+details)). The results can be presented in line plot, scatter plot, box
+plot, and radar chart for users to better compare performance among
+different management strategies. Please use ?plot_mse_output to see more
+details. Below are one example about plotting results from one
+realization and one example about plotting results from n realizations.
+
+### 1. Generate operating model
+
+```{r, eval=FALSE}
+library(wham)
+library(SPASAM.MSE)
+
+main.dir = here::here() # path to save the results.
+
+year_start  <- 1  # starting year in the burn-in period
+year_end    <- 30  # end year in the burn-in period
+MSE_years   <- 10     # number of years in the feedback loop
+# Note: no need to include MSE_years in simulation-estimation 
+
+info <- generate_basic_info(n_stocks = 2, 
+                            n_regions = 2,
+                            n_indices = 2,
+                            n_fleets = 2,
+                            n_seasons = 1,
+                            base.years = year_start:year_end,
+                            n_feedback_years = MSE_years,
+                            life_history = "short",
+                            n_ages = 10) 
+
+basic_info = info$basic_info # collect basic information
+catch_info = info$catch_info # collect fleet catch information
+index_info = info$index_info # collect survey information
+F_info = info$F # collect fishing information
+
+# Create difference in NAA between 2 stocks
+n_stocks   <- 2
+n_regions  <- 2
+n_ages     <- 10
+sigma      <- "rec+1"
+re_cor     <- "iid"
+ini.opt    <- "equilibrium" # option   <- c("age-specific-fe", "equilibrium")
+
+# Set sigma for NAA
+NAA_sig <- 0.2
+sigma_vals = array(NAA_sig, dim = c(n_stocks, n_regions, n_ages)) # n_stocks x n_regions x n_ages"
+sigma_vals[,,1] = 0.5
+
+NAA_re <- list(N1_model=rep(ini.opt,n_stocks),
+               sigma=rep(sigma,n_stocks),
+               cor=rep(re_cor,n_stocks),
+               recruit_model = 2,
+               sigma_vals = sigma_vals)
+
+# Prepare wham input
+input <- prepare_wham_input(basic_info = basic_info, 
+                            NAA_re = NAA_re,
+                            catch_info = catch_info, 
+                            index_info = index_info, 
+                            F = F_info)
+
+random = input$random # check what processes are random effects
+input$random = NULL # so inner optimization won't change simulated RE
+om <- fit_wham(input, do.fit = F, do.brps = T, MakeADFun.silent = TRUE)
+# Note: do.fit must be FALSE (no modeling fitting yet)
+
+om_with_data <- update_om_fn(om, seed = 123, random = random)
+
+assess.interval <- 2 # 
+base.years      <- year_start:year_end # Burn-in period
+first.year      <- head(base.years,1)
+terminal.year   <- tail(base.years,1)
+assess.years    <- seq(terminal.year, tail(om$years,1)-assess.interval,by = assess.interval)
+
+mods <- list() # Create a list to save MSE outputs
+```
+
+
+### 2. Conduct MSE
+
+```{r, eval=FALSE}
+sub.dir = "Results"
+dir.create(file.path(getwd(), sub.dir), recursive = TRUE)
+
+library(doParallel)
+library(foreach)
+
+detectCores() # check how many cores available
+
+cluster <- makeCluster(10)
+registerDoParallel(cluster)
+
+# Define percentFXSPR for each model
+percent_vec <- c(60, 70, 80, 90, 100)
+
+# Loop over 5 models
+for (model_num in seq_along(percent_vec)) {
+ 
+  percent_fxspr <- percent_vec[model_num]
+ 
+  cat(sprintf("Starting Model %d with percentFXSPR = %d\n", model_num, percent_fxspr))
+ 
+  foreach(i = 1:10) %dopar% {
+   
+    # Wrap in tryCatch to handle errors
+    tryCatch({
+      library(wham)
+      library(SPASAM.MSE)
+     
+      om_with_data <- update_om_fn(om, seed = 1010101 + i, random = random)
+     
+      mod <- loop_through_fn(
+        om = om_with_data,
+        em_info = info,
+        random = random,
+        NAA_re_em = NAA_re,
+        em.opt = list(separate.em = FALSE, separate.em.type = 1, do.move = FALSE, est.move = FALSE),
+        assess_years = assess.years,
+        assess_interval = assess.interval,
+        base_years = base.years,
+        year.use = 30,
+        hcr = list(hcr.type = 1, hcr.opts = list(use_FXSPR = TRUE, percentFXSPR = percent_fxspr)),
+        seed = 1010101 + i,
+        save.last.em = FALSE
+      )
+     
+      saveRDS(mod, file.path(sub.dir, sprintf("Mod%d_%03d.RDS", model_num, i)))
+     
+    }, error = function(e) {
+      cat(sprintf("Error in Model %d, Replicate %d: %s\n", model_num, i, e$message))
+      saveRDS(NULL, file.path(sub.dir, sprintf("Mod%d_%03d_ERROR.RDS", model_num, i)))
+    })
+  }
+}
+
+stopCluster(cluster)
+```
+
+### 3. Collect Results
+```{r, eval=TRUE}
+model_nums <- 1:5
+nsim <- 10 # number of simulations/seed
+
+mods <- lapply(1:nsim, function(r) {
+  
+  mod_list <- lapply(model_nums, function(m) {
+    file_path <- file.path("Results", sprintf("Mod%d_%03d.RDS", m, r))
+    readRDS(file_path)
+  })
+  
+  names(mod_list) <- paste0("Mod", model_nums)
+  
+  return(mod_list)
+})
+```
+
+### 4. Plot MSE Results
+```{r, eval=FALSE}
+library(SPASAM.MSE)
+plot_mse_output(mods,
+                main_dir = getwd(),
+                output_dir = "Report",
+                output_format = c("html"), # or html or png
+                width = 10, height = 7, dpi = 300,
+                col.opt = "D",
+                new_model_names = c("M1","M2","M3","M4","M5"),
+                base.model = "M1",
+                start.years = 31,
+                use.n.years.first = 5,
+                use.n.years.last = 5)
+
+```
+
+### 5. MSE Performance Metrics
+<embed src="Report/mse_report.pdf" width="110%" height="800px" type="application/pdf">
