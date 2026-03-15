@@ -451,7 +451,6 @@ plot_ssb_performance <- function(mods, is.nsim, main.dir, sub.dir, var = "SSB",
   return(p)
 }
 
-
 plot_ssb_performance2 <- function(mods, is.nsim, main.dir, sub.dir, var = "SSB",
                                   width = 10, height = 7, dpi = 300, col.opt = "D",
                                   method = NULL,
