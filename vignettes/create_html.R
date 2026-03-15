@@ -66,14 +66,16 @@ core_members <- list(
 # Optional manual short descriptions for vignette cards
 # Names should match the .Rmd filename without extension
 vignette_desc_map <- c(
-  "getting_started" = "Start here for installation, basic setup, and the overall SPASAM.MSE workflow.",
-  "movement_models" = "Examples of movement configuration, connectivity assumptions, and movement random effects.",
-  "mse_workflow"    = "Closed-loop MSE workflow from OM to EM to projections and management feedback.",
-  "plotting_output" = "Examples for plotting, diagnostics, summaries, and automated reporting outputs."
+  "Installation" = "Start here for installation, package setup, and basic access.",
+  "Management-Strategy-Evaluation" = "Run the full management strategy evaluation workflow and examples."
 )
 
-# Optional featured vignettes (filenames without .Rmd)
-featured_vignettes <- c("getting_started", "mse_workflow", "movement_models")
+featured_vignettes <- c("Installation", "Management-Strategy-Evaluation")
+
+vignette_order <- c(
+  "Installation",
+  "Management-Strategy-Evaluation"
+)
 
 # ----------------------------
 # Helpers
@@ -81,6 +83,11 @@ featured_vignettes <- c("getting_started", "mse_workflow", "movement_models")
 ensure_dir <- function(path) {
   if (!dir.exists(path)) dir.create(path, recursive = TRUE)
 }
+
+vignette_order <- c(
+  "Installation",
+  "Management-Strategy-Evaluation"
+)
 
 get_site_version <- function() {
   has_git <- nzchar(Sys.which("git"))
@@ -156,7 +163,7 @@ build_members_html <- function(members) {
   )
 }
 
-build_vignette_info <- function(vignette_files, desc_map = NULL) {
+build_vignette_info <- function(vignette_files, desc_map = NULL, vignette_order = NULL) {
   if (length(vignette_files) == 0) return(list())
   
   info <- lapply(vignette_files, function(file) {
@@ -174,7 +181,16 @@ build_vignette_info <- function(vignette_files, desc_map = NULL) {
     )
   })
   
-  info[order(vapply(info, `[[`, character(1), "title"))]
+  if (!is.null(vignette_order) && length(vignette_order) > 0) {
+    keys <- vapply(info, `[[`, character(1), "key")
+    rank <- match(keys, vignette_order)
+    rank[is.na(rank)] <- length(vignette_order) + seq_len(sum(is.na(rank)))
+    info <- info[order(rank)]
+  } else {
+    info <- info[order(vapply(info, `[[`, character(1), "title"))]
+  }
+  
+  info
 }
 
 build_vignette_cards <- function(vignette_info, featured = NULL) {
@@ -287,7 +303,8 @@ bug_html       <- if (length(bug_report_files) > 0) to_html(bug_report_files)[1]
 projects_html  <- if (length(projects_files) > 0) to_html(projects_files)[1] else "projects.html"
 vignettes_html <- "vignettes.html"
 
-vignette_info  <- build_vignette_info(vignette_files, vignette_desc_map)
+vignette_info  <- build_vignette_info(vignette_files, vignette_desc_map, vignette_order)
+
 featured_links <- vignette_info[vapply(vignette_info, function(x) x$key %in% featured_vignettes, logical(1))]
 
 featured_dropdown_links <- if (length(featured_links) > 0) {
