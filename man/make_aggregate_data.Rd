@@ -2,86 +2,276 @@
 % Please edit documentation in R/make_aggregate_data.R
 \name{make_aggregate_data}
 \alias{make_aggregate_data}
-\title{Aggregate Data for Estimation Model}
+\title{Aggregate Operating-Model Data for a Reduced Estimation Model}
 \usage{
 make_aggregate_data(
   om,
   em_info,
   ind_em,
-  aggregate_catch_info,
-  aggregate_index_info,
-  aggregate_weights_info
+  aggregate_catch_info = NULL,
+  aggregate_index_info = NULL,
+  aggregate_weights_info = NULL
 )
 }
 \arguments{
-\item{om}{List. The operating model containing observed data, including:}
+\item{om}{List. Operating-model object containing input data and simulated
+observations. This function expects `om$input$data` to contain objects such
+as `agg_catch`, `catch_paa`, `agg_indices`, and `index_paa`.}
 
-\item{em_info}{List. The estimation model information, including:}
+\item{em_info}{List. Estimation-model information object. The function
+updates and returns this object. At minimum, `em_info$par_inputs` should
+contain the parameter vectors and biological inputs needed for aggregation,
+and `em_info$basic_info` should contain the corresponding WAA pointer
+structure.}
 
-\item{ind_em}{Vector. Indices specifying the years for which the estimation model should use data.}
+\item{ind_em}{Integer vector. Indices of years to retain from the operating
+model when constructing the reduced estimation-model data.}
 
-\item{aggregate_catch_info}{List (optional). User-specified catch aggregation settings for panmictic models using aggregate catch.
-\itemize{
-  \item `$n_fleets` Integer. Number of fleets.
-  \item `$catch_cv` Numeric vector (`n_fleets`). CVs for annual aggregate catches by fleet.
-  \item `$catch_Neff` Numeric vector (`n_fleets`). Effective sample sizes for fleet catches.
-  \item `$use_agg_catch` Integer vector (`n_fleets`). 0/1 values flagging whether to use aggregate catches.
-  \item `$use_catch_paa` Integer vector (`n_fleets`). 0/1 values flagging whether to use proportions at age observations.
-  \item `$fleet_pointer` Integer vector (`n_fleets`). Defines fleet grouping (0 = exclude).
-  \item `$use_catch_weighted_waa` Logical. Whether to use weighted weight-at-age based on fleet catches.
-}}
+\item{aggregate_catch_info}{List or `NULL`. Catch aggregation settings used
+  when combining multiple operating-model fleets into fewer estimation-model
+  fleets.
 
-\item{aggregate_index_info}{List (optional). User-specified index aggregation settings for panmictic models using aggregate indices.
-\itemize{
-  \item `$n_indices` Integer. Number of indices.
-  \item `$index_cv` Numeric vector (`n_indices`). CVs for annual aggregate index catches.
-  \item `$index_Neff` Numeric vector (`n_indices`). Effective sample sizes for survey indices.
-  \item `$fracyr_indices` Numeric vector (`n_indices`). Fraction of the year for each survey index.
-  \item `$q` Numeric vector (`n_indices`). Initial survey catchabilities.
-  \item `$use_indices` Integer vector (`n_indices`). 0/1 values flagging whether to use survey indices.
-  \item `$use_index_paa` Integer vector (`n_indices`). 0/1 values flagging whether to use proportions at age observations.
-  \item `$units_indices` Integer vector (`n_indices`). 1/2 values flagging whether aggregate observations are biomass (1) or numbers (2).
-  \item `$units_index_paa` Integer vector (`n_indices`). 1/2 values flagging whether composition observations are biomass (1) or numbers (2).
-  \item `$index_pointer` Integer vector (`n_indices`). Defines index grouping (0 = exclude).
-  \item `$use_index_weighted_waa` Logical. Whether to use weighted weight-at-age based on survey catches.
-   }}
+  Expected components may include:
+  \itemize{
+    \item `n_fleets`: Integer. Number of aggregated fleets in the estimation
+      model. In practice, this should match the number of unique positive
+      values in `fleet_pointer`.
+    \item `catch_cv`: Numeric vector. Catch coefficients of variation.
+      Can be supplied either at the original fleet level or at the aggregated
+      fleet-group level.
+    \item `catch_Neff`: Numeric vector. Effective sample sizes for catch
+      compositions. Can be supplied either at the original or aggregated
+      fleet-group level.
+    \item `use_agg_catch`: Integer vector of 0/1 values. Indicator for
+      whether each aggregated fleet uses total catch observations.
+    \item `use_catch_paa`: Integer vector of 0/1 values. Indicator for
+      whether each aggregated fleet uses catch proportions-at-age.
+    \item `fleet_pointer`: Integer vector of length equal to the number of
+      original operating-model fleets. Values indicate fleet membership in
+      aggregated groups. A value of `0` excludes that fleet.
+    \item `use_catch_weighted_waa`: Logical. If `TRUE`, aggregated
+      fleet-level weight-at-age is weighted by annual catch within each
+      aggregated fleet group. If `FALSE`, equal weights are used across
+      fleets within each group.
+  }
 
-\item{aggregate_weights_info}{List (optional). Specifies how to compute weighted averages for
-weight-at-age (`waa`) and maturity-at-age during data aggregation (For panmictic and fleets-as-areas models only).
-Used for aggregating across fleets or indices to form total/stock/regional summaries.
-\itemize{
-  \item `$ssb_waa_weights` List. Settings for weighting weight-at-age used for spawning stock biomass.
-    \itemize{
-      \item `$fleet` Logical. Whether to use fleet-specific weights.
-      \item `$index` Logical. Whether to use index-specific weights.
-      \item `$pointer` Integer. Index pointing to the selected fleet or index group (e.g., 1 means the first valid fleet group).
-    }
-  \item `$maturity_weights` List. Settings for weighting maturity-at-age used for spawning stock biomass.
-    \itemize{
-      \item `$fleet` Logical. Whether to use fleet-specific weights.
-      \item `$index` Logical. Whether to use index-specific weights.
-      \item `$pointer` Integer. Index pointing to the selected fleet or index group.
-    }
-}}
+  \strong{Important:} `use_catch_weighted_waa` directly affects the
+  aggregated fleet WAA blocks used by panmictic/type-1 estimation models.}
+
+\item{aggregate_index_info}{List or `NULL`. Index aggregation settings used
+  when combining multiple operating-model indices into fewer estimation-model
+  indices.
+
+  Expected components may include:
+  \itemize{
+    \item `n_indices`: Integer. Number of aggregated indices in the
+      estimation model. In practice, this should match the number of unique
+      positive values in `index_pointer`.
+    \item `index_cv`: Numeric vector. Coefficients of variation for index
+      observations. Can be supplied either at the original index level or at
+      the aggregated index-group level.
+    \item `index_Neff`: Numeric vector. Effective sample sizes for index
+      compositions. Can be supplied either at the original or aggregated
+      index-group level.
+    \item `fracyr_indices`: Numeric vector. Fraction of the year associated
+      with each index observation.
+    \item `q`: Numeric vector. Initial survey catchability values.
+    \item `use_indices`: Integer vector of 0/1 values. Indicator for whether
+      each aggregated index is used.
+    \item `use_index_paa`: Integer vector of 0/1 values. Indicator for
+      whether each aggregated index uses index proportions-at-age.
+    \item `units_indices`: Integer vector. Observation units for total index
+      values, typically biomass (`1`) or numbers (`2`).
+    \item `units_index_paa`: Integer vector. Observation units for index
+      composition values, typically biomass (`1`) or numbers (`2`).
+    \item `index_pointer`: Integer vector of length equal to the number of
+      original operating-model indices. Values indicate index membership in
+      aggregated groups. A value of `0` excludes that index.
+    \item `use_catch_weighted_waa`: Logical. If `TRUE`, aggregated
+      index-level weight-at-age is weighted by annual index magnitude within
+      each aggregated index group. If `FALSE`, equal weights are used across
+      indices within each group.
+  }
+
+  \strong{Note:} for backward compatibility with earlier code, index-level
+  WAA weighting uses `aggregate_index_info$use_catch_weighted_waa`.}
+
+\item{aggregate_weights_info}{List or `NULL`. Optional settings for
+  computing weighted averages for spawning weight-at-age and maturity-at-age
+  after aggregation.
+
+  Supported components may include:
+  \itemize{
+    \item `ssb_waa_weights`: List controlling how aggregated spawning
+      weight-at-age is weighted.
+    \item `maturity_weights`: List controlling how aggregated maturity-at-age
+      is weighted.
+  }
+
+  Each of these may contain:
+  \itemize{
+    \item `fleet`: Logical. If `TRUE`, use an aggregated fleet-weight matrix.
+    \item `index`: Logical. If `TRUE`, use an aggregated index-weight matrix.
+    \item `pointer`: Integer. Aggregated fleet or index group to use when
+      borrowing weights.
+  }}
 }
 \value{
-List. An updated `em_info` object with:
+A modified version of `em_info` with aggregated data and updated
+  estimation-model inputs. The returned object typically includes updates to:
   \itemize{
-    \item Aggregated `catch_info` (`agg_catch`, `catch_paa`).
-    \item Aggregated `index_info` (`agg_indices`, `index_paa`).
-    \item Updated `par_inputs` with fleet/index aggregations.
-    \item Updated weight-at-age (`user_waa`) and `basic_info$waa`.
+    \item `em_info$par_inputs$agg_catch`
+    \item `em_info$par_inputs$catch_paa`
+    \item `em_info$par_inputs$agg_indices`
+    \item `em_info$par_inputs$index_paa`
+    \item `em_info$par_inputs$user_waa$waa`
+    \item `em_info$par_inputs$user_maturity`
+    \item `em_info$par_inputs$n_regions`
+    \item `em_info$par_inputs$n_stocks`
+    \item `em_info$par_inputs$n_fleets`
+    \item `em_info$par_inputs$n_indices`
+    \item `em_info$basic_info$waa`
+    \item the associated `waa_pointer_*` objects in both `basic_info` and
+      `par_inputs$user_waa`
   }
 }
 \description{
-Aggregates catch and index data from the operating model (`om`) and updates
-the estimation model (`em_info`) with the aggregated data. It also adjusts
-`par_inputs` and weight-at-age (`user_waa`) to reflect the modified fleet,
-region, index, and stock structure.
+Aggregate catch, survey index, proportions-at-age, weight-at-age, and
+maturity-at-age information from an operating model (`om`) into a reduced
+estimation-model data structure stored in `em_info`.
 }
 \details{
-- Fleets and indices with `fleet_pointer = 0` or `index_pointer = 0` are ignored during aggregation.
-- **Aggregated parameters** (`catch_cv`, `index_cv`, `q`, etc.) will return **vectors of length equal to the number of aggregated fleets or indices**.
-- If `aggregate_catch_info` or `aggregate_index_info` are missing values, they are replaced with the first element of `em_info$par_inputs`.
-- Weight-at-age (`waa`) is aggregated based on fleet or index weights, using either **catch-weighted averages or equal proportions**.
+This function is primarily intended for simplified or panmictic estimation
+model configurations, especially when multiple operating-model fleets and/or
+indices are combined into fewer groups for the estimation model. Aggregation
+is controlled through user-supplied pointer vectors that define which
+original fleets or indices belong to each aggregated group.
+
+In addition to aggregating observations, the function updates the associated
+estimation-model inputs stored in `em_info$par_inputs`, including:
+\itemize{
+  \item aggregated catch and index observations,
+  \item aggregated proportions-at-age,
+  \item aggregated fleet- and index-level parameter vectors,
+  \item aggregated weight-at-age (`user_waa`), and
+  \item aggregated maturity-at-age (`user_maturity`).
+}
+
+Fleets or indices assigned a pointer value of `0` are excluded from the
+aggregated estimation-model data.
+
+
+The function performs the following steps:
+
+\strong{1. Aggregate fleet- and index-level parameter vectors}
+
+Parameter vectors such as `catch_cv`, `catch_Neff`, `index_cv`, `index_Neff`,
+`q`, and other indicators are aggregated according to the supplied pointer
+vectors. If supplied at the original fleet or index level, values are
+collapsed to aggregated groups by taking the mean within each group. If
+already supplied at the aggregated-group level, the values are used directly.
+
+\strong{2. Aggregate total catch and index observations}
+
+For each aggregated fleet or index group, annual observations are summed
+across all original fleets or indices assigned to that group.
+
+\strong{3. Aggregate proportions-at-age}
+
+Catch and index proportions-at-age are aggregated using annual weighted
+averages, where the weights are the corresponding annual total catches or
+annual total index values for each original fleet or index. The resulting
+proportions-at-age are normalized to sum to 1 within year when the weighted
+total is positive.
+
+\strong{4. Aggregate fleet- and index-level WAA}
+
+Fleet-level and index-level weight-at-age are aggregated within each pointer
+group using either:
+\itemize{
+  \item annual catch- or index-based weights, if
+    `use_catch_weighted_waa = TRUE`, or
+  \item equal weights across members of the group otherwise.
+}
+
+\strong{5. Aggregate spawning WAA and maturity}
+
+Spawning weight-at-age and maturity-at-age are collapsed to a single
+aggregated block. By default, equal weights are used across available
+source blocks. Alternatively, weights may be borrowed from a chosen
+aggregated fleet or index group via `aggregate_weights_info`.
+
+\strong{6. Reset EM dimensions}
+
+After aggregation, the estimation-model dimensions are reset to:
+\itemize{
+  \item `n_regions = 1`
+  \item `n_stocks = 1`
+  \item `n_fleets =` number of valid aggregated fleet groups
+  \item `n_indices =` number of valid aggregated index groups
+}
+
+and all WAA pointers are updated accordingly.
+}
+\section{Assumptions about input dimensions}{
+
+This function assumes:
+\itemize{
+  \item `om$input$data$agg_catch` is indexed by year and fleet.
+  \item `om$input$data$catch_paa` is indexed by fleet, year, and age.
+  \item `om$input$data$agg_indices` is indexed by year and index.
+  \item `om$input$data$index_paa` is indexed by index, year, and age.
+  \item `em_info$par_inputs$user_waa$waa` is indexed by weight block,
+    year, and age.
+  \item `em_info$par_inputs$user_maturity` is indexed by maturity block,
+    year, and age.
+  \item `length(em_info$par_inputs$user_waa$waa_pointer_fleets)` matches the
+    number of original fleets before aggregation.
+  \item `length(em_info$par_inputs$user_waa$waa_pointer_indices)` matches the
+    number of original indices before aggregation.
+}
+}
+
+\section{Handling of excluded fleets and indices}{
+
+Fleets or indices assigned pointer value `0` are excluded from all
+aggregation steps.
+}
+
+\section{Default behavior}{
+
+\itemize{
+  \item If a parameter vector in `aggregate_catch_info` or
+    `aggregate_index_info` is `NULL`, the corresponding default values from
+    `em_info$par_inputs` are used.
+  \item If no weighting rule is provided in `aggregate_weights_info`,
+    equal weights are used for aggregated spawning WAA and maturity.
+  \item If `aggregate_catch_info$fleet_pointer` or
+    `aggregate_index_info$index_pointer` is `NULL`, all fleets or indices are
+    placed in a single aggregated group by default.
+}
+}
+
+\examples{
+\dontrun{
+aggregate_catch_info <- list(
+  fleet_pointer = c(1, 1, 2, 2),
+  use_catch_weighted_waa = TRUE
+)
+
+aggregate_index_info <- list(
+  index_pointer = c(1, 1, 0),
+  use_catch_weighted_waa = TRUE
+)
+
+em_info <- make_aggregate_data(
+  om = om,
+  em_info = em_info,
+  ind_em = 1:20,
+  aggregate_catch_info = aggregate_catch_info,
+  aggregate_index_info = aggregate_index_info,
+  aggregate_weights_info = list()
+)
+}
+
 }

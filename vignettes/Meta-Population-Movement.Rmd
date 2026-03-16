@@ -86,21 +86,45 @@ input <- om$input
 input$data <- om$simulate(complete=TRUE)
 ```
 
-### 6. SSB time series
+### 6. SSB and recruitment time series
 ```{r, eval=FALSE}
-plot(input$data$SSB[,1], type = "l", col = "red", 
-     ylab = "SSB", xlab = "Years", 
-     main = "SSB", ylim = c(0,max(input$data$SSB)))
-lines(input$data$SSB[,2], type = "l", col = "blue")
-```
-![Figure 1](Example_plots/SSB_time_series.png){width="600"}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
 
-### 7. Recruitment time series
-```{r, eval=FALSE}
-plot(input$data$NAA[1,1,,1], type = "l", col = "red", 
-     ylab = "Recruitment", xlab = "Years", 
-     main = "Recruitment", ylim = c(0,max(input$data$NAA)))
-lines(input$data$NAA[2,2,,1], type = "l", col = "blue")
-```
+yrs <- seq_len(dim(input$data$SSB)[1])
 
-![Figure 2](Example_plots/Rec_time_series.png){width="600"}
+# Create dataframe
+df <- data.frame(
+  Year = yrs,
+  SSB_stock1 = input$data$SSB[,1],
+  SSB_stock2 = input$data$SSB[,2],
+  Rec_stock1 = input$data$NAA[1,1,,1],
+  Rec_stock2 = input$data$NAA[2,2,,1]
+)
+
+# Convert to long format
+plot_df <- df |>
+  pivot_longer(-Year) |>
+  separate(name, into = c("Variable","Stock"), sep = "_")
+
+plot_df$Stock <- factor(plot_df$Stock,
+                        levels = c("stock1","stock2"),
+                        labels = c("Stock 1","Stock 2"))
+
+# Plot
+ggplot(plot_df, aes(Year, value, color = Stock)) +
+  geom_line(linewidth = 1.2) +
+  facet_wrap(~Variable, scales = "free_y") +
+  scale_color_manual(values = c("red","blue")) +
+  labs(
+    x = "Year",
+    y = NULL
+  ) +
+  theme_bw() +
+  theme(
+    strip.text = element_text(face = "bold"),
+    legend.position = "top"
+  )
+```
+![Figure 1](Example_plots/metapopulation_plot.png){width="600"}

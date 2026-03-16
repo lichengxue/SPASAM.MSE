@@ -4,57 +4,103 @@
 \alias{advice_fn}
 \title{Generate Catch Advice for Management Strategy Evaluation}
 \usage{
-advice_fn(em, pro.yr = assess.interval, hcr = NULL)
+advice_fn(em, pro.yr = 1, hcr = NULL, proj.opts = list(), ecov_em_opts = NULL)
 }
 \arguments{
-\item{em}{A fitted WHAM estimation model.}
+\item{em}{A fitted WHAM estimation model object.}
 
-\item{pro.yr}{Integer. Number of years for projection.}
+\item{pro.yr}{Integer. Number of years for projection. Default is taken from
+\code{assess.interval}.}
 
-\item{hcr}{List. Harvest control rule:
+\item{hcr}{A list specifying the harvest control rule:
 \describe{
-  \item{\code{hcr.type}}{Integer (1: F\_XSPR, 2: constant catch, 3: hockey stick).}
-  \item{\code{hcr.opts}}{List of options, including:
+  \item{\code{hcr.type}}{Integer specifying the HCR type:
+    \enumerate{
+      \item F\_XSPR (or F\_MSY if \code{use_FMSY = TRUE}).
+      \item Constant catch.
+      \item Hockey-stick scaling based on biomass thresholds.
+    }}
+  \item{\code{hcr.opts}}{List of options controlling HCR behavior:
     \itemize{
-      \item \code{use_FXSPR}: Logical. Use F\%SPR-based projections (default: TRUE).
-      \item \code{percentFXSPR}: Numeric. % of F\%SPR to apply (default: 75).
-      \item \code{use_FMSY}: Logical. Use FMSY-based projections (default: FALSE).
-      \item \code{percentFMSY}: Numeric. % of FMSY to apply (default: 75).
-      \item \code{avg_yrs}: Integer. Number of years to average over (default: 5).
-      \item \code{cont.M.re}: Logical. Continue M random effects (default: FALSE).
-      \item \code{cont.move.re}: Logical. Continue movement random effects (default: NULL if 1 region).
-      \item \code{max_percent}: Numeric. Max % of F\%SPR or FMSY (default: 75).
-      \item \code{min_percent}: Numeric. Min % of F\%SPR or FMSY (default: 0.01).
-      \item \code{BThresh_up}: Numeric. Upper biomass threshold (default: 0.5).
-      \item \code{BThresh_low}: Numeric. Lower biomass threshold (default: 0.1).
-    }
-  }
+      \item \code{use_FXSPR}, \code{percentFXSPR}
+      \item \code{use_FMSY}, \code{percentFMSY}
+      \item \code{avg_yrs}, \code{cont.M.re}, \code{cont.move.re}
+      \item \code{max_percent}, \code{min_percent},
+        \code{BThresh_up}, \code{BThresh_low} (for HCR 3)
+    }}
 }}
+
+\item{proj.opts}{A named list of projection options passed directly to
+\code{\link{project_wham}}. Any field here overrides values set internally
+from defaults, HCR settings, and \code{ecov_em_opts}.}
+
+\item{ecov_em_opts}{List (optional). Options for projecting environmental
+covariates in the estimation model during catch advice. Expected components:
+\itemize{
+  \item \code{use_ecov_em}: Logical. If \code{TRUE}, use EM-based/projected Ecov values.
+  \item \code{lag}: Integer lag used to align Ecov values.
+  \item \code{period}: Integer vector (optional). Projection indices to override.
+}
+If \code{NULL}, environmental covariates are handled through the default
+projection settings or any user-supplied \code{proj.opts}.}
 }
 \value{
-A matrix containing the projected catch advice for \code{pro.yr} years.
+A matrix of projected catch advice for \code{pro.yr} years.
 }
 \description{
-A function to generate catch advice based on different harvest control rules (HCRs)
-for use in management strategy evaluation (MSE).
+Generate catch advice based on harvest control rules (HCRs) using a fitted WHAM
+estimation model. This function extends \code{\link{project_wham}} by embedding
+HCR-specific logic (F\%SPR, constant catch, hockey-stick), while also allowing
+users to supply custom projection options via \code{proj.opts} and optional
+environmental covariate projection controls via \code{ecov_em_opts}.
+}
+\details{
+Projection options are constructed in four steps:
+\enumerate{
+  \item Defaults are set internally.
+  \item HCR logic modifies relevant fields.
+  \item Optional \code{ecov_em_opts} modifies \code{proj.ecov}.
+  \item User-supplied \code{proj.opts} overrides all previous settings.
+}
+
+\strong{HCR 1}: Uses F\_XSPR (or F\_MSY if requested) and returns projected catch.
+
+\strong{HCR 2}: Projects first, then repeats the mean projected catch across
+all projection years.
+
+\strong{HCR 3}: Hockey-stick rule. The terminal biomass ratio
+\eqn{SSB_t / SSB_x} is mapped linearly to \code{percentFXSPR} or
+\code{percentFMSY} between \code{BThresh_low} and \code{BThresh_up}, bounded by
+\code{min_percent} and \code{max_percent}, and catch advice is then projected
+under that scaled reference point.
 }
 \examples{
-# Example: Define a harvest control rule using F_40\%SPR with 100\% target
+# Example 1: F40\%SPR advice
 hcr <- list(
   hcr.type = 1,
   hcr.opts = list(
     use_FXSPR = TRUE,
-    percentFXSPR = 100,  # Use 100\% of F_40\%SPR
-    avg_yrs = 5,         # Average over the last 5 years
-    cont.M.re = FALSE,   # Do not continue M random effects
-    cont.move.re = FALSE # Do not continue movement random effects
+    percentFXSPR = 100,
+    avg_yrs = 5,
+    cont.M.re = FALSE,
+    cont.move.re = FALSE
   )
 )
+# advice <- advice_fn(em, pro.yr = 3, hcr = hcr)
 
-# Run advice_fn with a WHAM model `em`
-# advice <- advice_fn(em, pro.yr = 5, hcr = hcr)
+# Example 2: user override with proj.opts
+# advice <- advice_fn(
+#   em, pro.yr = 3, hcr = hcr,
+#   proj.opts = list(proj_F_opt = c(4, 4, 4), proj_Fcatch = c(0.1, 0.2, 0.3))
+# )
+
+# Example 3: EM Ecov projection override
+# advice <- advice_fn(
+#   em, pro.yr = 5, hcr = hcr,
+#   ecov_em_opts = list(use_ecov_em = TRUE, lag = 1)
+# )
 
 }
 \seealso{
-\code{\link{project_wham}}
+\code{\link{project_wham}}, \code{\link{fit_wham}}
 }

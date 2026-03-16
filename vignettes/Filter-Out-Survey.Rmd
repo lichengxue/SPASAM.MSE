@@ -162,7 +162,38 @@ mod1 = loop_through_fn(om = om_with_data,
                       do.retro = FALSE, # Perform retrospective analysis
                       do.osa = FALSE) # Perform OSA residual analysis
 
-mod1$em_input$data$agg_indices # double check if a index is removed from the EM
-mod1$em_input$data$index_regions # double check if 2 indices in region 1 and only 1 index in region 2 in the EM
+mod1$em_input[[1]]$data$agg_indices # double check if a index is removed from the EM
+mod1$em_input[[1]]$data$index_regions # double check if 2 indices in region 1 and only 1 index in region 2 in the EM
+
+
+mod2 = loop_through_fn(om = om_with_data,
+                       em_info = info, 
+                       random = random,
+                       M_em = M, 
+                       sel_em = sel_em,
+                       NAA_re_em = NAA_re,
+                       age_comp_em = "multinomial",
+                       em.opt = list(separate.em = FALSE, 
+                                     separate.em.type = 3, 
+                                     do.move = FALSE, 
+                                     est.move = FALSE),
+                       assess_years = assess.years, 
+                       assess_interval = assess.interval, 
+                       base_years = base.years,
+                       year.use = 20,
+                       filter_indices = c(1,0,1,1),
+                       # update_index_info = list(agg_index_sigma = agg_index_sigma,index_Neff = index_Neff),
+                       # Assuming we know the true observation error of the data
+                       # agg_index_sigma and index_Neff can be different than the true values in the OM
+                       add.years = TRUE, 
+                       # assessment will use 20 years of data from historical period + new years in the feedback period
+                       seed = 123,
+                       save.sdrep = TRUE,
+                       save.last.em = TRUE,
+                       do.retro = FALSE, # Perform retrospective analysis
+                       do.osa = FALSE) # Perform OSA residual analysis
+
+mod2$em_input[[1]]$data$agg_indices # double check if a index is removed from the EM
+mod2$em_input[[1]]$data$index_regions # double check if 2 indices in region 2 and only 1 index in region 1 in the EM
 
 ```

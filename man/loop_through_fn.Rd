@@ -14,6 +14,9 @@ loop_through_fn(
   move_em = NULL,
   catchability_em = NULL,
   ecov_em = NULL,
+  ecov_em_opts = NULL,
+  gauss_rec_em = list(use = FALSE, Ecov_rec_T_col = NULL, Topt_rec = NULL, width_rec =
+    NULL, beta_T_rec = NULL, estimate = TRUE),
   age_comp_em = "multinomial",
   em.opt = list(separate.em = TRUE, separate.em.type = 1, do.move = FALSE, est.move =
     FALSE),
@@ -33,8 +36,9 @@ loop_through_fn(
   by_fleet = TRUE,
   FXSPR_init = NULL,
   hcr = list(hcr.type = 1, hcr.opts = NULL),
+  proj.opts = list(),
   catch_alloc = list(weight_type = 1, method = "equal", user_weights = NULL, weight_years
-    = 1),
+    = 1, survey_pointer = 1),
   implementation_error = NULL,
   do.retro = FALSE,
   do.osa = FALSE,
@@ -45,240 +49,490 @@ loop_through_fn(
 )
 }
 \arguments{
-\item{om}{List. The operating model containing pseudo data and simulation configurations.}
+\item{om}{List. Operating model object containing simulated population
+dynamics, observed data, input structures, and all information required by
+\code{\link{make_em_input}} and \code{\link{update_om_fn}}.}
 
-\item{em_info}{List. Information used to generate the assessment model (default = NULL).}
+\item{em_info}{List. Estimation-model information used to construct the EM
+input. This object is typically passed directly to
+\code{\link{make_em_input}} and may include biological settings, fleet and
+survey structures, parameter mappings, priors, initial values, and other
+EM-specific configuration settings.}
 
-\item{random}{Character vector. Processes treated as random effects in the operating model (default = "log_NAA").}
+\item{random}{Character vector or \code{NULL}. Names of OM processes treated
+as random effects when the OM is updated forward. Passed to
+\code{\link{update_om_fn}}.}
 
-\item{M_em}{Configuration for natural mortality in the assessment model.}
+\item{M_em}{Optional object specifying natural mortality settings in the EM.}
 
-\item{sel_em}{Configuration for selectivity in the assessment model.}
+\item{sel_em}{Optional object specifying selectivity settings in the EM.}
 
-\item{NAA_re_em}{Configuration for NAA in the assessment model.}
+\item{NAA_re_em}{Optional object specifying numbers-at-age random-effects
+settings in the EM.}
 
-\item{move_em}{Configuration for movement in the assessment model.}
+\item{move_em}{Optional object specifying movement settings in the EM.
+Movement must be \code{NULL} when \code{em.opt$separate.em = TRUE}. When a
+combined EM is used, \code{move_em} is only used if
+\code{em.opt$do.move = TRUE}.}
 
-\item{catchability_em}{Configuration for survey catchability in the assessment model.}
+\item{catchability_em}{Optional object specifying survey catchability
+settings in the EM.}
 
-\item{ecov_em}{Configuration for environmental covariates in the assessment model.}
+\item{ecov_em}{Optional object specifying environmental covariates in the
+  EM. This may include latent environmental processes, observation error for
+  environmental covariates, and links between environmental covariates and
+  biological processes such as recruitment, mortality, catchability, or
+  movement.
 
-\item{age_comp_em}{Character. Likelihood distribution for age composition data in the assessment model.
-\itemize{
-  \item \code{"multinomial"} (default)
-  \item \code{"dir-mult"}
-  \item \code{"dirichlet-miss0"}
-  \item \code{"dirichlet-pool0"}
-  \item \code{"logistic-normal-miss0"}
-  \item \code{"logistic-normal-ar1-miss0"}
-  \item \code{"logistic-normal-pool0"}
-  \item \code{"logistic-normal-01-infl"}
-  \item \code{"logistic-normal-01-infl-2par"}
-  \item \code{"mvtweedie"}
-  \item \code{"dir-mult-linear"}
-}}
+  When \code{gauss_rec_em$use = TRUE}, \code{ecov_em} should still provide
+  the environmental covariate time series when needed by the EM, but users
+  generally should not also specify an additional standard Ecov effect on
+  recruitment unless multiple recruitment-environment effects are intended.}
 
-\item{em.opt}{List. EM model options.
-\describe{
-  \item{\code{separate.em}}{Logical. Use region-separated EMs (default = FALSE).}
-  \item{\code{separate.em.type}}{Integer. Type of separation:
-    \itemize{
-      \item 1: Panmictic
-      \item 2: Fleets-as-areas
-      \item 3: Separate regional EMs
-    }
+\item{ecov_em_opts}{List or \code{NULL}. Optional settings controlling how
+  environmental covariates are handled during projection and catch-advice
+  generation. These options are passed to \code{\link{advice_fn}} and may be
+  used to override or project Ecov values in the forecast period.
+
+  Typical components may include:
+  \describe{
+    \item{\code{use_ecov_em}}{Logical. Whether to use user-specified or
+      projected Ecov values in the EM projection period.}
+    \item{\code{lag}}{Integer lag used to align environmental covariates with
+      a biological process such as recruitment.}
+    \item{\code{period}}{Optional integer vector specifying projection years
+      whose Ecov values should be replaced.}
+  }}
+
+\item{gauss_rec_em}{List controlling an optional Gaussian environmental
+  effect on recruitment in the EM. This information is passed to
+  \code{\link{add_gauss_rec_to_em_input}} to augment the EM input.
+
+  Expected components are:
+  \describe{
+    \item{\code{use}}{Logical. Whether the Gaussian recruitment effect is
+      included.}
+    \item{\code{Ecov_rec_T_col}}{Integer. One-based R index indicating which
+      environmental covariate column is used as the recruitment covariate.}
+    \item{\code{Topt_rec}}{Numeric. Environmental optimum at which
+      recruitment is maximized.}
+    \item{\code{width_rec}}{Numeric. Width of the Gaussian response on the
+      original environmental scale. Must be positive.}
+    \item{\code{beta_T_rec}}{Numeric scalar or vector. Strength of the
+      Gaussian environmental effect on log recruitment. If a scalar is
+      supplied, it is recycled across stocks.}
+    \item{\code{estimate}}{Logical. Whether \code{Topt_rec},
+      \code{width_rec}, and \code{beta_T_rec} are estimated in the EM. If
+      \code{FALSE}, they are fixed at the supplied values.}
+  }}
+
+\item{age_comp_em}{Character. Likelihood used for age-composition data in
+  the EM. Default is \code{"multinomial"}.
+
+  Supported values may include:
+  \itemize{
+    \item \code{"multinomial"}
+    \item \code{"dir-mult"}
+    \item \code{"dirichlet-miss0"}
+    \item \code{"dirichlet-pool0"}
+    \item \code{"logistic-normal-miss0"}
+    \item \code{"logistic-normal-ar1-miss0"}
+    \item \code{"logistic-normal-pool0"}
+    \item \code{"logistic-normal-01-infl"}
+    \item \code{"logistic-normal-01-infl-2par"}
+    \item \code{"mvtweedie"}
+    \item \code{"dir-mult-linear"}
+  }}
+
+\item{em.opt}{List of EM options.
+
+  Typical components are:
+  \describe{
+    \item{\code{separate.em}}{Logical. Whether to use separate EM
+      formulations instead of a single combined EM.}
+    \item{\code{separate.em.type}}{Integer describing the separate-EM mode:
+      \itemize{
+        \item \code{1}: fit a single EM that produces aggregate or panmictic
+          catch advice, then allocate that advice back to OM fleets with
+          \code{\link{calculate_catch_advice}}.
+        \item \code{2}: use a fleets-as-areas formulation in which advice is
+          already on the fleet scale.
+        \item \code{3}: fit multiple separate EMs, usually one per stock or
+          one per region, and combine their advice before updating the OM.
+      }}
+    \item{\code{do.move}}{Logical. Whether movement is included in the EM.}
+    \item{\code{est.move}}{Logical. Whether movement parameters are
+      estimated. If \code{FALSE} and \code{do.move = TRUE}, movement is fixed
+      before fitting.}
+  }}
+
+\item{aggregate_catch_info}{List or \code{NULL}. Optional settings used to
+  aggregate OM catch data when constructing the EM input.
+
+  Typical components include:
+  \describe{
+    \item{\code{n_fleets}}{Integer. Number of aggregated fleets in the EM.}
+    \item{\code{catch_cv}}{Numeric vector of observation CVs for aggregated
+      catch.}
+    \item{\code{catch_Neff}}{Numeric vector of effective sample sizes for
+      catch age composition.}
+    \item{\code{use_agg_catch}}{Integer vector indicating which aggregated
+      catch series are included.}
+    \item{\code{use_catch_paa}}{Integer vector indicating which catch age
+      compositions are included.}
+    \item{\code{fleet_pointer}}{Integer vector mapping original OM fleets to
+      aggregated EM fleets; \code{0} excludes a fleet.}
+    \item{\code{use_catch_weighted_waa}}{Logical. Whether aggregate fleet
+      weight-at-age is computed using catch-weighted averaging. If omitted,
+      the function treats this as \code{FALSE}.}
+  }}
+
+\item{aggregate_index_info}{List or \code{NULL}. Optional settings used to
+  aggregate OM survey index data when constructing the EM input.
+
+  Typical components include:
+  \describe{
+    \item{\code{n_indices}}{Integer. Number of aggregated indices in the EM.}
+    \item{\code{index_cv}}{Numeric vector of survey observation CVs.}
+    \item{\code{index_Neff}}{Numeric vector of effective sample sizes for
+      survey age composition.}
+    \item{\code{fracyr_indices}}{Numeric vector of within-year timing for
+      each aggregated survey.}
+    \item{\code{q}}{Numeric vector of initial survey catchability values.}
+    \item{\code{use_indices}}{Integer vector indicating which aggregated
+      indices are included.}
+    \item{\code{use_index_paa}}{Integer vector indicating which survey age
+      compositions are included.}
+    \item{\code{units_indices}}{Integer vector defining survey units, such
+      as biomass or numbers.}
+    \item{\code{units_index_paa}}{Integer vector defining age-composition
+      units.}
+    \item{\code{index_pointer}}{Integer vector mapping original OM indices to
+      aggregated EM indices; \code{0} excludes an index.}
+    \item{\code{use_catch_weighted_waa}}{Logical. Whether aggregate
+      index-specific weight-at-age is computed using index-magnitude-weighted
+      averaging. If omitted, the function treats this as \code{FALSE}.}
   }
-  \item{\code{do.move}, \code{est.move}}{Logical. Include/estimate movement in EM (default = FALSE).}
-}}
 
-\item{aggregate_catch_info}{List (optional). Aggregation settings for catch data.
-\describe{
-  \item{\code{n_fleets}}{Integer. Number of fleets.}
-  \item{\code{catch_cv}}{Numeric vector. CV for each fleet.}
-  \item{\code{catch_Neff}}{Numeric vector. Effective sample sizes.}
-  \item{\code{use_agg_catch}}{Integer vector. 0/1 for using aggregated catch.}
-  \item{\code{use_catch_paa}}{Integer vector. 0/1 for including catch PAA.}
-  \item{\code{fleet_pointer}}{Integer vector. Grouping fleets for aggregation (0 = exclude).}
-  \item{\code{use_catch_weighted_waa}}{Logical. Use fleet-catch-weighted WAA.}
-}}
+  For compatibility with aggregation helpers, this function standardizes
+  \code{aggregate_index_info$use_index_weighted_waa} to
+  \code{aggregate_index_info$use_catch_weighted_waa} if the former is
+  supplied instead of the latter.}
 
-\item{aggregate_index_info}{List (optional). Aggregation settings for index data.
-\describe{
-  \item{\code{n_indices}}{Integer. Number of indices.}
-  \item{\code{index_cv}}{Numeric vector. CV for each index.}
-  \item{\code{index_Neff}}{Numeric vector. Effective sample sizes.}
-  \item{\code{fracyr_indices}}{Numeric vector. Fraction of the year for each index.}
-  \item{\code{q}}{Numeric vector. Initial catchability values.}
-  \item{\code{use_indices}}{Integer vector. 0/1 for using the index.}
-  \item{\code{use_index_paa}}{Integer vector. 0/1 for including index PAA.}
-  \item{\code{units_indices}}{Integer vector. 1 = biomass, 2 = numbers.}
-  \item{\code{units_index_paa}}{Integer vector. 1 = biomass, 2 = numbers.}
-  \item{\code{index_pointer}}{Integer vector. Grouping indices (0 = exclude).}
-  \item{\code{use_index_weighted_waa}}{Logical. Use survey-index-weighted WAA.}
-}}
+\item{aggregate_weights_info}{List or \code{NULL}. Optional settings for how
+  weight-at-age and maturity-at-age are combined when catch or index data are
+  aggregated.
 
-\item{aggregate_weights_info}{List (optional). Used to compute weighted average weight-at-age and maturity-at-age.
-\describe{
-  \item{\code{ssb_waa_weights}}{List.
-    \describe{
-      \item{\code{fleet}}{Logical. Use fleet-specific weights.}
-      \item{\code{index}}{Logical. Use index-specific weights.}
-      \item{\code{pointer}}{Integer. Points to fleet/index group to use.}
-    }
-  }
-  \item{\code{maturity_weights}}{List.
-    \describe{
-      \item{\code{fleet}}{Logical.}
-      \item{\code{index}}{Logical.}
-      \item{\code{pointer}}{Integer.}
-    }
-  }
-}}
+  Typical components include:
+  \describe{
+    \item{\code{ssb_waa_weights}}{List controlling how spawning-biomass
+      weight-at-age is averaged.}
+    \item{\code{maturity_weights}}{List controlling how maturity-at-age is
+      averaged.}
+  }}
 
-\item{reduce_region_info}{List (optional). Reduce regions and reassign data.
-\describe{
-  \item{\code{remove_regions}}{Integer vector. 0/1 flag to remove regions.}
-  \item{\code{reassign}}{Numeric. Region reassignment code.}
-  \item{\code{NAA_where}}{3D array (stock × region × age) indicating stock presence.}
-  \item{\code{sel_em}, \code{M_em}, \code{NAA_re_em}, \code{move_em}}{EM configs for reduced regions.}
-  \item{\code{onto_move_list}}{List.
-    \describe{
-      \item{\code{onto_move}}{3D array (stock × region × region).}
-      \item{\code{onto_move_pars}}{4D array (stock × region × region × 4).}
-      \item{\code{age_mu_devs}}{4D array (stock × region × region × age).}
-    }
-  }
-}}
+\item{reduce_region_info}{List or \code{NULL}. Optional information used when
+  the EM contains fewer modeled regions than the OM.
 
-\item{filter_indices}{Integer vector (optional). 0/1 vector to exclude survey indices by region.}
+  Common components may include:
+  \describe{
+    \item{\code{remove_regions}}{Integer vector indicating retained and
+      removed regions.}
+    \item{\code{reassign}}{Code describing how retained regions are
+      reassigned or merged.}
+    \item{\code{NAA_where}}{Array indicating stock presence by stock, region,
+      and age.}
+    \item{\code{sel_em}, \code{M_em}, \code{NAA_re_em},
+      \code{move_em}}{EM configuration objects used for the reduced-region
+      EM.}
+    \item{\code{onto_move_list}}{List of ontogenetic movement inputs such as
+      age-specific movement definitions or movement parameters.}
+    \item{\code{fleet_catch}}{Optional catch values inserted back into OM
+      fleets corresponding to removed regions when advice is generated on the
+      reduced fleet set only.}
+  }}
 
-\item{update_catch_info}{List (optional). Update catch CV and Neff values in the assessment model.
-\describe{
-  \item{\code{agg_catch_sigma}}{Matrix. Catch CVs (standard deviation of log catch).}
-  \item{\code{catch_Neff}}{Matrix. Effective sample sizes for catch. Must match dimensions of \code{agg_catch_sigma}.}
-}}
+\item{filter_indices}{Optional integer vector used to exclude or retain
+survey indices when building the EM input.}
 
-\item{update_index_info}{List (optional). Update index CV and Neff values in the assessment model.
-\describe{
-  \item{\code{agg_index_sigma}}{Matrix. Aggregated survey index CVs.}
-  \item{\code{index_Neff}}{Matrix. Effective sample sizes for index data.}
-  \item{\code{remove_agg}}{Logical. Whether to remove aggregated index observations for specific pointers/years.}
-  \item{\code{remove_agg_pointer}}{Integer vector. Index pointers to remove.}
-  \item{\code{remove_agg_years}}{Integer vector or matrix. Years to remove.}
-  \item{\code{remove_paa}}{Logical. Whether to remove index PAA observations.}
-  \item{\code{remove_paa_pointer}}{Integer vector. Index pointers to remove PAA.}
-  \item{\code{remove_paa_years}}{Integer vector or matrix. Years to remove index PAA data.}
-}}
+\item{update_catch_info}{List or \code{NULL}. Optional information used to
+  update catch CVs or effective sample sizes in the EM input after
+  construction.
 
-\item{user_SPR_weights_info}{List. Update SPR weights for calculating biological reference points.
-\describe{
-  \item{\code{method}}{Character. Specifies how weights are assigned to regions or stocks.}
-  \item{\code{weight_years}}{Integer. Number of years to average catch or index values.}
-  \item{\code{index_pointer}}{Integer. Index number used when \code{method = "index_region"}.}
-}}
+  Typical components include:
+  \describe{
+    \item{\code{agg_catch_sigma}}{Matrix of catch observation standard
+      deviations on the log scale.}
+    \item{\code{catch_Neff}}{Matrix of effective sample sizes for catch age
+      composition.}
+    \item{\code{remove_agg}}{Logical. Whether selected aggregate catch
+      observations should be removed.}
+    \item{\code{remove_agg_pointer}}{Pointers identifying which aggregate
+      catch series should be removed.}
+    \item{\code{remove_agg_years}}{Years in which aggregate catch
+      observations should be removed.}
+    \item{\code{remove_paa}}{Logical. Whether selected catch age-composition
+      observations should be removed.}
+    \item{\code{remove_paa_pointer}}{Pointers identifying which catch
+      age-composition series should be removed.}
+    \item{\code{remove_paa_years}}{Years in which catch age-composition
+      observations should be removed.}
+  }}
 
-\item{assess_years}{Integer vector. Assessment years.}
+\item{update_index_info}{List or \code{NULL}. Optional information used to
+  update survey index CVs, effective sample sizes, or remove selected survey
+  observations and age composition in the EM input after construction.
 
-\item{assess_interval}{Integer. Interval (years) between assessments.}
+  Typical components include:
+  \describe{
+    \item{\code{agg_index_sigma}}{Matrix of survey observation standard
+      deviations.}
+    \item{\code{index_Neff}}{Matrix of effective sample sizes for survey age
+      composition.}
+    \item{\code{remove_agg}}{Logical. Whether selected aggregate survey
+      observations should be removed.}
+    \item{\code{remove_agg_pointer}}{Pointers identifying which aggregate
+      survey series should be removed.}
+    \item{\code{remove_agg_years}}{Years in which aggregate survey
+      observations should be removed.}
+    \item{\code{remove_paa}}{Logical. Whether selected survey age-
+      composition observations should be removed.}
+    \item{\code{remove_paa_pointer}}{Pointers identifying which survey age-
+      composition series should be removed.}
+    \item{\code{remove_paa_years}}{Years in which survey age-composition
+      observations should be removed.}
+  }}
 
-\item{base_years}{Integer vector. Burn-in period years.}
+\item{user_SPR_weights_info}{List or \code{NULL}. Optional settings passed to
+  \code{update_SPR_weights()} to modify how biological reference-point
+  weights are assigned.
 
-\item{year.use}{Integer. Years used in each EM (default = 20).}
+  Typical components include:
+  \describe{
+    \item{\code{method}}{Character string specifying the weighting method.}
+    \item{\code{weight_years}}{Integer. Number of historical years used to
+      compute average weights.}
+    \item{\code{index_pointer}}{Optional survey pointer used when weighting
+      is based on survey information.}
+  }}
 
-\item{add.years}{Logical. Use entire time series in EM (default = FALSE).}
+\item{assess_years}{Integer vector giving the years in which stock
+assessments are performed and advice is generated.}
 
-\item{by_fleet}{Logical. Calculate fleet-specific F (default = TRUE).}
+\item{assess_interval}{Integer. Number of years projected forward after each
+assessment. This also determines the number of years over which the OM is
+updated after each EM fit. If \code{0}, no projected catch is generated and
+the OM is not updated.}
 
-\item{FXSPR_init}{Numeric. Initial F for reference point calculation (optional).}
+\item{base_years}{Integer vector giving the burn-in or historical period used
+to initialize the EM fitting window.}
 
-\item{hcr}{List. Harvest control rule.
-\describe{
-  \item{\code{hcr.type}}{Integer (1: F\_XSPR, 2: constant catch, 3: hockey stick).}
-  \item{\code{hcr.opts}}{List of options:
-    \itemize{
-      \item \code{use_FXSPR}
-      \item \code{percentSPR}
-      \item \code{percentFXSPR}
-      \item \code{use_FMSY}
-      \item \code{percentFMSY}
-      \item \code{avg_yrs}
-      \item \code{max_percent}
-      \item \code{min_percent}
-      \item \code{BThresh_up}
-      \item \code{BThresh_low}
-      \item \code{cont.M.re}
-      \item \code{cont.move.re}
-    }
-  }
-}}
+\item{year.use}{Integer. Number of years of data included in each EM fit.
+Default is \code{20}. Depending on \code{\link{make_em_input}}, this may
+define a moving window or a truncated historical fitting period.}
 
-\item{catch_alloc}{List. Catch allocation specifications.
-\describe{
-  \item{\code{weight_type}}{Integer (1–4). Weighting method.}
-  \item{\code{method}}{Character. Allocation method:
-    \itemize{
-      \item \code{"equal"}
-      \item \code{"fleet_equal"}
-      \item \code{"fleet_region"}
-      \item \code{"fleet_gear"}
-      \item \code{"fleet_combined"}
-      \item \code{"fleet_catch"}
-      \item \code{"index_equal"}
-      \item \code{"index_gear"}
-      \item \code{"multiple_index_equal"}
-      \item \code{"multiple_index_gear"}
-      \item \code{"user_defined_fleets"}
-      \item \code{"user_defined_regions"}
-    }
-  }
-  \item{\code{user_weights}}{Numeric vector. User-defined weights (must sum to 1).}
-  \item{\code{weight_years}}{Integer. Number of past years used to average weights.}
-  \item{\code{survey_pointer}}{Integer vector. Indices used for weighting (when \code{weight_type = 3}).}
-}}
+\item{add.years}{Logical. Whether the fitting window should grow through time
+by adding new years after each assessment rather than keeping a fixed
+window length.}
 
-\item{do.retro}{Logical. Run retrospective analysis (default = FALSE).}
+\item{by_fleet}{Logical. Whether the OM update should calculate fishing
+mortality separately by fleet when applying realized catch.}
 
-\item{do.osa}{Logical. Calculate OSA residuals (default = FALSE).}
+\item{FXSPR_init}{Numeric or \code{NULL}. Optional initial value used in
+biological reference-point calculations involving \eqn{F_{XSPR}}. If
+supplied, this value is copied into the EM input before fitting.}
 
-\item{do.brps}{Logical. Calculate reference points in OM (default = FALSE).}
+\item{hcr}{List describing the harvest control rule used in catch-advice
+  generation.
 
-\item{seed}{Integer. Random seed.}
+  Expected components include:
+  \describe{
+    \item{\code{hcr.type}}{Integer specifying the HCR form. Common options
+      include:
+      \itemize{
+        \item \code{1}: \eqn{F_{XSPR}}
+        \item \code{2}: constant catch
+        \item \code{3}: hockey-stick rule
+      }}
+    \item{\code{hcr.opts}}{List of options passed to the advice routine, such
+      as target SPR, target F fractions, averaging windows, bounds on
+      interannual change, biomass thresholds, or settings controlling whether
+      random effects are continued in projection.}
+  }}
 
-\item{save.sdrep}{Logical. Save sdrep objects (default = FALSE).}
+\item{proj.opts}{List of additional projection settings passed to
+\code{\link{advice_fn}}. These may control the forecast model,
+continuation of random effects, projection constraints, or other advanced
+settings.}
 
-\item{save.last.em}{Logical. Save final EM (default = FALSE).}
+\item{catch_alloc}{List controlling how aggregate or EM-level advice is
+  allocated back to OM fleets, especially for
+  \code{em.opt$separate.em.type = 1}.
 
-\item{add_implementation_error}{List (optional). Adds variability to catch realization.
-\describe{
-  \item{\code{method}}{Character. Distribution type: \code{"lognormal"}, \code{"normal"}, \code{"uniform"}, or \code{"constant"}.}
-  \item{\code{mean}}{Numeric. Mean of error distribution (log scale if lognormal).}
-  \item{\code{cv}}{Numeric. Coefficient of variation (required for lognormal).}
-  \item{\code{sd}}{Numeric. Standard deviation (required for normal).}
-  \item{\code{min}}{Numeric. Lower bound for uniform distribution.}
-  \item{\code{max}}{Numeric. Upper bound for uniform distribution.}
-  \item{\code{constant_value}}{Numeric. Fixed multiplier (used if \code{method = "constant"}).}
-}}
+  Typical components include:
+  \describe{
+    \item{\code{weight_type}}{Integer specifying the general weighting class.}
+    \item{\code{method}}{Character string specifying the allocation method,
+      for example equal allocation, fleet-based allocation, region-based
+      allocation, catch-based allocation, survey-based allocation, or
+      user-defined allocation.}
+    \item{\code{user_weights}}{Optional numeric vector of user-supplied
+      weights when the chosen method requires them.}
+    \item{\code{weight_years}}{Integer number of historical years used to
+      average weighting quantities.}
+    \item{\code{survey_pointer}}{Optional survey pointer or pointers used when
+      survey-based weighting is selected.}
+  }}
+
+\item{implementation_error}{List or \code{NULL}. Optional specification for
+  converting advised catch into realized catch before updating the OM.
+
+  Expected components include:
+  \describe{
+    \item{\code{method}}{Character string naming the error distribution, such
+      as \code{"lognormal"}, \code{"normal"}, \code{"uniform"}, or
+      \code{"constant"}.}
+    \item{\code{mean}}{Numeric mean parameter. For lognormal error this is
+      generally on the log scale.}
+    \item{\code{cv}}{Numeric coefficient of variation for lognormal error.}
+    \item{\code{sd}}{Numeric standard deviation for normal error.}
+    \item{\code{min}}{Numeric lower bound for uniform error.}
+    \item{\code{max}}{Numeric upper bound for uniform error.}
+    \item{\code{constant_value}}{Numeric multiplier used when the error
+      method is constant.}
+  }}
+
+\item{do.retro}{Logical. Whether retrospective analysis is requested during
+EM fitting.}
+
+\item{do.osa}{Logical. Whether one-step-ahead residuals are requested during
+EM fitting.}
+
+\item{do.brps}{Logical. Whether biological reference points are calculated
+when the OM is updated.}
+
+\item{seed}{Integer random seed used for OM updating and optional
+implementation error generation.}
+
+\item{save.sdrep}{Logical. Whether to save the full fitted EM object,
+including \code{sdrep}, at every assessment year.}
+
+\item{save.last.em}{Logical. Whether to save only the final EM fit when
+\code{save.sdrep = FALSE}. If \code{TRUE}, the final EM object is returned
+in \code{em_full[[1]]}.}
 }
 \value{
-List with elements.
+A list with the following elements:
   \describe{
-    \item{\code{om}}{Updated OM.}
-    \item{\code{em_list}}{List of EM results.}
-    \item{\code{par.est}, \code{par.se}}{Parameter estimates and SEs.}
-    \item{\code{adrep.est}, \code{adrep.se}}{ADMB report values and SEs.}
-    \item{\code{opt_list}}{Optimization results.}
-    \item{\code{converge_list}}{Convergence checks.}
-    \item{\code{catch_advice}, \code{catch_realized}}{Advised and realized catch.}
-    \item{\code{em_full}}{Full EM outputs.}
-    \item{\code{em_input}}{Final EM input.}
-    \item{\code{runtime}}{Elapsed time.}
-    \item{\code{seed.save}}{Final random seed.}
+    \item{\code{om}}{The updated operating model after all assessments and OM
+      updates are completed.}
+    \item{\code{em_list}}{List of EM report objects. For
+      \code{separate.em.type = 3}, each entry is itself a list of report
+      objects, one per fitted EM.}
+    \item{\code{par.est}}{List of parameter estimates extracted from
+      \code{sdrep}.}
+    \item{\code{par.se}}{List of parameter standard errors extracted from
+      \code{sdrep}.}
+    \item{\code{adrep.est}}{List of AD-report estimates extracted from
+      \code{sdrep} with \code{report = TRUE}.}
+    \item{\code{adrep.se}}{List of AD-report standard errors extracted from
+      \code{sdrep} with \code{report = TRUE}.}
+    \item{\code{opt_list}}{List of optimizer output objects from each EM
+      fit.}
+    \item{\code{converge_list}}{List of convergence summaries, including the
+      optimizer convergence flag, Hessian status, and a simple combined
+      convergence code. For \code{separate.em.type = 3}, each entry contains
+      vectors over the component EMs.}
+    \item{\code{catch_advice}}{List of advised catch matrices. If
+      \code{assess_interval = 0}, entries are \code{NULL}.}
+    \item{\code{catch_realized}}{List of realized catch matrices after
+      implementation error. If no implementation error is used, this is equal
+      to advised catch. If \code{assess_interval = 0}, entries are
+      \code{NULL}.}
+    \item{\code{em_full}}{List containing full fitted EM objects when
+      requested through \code{save.sdrep} or \code{save.last.em}.}
+    \item{\code{em_input}}{List of EM input objects used at each assessment
+      year.}
+    \item{\code{runtime}}{Elapsed runtime of the full MSE loop.}
+    \item{\code{seed.save}}{The seed value used in the function call.}
   }
 }
 \description{
-A wrapper function to iterate through the feedback period in a management strategy evaluation (MSE),
-updating the operating model (OM), refitting the assessment model (EM), and generating catch advice.
+Iteratively fit estimation models, generate catch advice, optionally apply
+implementation error, and update the operating model over a sequence of
+assessment years.
+}
+\details{
+This function is the main wrapper for linking an operating model (OM) and an
+estimation model (EM) within a management strategy evaluation (MSE)
+framework. At each assessment year, it constructs the EM input from the
+current OM state, fits the EM, evaluates convergence, generates projected
+catch advice under a specified harvest control rule (HCR), optionally
+converts advised catch to realized catch through implementation error, and
+then updates the OM forward over the assessment interval.
+
+The function supports both a single combined EM and several separate-EM
+configurations. Separate EMs may be used for spatially aggregated
+panmictic-style advice with later reallocation back to fleets, fleets-as-
+areas formulations, or fully separate stock- or region-specific fits,
+depending on \code{em.opt$separate.em.type}.
+
+If \code{assess_interval = 0}, the function behaves as a simulation-
+estimation workflow. In that case, the EM is fit at each assessment year,
+but no projected catch advice is generated and the OM is not advanced
+forward.
+
+
+The behavior of the function depends first on whether separate EMs are used,
+and second on the value of \code{em.opt$separate.em.type}.
+
+When \code{em.opt$separate.em = TRUE}:
+\itemize{
+  \item For \strong{type 1}, a single EM is fit and the resulting projection
+  is interpreted as aggregate or panmictic advice. This projected advice is
+  then converted back to OM fleet-level catch using
+  \code{\link{calculate_catch_advice}} and the user-specified
+  \code{catch_alloc} settings.
+
+  \item For \strong{type 2}, the EM is assumed to produce advice directly on
+  the fleet scale, such as in a fleets-as-areas configuration, so no extra
+  allocation step is needed.
+
+  \item For \strong{type 3}, multiple EMs are fit separately, usually one per
+  stock or one per region, and their projected advice is combined across
+  fleets before updating the OM.
+}
+
+When \code{em.opt$separate.em = FALSE}, a single combined EM is fit at each
+assessment year. If \code{reduce_region_info} is supplied, advice produced on
+the reduced region set may be expanded back to the full OM fleet set before
+the OM is updated.
+
+In all cases where \code{assess_interval > 0}, catch advice is generated
+using \code{\link{advice_fn}}. In type-1 separate EM mode, the output from
+\code{advice_fn()} is first treated as EM-level advice and then passed to
+\code{\link{calculate_catch_advice}} for fleet allocation. This distinction
+is important when the EM advice is not already on the original OM fleet
+scale.
+
+Before constructing EM input objects, the function standardizes
+\code{aggregate_catch_info} and \code{aggregate_index_info} so that missing
+\code{use_catch_weighted_waa} flags default to \code{FALSE}. For index
+aggregation, \code{use_index_weighted_waa} is accepted as an alias and
+internally standardized to \code{use_catch_weighted_waa} for compatibility
+with aggregation helpers.
+
+Convergence is assessed using both the optimizer convergence code and the
+positive-definiteness of the Hessian from \code{sdrep}. A simple convergence
+code is returned for convenience, but users should inspect full EM objects
+when diagnosing fitting issues.
 }
 \seealso{
-\code{\link{make_em_input}}, \code{\link{update_om_fn}}, \code{\link{advice_fn}}
+\code{\link{make_em_input}},
+\code{\link{fit_wham}},
+\code{\link{advice_fn}},
+\code{\link{calculate_catch_advice}},
+\code{\link{update_om_fn}},
+\code{\link{add_implementation_error}},
+\code{\link{add_gauss_rec_to_em_input}}
 }

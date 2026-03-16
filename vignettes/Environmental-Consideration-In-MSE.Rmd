@@ -99,7 +99,6 @@ catch_info <- info$catch_info
 index_info <- info$index_info
 F_info     <- info$F
 
-basic_info$years
 ```
 
 ### 3. Configure Numbers-at-Age (NAA)
@@ -280,7 +279,7 @@ legend("topleft",
        legend = c("True state (seed 123)", "True state (seed 124)"),
        col = c("blue", "red"), lwd = 2, bty = "n")
 ```
-
+![Figure 1](Example_plots/ecov_plot1.png){width="600"}
 ### 7. Example B: Same True State Across Realizations
 
 In this example, we **fix** the latent deviations (`Ecov_re`) to a specified
@@ -368,6 +367,8 @@ legend("topleft",
        legend = c("True state (seed 123)", "True state (seed 124)"),
        col = c("blue", "red"), lwd = 2, bty = "n")
 ```
+![Figure 2](Example_plots/ecov_plot2.png){width="600"}
+![Figure 3](Example_plots/ecov_plot3.png){width="600"}
 
 ### 8. Run MSE
 
@@ -379,7 +380,7 @@ We run a single assessment at the terminal year (2020) to provide advice for
 
 ```{r, eval=FALSE}
 assess_interval <- 3
-terminal_year   <- max(base_years)
+year_use   <- length(base_years)
 assess_years <- terminal_year
 
 # -------------------------
@@ -406,7 +407,7 @@ mod1 <- loop_through_fn(
   assess_interval = assess_interval,
   base_years = base_years,
 
-  year.use = terminal_year,
+  year.use = year_use,
   add.years = TRUE,
   seed = 123
 )
@@ -437,7 +438,7 @@ mod2 <- loop_through_fn(
   assess_interval = assess_interval,
   base_years = base_years,
 
-  year.use = terminal_year,
+  year.use = year_use,
   add.years = TRUE,
   seed = 123
 )
@@ -449,76 +450,53 @@ mod2$converge_list # 2 = converged
 ```{r, eval=FALSE}
 # 10. Plot MSE results: EM with Ecov vs. without Ecov
 
-# Years corresponding to indices 20:23
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Years
 yrs <- basic_info$years[20:23]
 
-# ------------------------
-# Spawning Stock Biomass
-# ------------------------
-plot(
-  yrs,
-  mod1$om$rep$SSB[20:23],
-  type = "l",
-  lwd  = 2,
-  col  = "red",
-  xlab = "Year",
-  ylab = "SSB",
-  main = "MSE comparison: SSB",
-  xaxt = "n"          # turn off default x-axis
+# Create dataframe
+df <- data.frame(
+  Year = yrs,
+  SSB_Ecov = mod1$om$rep$SSB[20:23],
+  SSB_NoEcov = mod2$om$rep$SSB[20:23],
+  Catch_Ecov = mod1$om$rep$pred_catch[20:23],
+  Catch_NoEcov = mod2$om$rep$pred_catch[20:23]
 )
 
-lines(
-  yrs,
-  mod2$om$rep$SSB[20:23],
-  lwd = 2,
-  col = "blue",
-  lty = 2
-)
+# Convert to long format
+plot_df <- df |>
+  pivot_longer(-Year) |>
+  separate(name, into = c("Variable", "Model"), sep = "_")
 
-axis(1, at = yrs, labels = yrs)  # integer-only x-axis
+# Rename model labels
+plot_df$Model <- recode(plot_df$Model,
+                        Ecov = "EM with Ecov",
+                        NoEcov = "EM without Ecov")
 
-legend(
-  "topleft",
-  legend = c("EM with Ecov", "EM without Ecov"),
-  col = c("red", "blue"),
-  lty = c(1, 2),
-  lwd = 2,
-  bty = "n"
-)
-
-# ------------------------
-# Predicted Catch
-# ------------------------
-plot(
-  yrs,
-  mod1$om$rep$pred_catch[20:23],
-  type = "l",
-  lwd  = 2,
-  col  = "red",
-  xlab = "Year",
-  ylab = "Predicted Catch",
-  main = "MSE comparison: Catch",
-  xaxt = "n"          # turn off default x-axis
-)
-
-lines(
-  yrs,
-  mod2$om$rep$pred_catch[20:23],
-  lwd = 2,
-  col = "blue",
-  lty = 2
-)
-
-axis(1, at = yrs, labels = yrs)  # integer-only x-axis
-
-legend(
-  "topleft",
-  legend = c("EM with Ecov", "EM without Ecov"),
-  col = c("red", "blue"),
-  lty = c(1, 2),
-  lwd = 2,
-  bty = "n"
-)
+# Plot
+ggplot(plot_df, aes(x = Year, y = value, color = Model, linetype = Model)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2) +
+  facet_wrap(~Variable, scales = "free_y") +
+  scale_color_manual(values = c("EM with Ecov" = "red",
+                                "EM without Ecov" = "blue")) +
+  scale_linetype_manual(values = c("EM with Ecov" = "solid",
+                                   "EM without Ecov" = "dashed")) +
+  scale_x_continuous(breaks = yrs) +
+  labs(
+    x = "Year",
+    y = NULL,
+    title = "MSE Comparison: EM with Ecov vs. without Ecov"
+  ) +
+  theme_bw() +
+  theme(
+    strip.text = element_text(face = "bold"),
+    legend.position = "top"
+  )
 
 
 ```
+![Figure 4](Example_plots/ecov_plot4.png){width="600"}

@@ -23,145 +23,226 @@ make_em_input(
   filter_indices = NULL,
   reduce_region_info = NULL,
   update_catch_info = NULL,
-  update_index_info = NULL
+  update_index_info = NULL,
+  ecov_em_opts = NULL
 )
 }
 \arguments{
-\item{om}{List. The operating model containing observed data and simulation outputs.}
+\item{om}{List. Operating model object containing input data and simulated
+outputs. Expected to include \code{om$input$data}.}
 
-\item{em_info}{List. A set of estimation model parameters used to define the model structure.}
+\item{em_info}{List. Estimation-model configuration object used to define the
+EM structure.}
 
-\item{M_em}{List. Natural mortality random effects.}
+\item{M_em}{List. Natural mortality configuration for the EM.}
 
-\item{sel_em}{List. Selectivity random effects.}
+\item{sel_em}{List. Selectivity configuration for the EM.}
 
-\item{NAA_re_em}{List. Numbers-at-age random effects.}
+\item{NAA_re_em}{List. Numbers-at-age random effects configuration for the EM.}
 
-\item{move_em}{List. Movement random effects.}
+\item{move_em}{List. Movement configuration for the EM.}
 
-\item{em.opt}{List. Options for movement in the estimation model.
+\item{catchability_em}{List. Catchability configuration for the EM.}
+
+\item{ecov_em}{List or \code{NULL}. Environmental covariate configuration for
+the EM.}
+
+\item{em.opt}{List. Assessment model options. Expected components include:
 \itemize{
-  \item `$separate.em` Logical. `TRUE` indicates no global SPR, `FALSE` allows global SPR.
-  \item `$separate.em.type` Integer (1–3). Specifies assessment model type if `separate.em = TRUE`:
+  \item \code{$separate.em}: Logical. If \code{TRUE}, fit non-spatial or
+    spatially implicit EMs without global SPR. If \code{FALSE}, fit a
+    spatially explicit EM.
+  \item \code{$separate.em.type}: Integer (1--3), used when
+    \code{separate.em = TRUE}:
     \itemize{
-      \item `1` - Panmictic (spatially aggregated).
-      \item `2` - Fleets-as-areas.
-      \item `3` - Separate assessment models for each region (`n_regions` models).
+      \item \code{1}: Panmictic (spatially aggregated).
+      \item \code{2}: Fleets-as-areas.
+      \item \code{3}: Separate model for each region.
     }
-  \item `$do.move` Logical. Whether movement is included (if `separate.em = FALSE`).
-  \item `$est.move` Logical. Whether movement rates are estimated (if `separate.em = FALSE`).
+  \item \code{$do.move}: Logical. If \code{TRUE}, include movement in the
+    spatially explicit EM.
+  \item \code{$est.move}: Logical. If \code{TRUE}, estimate movement rates
+    in the spatially explicit EM.
 }}
 
-\item{em_years}{Vector. Years used in the assessment model.}
+\item{em_years}{Numeric or integer vector. Years available to the EM before
+optional subsetting by \code{year.use}.}
 
-\item{year.use}{Integer. Number of years used in the assessment model.}
+\item{year.use}{Integer or \code{NULL}. Number of terminal years from
+\code{em_years} to include in the EM. If \code{NULL}, all \code{em_years}
+are used.}
 
-\item{age_comp_em}{Character. Likelihood distribution for age composition data.
+\item{age_comp_em}{Character. Likelihood for age-composition observations.
+Common options include:
 \itemize{
-  \item `"multinomial"` (default)
-  \item `"dir-mult"`
-  \item `"dirichlet-miss0"`
-  \item `"dirichlet-pool0"`
-  \item `"logistic-normal-miss0"`
-  \item `"logistic-normal-ar1-miss0"`
-  \item `"logistic-normal-pool0"`
-  \item `"logistic-normal-01-infl"`
-  \item `"logistic-normal-01-infl-2par"`
-  \item `"mvtweedie"`
-  \item `"dir-mult-linear"`
+  \item \code{"multinomial"}
+  \item \code{"dir-mult"}
+  \item \code{"dirichlet-miss0"}
+  \item \code{"dirichlet-pool0"}
+  \item \code{"logistic-normal-miss0"}
+  \item \code{"logistic-normal-ar1-miss0"}
+  \item \code{"logistic-normal-pool0"}
+  \item \code{"logistic-normal-01-infl"}
+  \item \code{"logistic-normal-01-infl-2par"}
+  \item \code{"mvtweedie"}
+  \item \code{"dir-mult-linear"}
 }}
 
-\item{aggregate_catch_info}{List (optional). User-specified catch aggregation settings for panmictic models using aggregate catch.
+\item{aggregate_catch_info}{List or \code{NULL}. User-defined settings for
+aggregating catch observations in panmictic EMs. Expected components may
+include:
 \itemize{
-  \item `$n_fleets` Integer. Number of fleets.
-  \item `$catch_cv` Numeric vector (`n_fleets`). CVs for annual aggregate catches by fleet.
-  \item `$catch_Neff` Numeric vector (`n_fleets`). Effective sample sizes for fleet catches.
-  \item `$use_agg_catch` Integer vector (`n_fleets`). 0/1 values flagging whether to use aggregate catches.
-  \item `$use_catch_paa` Integer vector (`n_fleets`). 0/1 values flagging whether to use proportions at age observations.
-  \item `$fleet_pointer` Integer vector (`n_fleets`). Defines fleet grouping (0 = exclude).
-  \item `$use_catch_weighted_waa` Logical. Whether to use weighted weight-at-age based on fleet catches.
+  \item \code{$n_fleets}: Integer number of aggregated fleets.
+  \item \code{$catch_cv}: Numeric vector of fleet-specific catch CVs.
+  \item \code{$catch_Neff}: Numeric vector of effective sample sizes.
+  \item \code{$use_agg_catch}: Integer vector of 0/1 flags for using
+    aggregate catches.
+  \item \code{$use_catch_paa}: Integer vector of 0/1 flags for using catch
+    proportions-at-age.
+  \item \code{$fleet_pointer}: Integer vector mapping original fleets into
+    aggregated fleet groups.
+  \item \code{$use_catch_weighted_waa}: Logical. Whether to use
+    catch-weighted WAA.
 }}
 
-\item{aggregate_index_info}{List (optional). User-specified index aggregation settings for panmictic models using aggregate indices.
+\item{aggregate_index_info}{List or \code{NULL}. User-defined settings for
+aggregating survey/index observations in panmictic EMs. Expected components
+may include:
 \itemize{
-  \item `$n_indices` Integer. Number of indices.
-  \item `$index_cv` Numeric vector (`n_indices`). CVs for annual aggregate index catches.
-  \item `$index_Neff` Numeric vector (`n_indices`). Effective sample sizes for survey indices.
-  \item `$fracyr_indices` Numeric vector (`n_indices`). Fraction of the year for each survey index.
-  \item `$q` Numeric vector (`n_indices`). Initial survey catchabilities.
-  \item `$use_indices` Integer vector (`n_indices`). 0/1 values flagging whether to use survey indices.
-  \item `$use_index_paa` Integer vector (`n_indices`). 0/1 values flagging whether to use proportions at age observations.
-  \item `$units_indices` Integer vector (`n_indices`). 1/2 values flagging whether aggregate observations are biomass (1) or numbers (2).
-  \item `$units_index_paa` Integer vector (`n_indices`). 1/2 values flagging whether composition observations are biomass (1) or numbers (2).
-  \item `$index_pointer` Integer vector (`n_indices`). Defines index grouping (0 = exclude).
-  \item `$use_index_weighted_waa` Logical. Whether to use weighted weight-at-age based on survey catches.
-   }}
-
-\item{aggregate_weights_info}{List (optional). Specifies how to compute weighted averages for
-weight-at-age (`waa`) and maturity-at-age during data aggregation (For panmictic and fleets-as-areas models only).
-Used for aggregating across fleets or indices to form total/stock/regional summaries.
-\itemize{
-  \item `$ssb_waa_weights` List. Settings for weighting weight-at-age used for spawning stock biomass.
-    \itemize{
-      \item `$fleet` Logical. Whether to use fleet-specific weights.
-      \item `$index` Logical. Whether to use index-specific weights.
-      \item `$pointer` Integer. Index pointing to the selected fleet or index group (e.g., 1 means the first valid fleet group).
-    }
-  \item `$maturity_weights` List. Settings for weighting maturity-at-age used for spawning stock biomass.
-    \itemize{
-      \item `$fleet` Logical. Whether to use fleet-specific weights.
-      \item `$index` Logical. Whether to use index-specific weights.
-      \item `$pointer` Integer. Index pointing to the selected fleet or index group.
-    }
+  \item \code{$n_indices}: Integer number of aggregated indices.
+  \item \code{$index_cv}: Numeric vector of index-specific CVs.
+  \item \code{$index_Neff}: Numeric vector of effective sample sizes.
+  \item \code{$fracyr_indices}: Numeric vector of within-year timing for
+    each index.
+  \item \code{$q}: Numeric vector of initial catchabilities.
+  \item \code{$use_indices}: Integer vector of 0/1 flags for using
+    aggregate indices.
+  \item \code{$use_index_paa}: Integer vector of 0/1 flags for using
+    index proportions-at-age.
+  \item \code{$units_indices}: Integer vector defining biomass (1) versus
+    numbers (2) for aggregate observations.
+  \item \code{$units_index_paa}: Integer vector defining biomass (1) versus
+    numbers (2) for composition observations.
+  \item \code{$index_pointer}: Integer vector mapping original indices into
+    aggregated index groups.
+  \item \code{$use_catch_weighted_waa}: Logical. Whether to use
+    index-magnitude-weighted WAA. This naming is kept for consistency with
+    \code{\link{make_aggregate_data}}.
 }}
 
-\item{filter_indices}{Integer (0/1) vector (optional). User-specified which indices are excluded from the assessment model}
-
-\item{reduce_region_info}{List (optional). Remove specific regions from the assessment model. If `NULL`, no modifications are applied.
-The expected components include:
+\item{aggregate_weights_info}{List or \code{NULL}. Optional settings used to
+compute weighted averages of maturity-at-age and weight-at-age when
+aggregating data (primarily for panmictic and fleets-as-areas EMs).
+Expected components may include:
 \itemize{
-  \item `$remove_regions` Integer vector (`n_regions`). 0/1 values flagging whether to include regions.
-  \item `$reassign` Numeric. Specify reassignment for surveys from the "removed" regions to "remaining" regions.
-  \item `$NAA_where_em`Integer array (`n_stocks × n_regions × n_ages`) 0/1 values flagging whether the stock from a certain age can be present in a specific region.
-  \item `$sel_em` Selectivity configuration for the "reduced" assessment model.
-  \item `$M_em` Natural mortality configuration for the "reduced" assessment model.
-  \item `$NAA_re_em` Numbers-at-age configuration for the "reduced" assessment model.
-  \item `$catchability_em` Cathability configuration for the "reduced" assessment model.
-  \item `$move_em` Movement configuration for the "reduced" assessment model.
-  \item `$ecov_em` Environmental covariate configuration for the "reduced" assessment model.
-  \item `$onto_move_list` List of ontogenetic movement information for the "reduced" assessment model:
-    \itemize{
-      \item `$onto_move` (array, dimension: `n_stocks × n_regions × (n_regions-1)`)  
-        Age-specific movement type.
-      \item `$onto_move_pars` (array, dimension: `n_stocks × n_regions × (n_regions-1) × 4`)  
-        Parameters controlling age-specific movement patterns.
-      \item `$age_mu_devs` (array, dimension: `n_stocks × n_regions × (n_regions-1) × n_ages`)  
-        User-specified deviations in mean movement rates across ages.
-    }
+  \item \code{$ssb_waa_weights}: List describing weighting rules for SSB
+    WAA.
+  \item \code{$maturity_weights}: List describing weighting rules for
+    maturity-at-age.
 }}
 
-\item{update_catch_info}{List (optional). Update catch CV and Neff in the EM.
-The expected components include:
+\item{filter_indices}{Integer vector of 0/1 values or \code{NULL}. Optional
+indicator vector specifying which indices are retained in the EM
+(\code{1} = keep, \code{0} = exclude).}
+
+\item{reduce_region_info}{List or \code{NULL}. Optional settings for fitting
+a reduced-region EM. Expected components may include:
 \itemize{
-  \item `$agg_catch_sigma` Matrix. Either full (n_years x n_fleets) or subset (length(ind_em) x n_fleets).
-  \item `$catch_Neff` Matrix. Same dimension as `agg_catch_sigma`.
+  \item \code{$remove_regions}: Integer vector of 0/1 flags indicating
+    regions to retain/remove.
+  \item \code{$reassign}: Numeric reassignment rule for surveys from
+    removed regions.
+  \item \code{$NAA_where_em}: Integer array defining stock-age-region
+    occupancy in the reduced EM.
+  \item \code{$sel_em}, \code{$M_em}, \code{$NAA_re_em},
+    \code{$catchability_em}, \code{$move_em}, \code{$ecov_em}: reduced-model
+    configuration objects.
+  \item \code{$onto_move_list}: List of ontogenetic movement settings for
+    the reduced EM.
 }}
 
-\item{update_index_info}{List (optional). Update index CV and Neff in the EM.
-The expected components include:
+\item{update_catch_info}{List or \code{NULL}. Optional updates to catch input
+information after building the EM input object. Expected components may
+include:
 \itemize{
-  \item `$agg_index_sigma` Matrix. Either full (n_years x n_indices) or subset (length(ind_em) x n_indices).
-  \item `$index_Neff` Matrix. Same dimension as `agg_index_sigma`.
+  \item \code{$agg_catch_sigma}: Matrix of catch standard deviations or CVs.
+  \item \code{$catch_Neff}: Matrix of effective sample sizes.
+  \item \code{$remove_agg}, \code{$remove_agg_pointer},
+    \code{$remove_agg_years}: settings for dropping aggregate observations.
+  \item \code{$remove_paa}, \code{$remove_paa_pointer},
+    \code{$remove_paa_years}: settings for dropping composition observations.
 }}
+
+\item{update_index_info}{List or \code{NULL}. Optional updates to index input
+information after building the EM input object. Expected components may
+include:
+\itemize{
+  \item \code{$agg_index_sigma}: Matrix of index standard deviations or CVs.
+  \item \code{$index_Neff}: Matrix of effective sample sizes.
+  \item \code{$remove_agg}, \code{$remove_agg_pointer},
+    \code{$remove_agg_years}: settings for dropping aggregate observations.
+  \item \code{$remove_paa}, \code{$remove_paa_pointer},
+    \code{$remove_paa_years}: settings for dropping composition observations.
+}}
+
+\item{ecov_em_opts}{List or \code{NULL}. Optional settings for overriding EM
+environmental covariate inputs. Expected components may include:
+\itemize{
+  \item \code{$use_ecov_em}: Logical. If \code{TRUE}, use EM-specified Ecov
+    mean values rather than inheriting the OM observed series directly.
+  \item \code{$period}: Optional integer vector of rows to replace. If
+    supplied, only those rows are replaced.
+  \item \code{$mean}: Optional replacement Ecov matrix/vector. If missing,
+    the function attempts to use \code{ecov_em$mean}.
+}
+If \code{$period} is \code{NULL}, the full Ecov series is replaced.}
 }
 \value{
-List. A `wham` input object prepared for stock assessment.
+A \code{wham} input object, or a list of \code{wham} input objects
+  when \code{em.opt$separate.em.type = 3}.
 }
 \description{
-This function generates input data for the estimation model used in 
-management strategy evaluation. It constructs the necessary parameters 
-and structures for the assessment model.
+Construct a \code{wham} input object for the estimation model (EM) used in
+management strategy evaluation (MSE). This function prepares EM inputs from
+the operating model (OM) outputs under a range of assessment configurations,
+including:
+\itemize{
+  \item panmictic / spatially aggregated models,
+  \item fleets-as-areas models,
+  \item separate regional assessment models,
+  \item fully spatially explicit models with or without movement,
+  \item reduced-region assessment models, and
+  \item optional updates to catch, index, and environmental covariate inputs.
+}
+}
+\details{
+The function subsets the requested assessment years, builds the corresponding
+EM information objects, fills catch and index observations from the OM, and
+passes the resulting configuration to \code{\link{prepare_wham_input}}.
+
+
+The function proceeds as follows:
+\enumerate{
+  \item Determines the EM years to use from \code{em_years} and
+    \code{year.use}.
+  \item Builds or filters the EM information object according to the chosen
+    assessment structure.
+  \item Fills catch and index observations from the OM data for the selected
+    years.
+  \item Optionally replaces environmental covariate means in the EM using
+    \code{ecov_em_opts}.
+  \item Calls \code{\link{prepare_wham_input}} to construct a \code{wham}
+    input object.
+  \item Optionally updates WAA, catch information, and index information.
+}
+
+For spatially implicit models (\code{separate.em = TRUE}), movement and trend
+structures are disabled. For spatially explicit models
+(\code{separate.em = FALSE}), movement can either be retained or removed
+depending on \code{em.opt$do.move}. Reduced-region models can also be formed
+through \code{reduce_region_info}.
 }
 \seealso{
-\code{\link{loop_through_fn}}
+\code{\link{loop_through_fn}}, \code{\link{prepare_wham_input}},
+  \code{\link{update_waa}}
 }

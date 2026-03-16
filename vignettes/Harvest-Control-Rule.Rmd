@@ -233,20 +233,46 @@ mods[[3]] = loop_through_fn(om = om_with_data,
 ### 11. Compare Model Performance
 
 ```{r, eval=FALSE}
-par(mfrow = c(1,2))
-SSB_s1_m1 <- mods[[1]]$om$rep$SSB[,1]
-SSB_s1_m2 <- mods[[2]]$om$rep$SSB[,1]
-SSB_s1_m3 <- mods[[3]]$om$rep$SSB[,1]
-plot(SSB_s1_m1[1:23], col = "red", type = "o", ylab = "SSB", xlab = "Year", ylim = c(0,7e4))
-lines(SSB_s1_m2[1:23], col = "blue", type = "o")
-lines(SSB_s1_m3[1:23], col = "green", type = "o")
-legend("topright", legend = c("EM 1", "EM 2", "EM 3"), col = c("red", "blue", "green"), lty = 1, cex = 0.8)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
 
-Catch_r1_m1 <- mods[[1]]$om$rep$pred_catch[,1]
-Catch_r1_m2 <- mods[[2]]$om$rep$pred_catch[,1]
-Catch_r1_m3 <- mods[[3]]$om$rep$pred_catch[,1]
-plot(Catch_r1_m1[1:23], col = "red", type = "o", ylab = "Catch", xlab = "Year", ylim = c(0,1.2e4))
-lines(Catch_r1_m2[1:23], col = "blue", type = "o")
-lines(Catch_r1_m3[1:23], col = "green", type = "o")
+yrs <- 1:23
+
+# Create dataframe
+df <- data.frame(
+  Year = yrs,
+  SSB_EM1 = mods[[1]]$om$rep$SSB[1:23,1],
+  SSB_EM2 = mods[[2]]$om$rep$SSB[1:23,1],
+  SSB_EM3 = mods[[3]]$om$rep$SSB[1:23,1],
+  Catch_EM1 = mods[[1]]$om$rep$pred_catch[1:23,1],
+  Catch_EM2 = mods[[2]]$om$rep$pred_catch[1:23,1],
+  Catch_EM3 = mods[[3]]$om$rep$pred_catch[1:23,1]
+)
+
+# Convert to long format
+plot_df <- df |>
+  pivot_longer(-Year) |>
+  separate(name, into = c("Variable","Model"), sep = "_")
+
+plot_df$Model <- factor(plot_df$Model,
+                        levels = c("EM1","EM2","EM3"),
+                        labels = c("EM 1","EM 2","EM 3"))
+
+# Plot
+ggplot(plot_df, aes(Year, value, color = Model)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~Variable, scales = "free_y") +
+  scale_color_manual(values = c("red","blue","green")) +
+  labs(
+    x = "Year",
+    y = NULL
+  ) +
+  theme_bw() +
+  theme(
+    strip.text = element_text(face = "bold"),
+    legend.position = "top"
+  )
 ```
-![Figure 1](Example_plots/plot_ex4.png){width="600"}
+![Figure 1](Example_plots/HCR_plot.png){width="600"}

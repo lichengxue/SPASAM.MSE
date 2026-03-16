@@ -366,21 +366,47 @@ Vignettes: Output-Analysis). For now we just extract some key quantities
 
 ```{r, eval = FALSE}
 
-par(mfrow = c(1,2))
-SSB_s1 <- lapply(mods, function(mod) mod$om$rep$SSB[,1])
-plot(SSB_s1[[1]][14:23], type = "l", col = "blue", ylab = "SSB", xlab = "Year", ylim = c(20000,80000), main = "Stock 1") # only extract SSB from the last 10 years
-colors <- c("red","green","purple","orange")
-for (i in 2:5) {
-  lines(SSB_s1[[i]][14:23], col = colors[i-1],lty = i)
-}
-legend("topleft",legend = paste0("EM ", 1:5), col = c("blue",colors),lty=1:5, cex=0.8)
+library(ggplot2)
+library(dplyr)
 
-Catch_s1 <- lapply(mods, function(mod) mod$om$rep$pred_catch[,1])
-plot(Catch_s1[[1]][14:23], type = "l", col = "blue", ylab = "Catch", xlab = "Year", ylim = c(1000,15000), main = "Stock 2")
-colors <- c("red","green","purple","orange")
-for (i in 2:5) {
-  lines(Catch_s1[[i]][14:23], col = colors[i-1],lty = i)
-}
+yrs <- 14:23
+
+# --------------------------
+# Build dataframe
+# --------------------------
+plot_df <- do.call(rbind, lapply(seq_along(mods), function(i) {
+  
+  data.frame(
+    Year = rep(yrs, 2),
+    Value = c(
+      mods[[i]]$om$rep$SSB[yrs,1],
+      mods[[i]]$om$rep$pred_catch[yrs,1]
+    ),
+    Metric = rep(c("SSB", "Catch"), each = length(yrs)),
+    EM = paste0("EM ", i)
+  )
+  
+}))
+
+# --------------------------
+# Plot
+# --------------------------
+ggplot(plot_df, aes(x = Year, y = Value, color = EM)) +
+  geom_line(linewidth = 1.2) +
+  facet_wrap(~Metric, scales = "free_y") +
+  labs(
+    x = "Year",
+    y = NULL,
+    color = "Estimation Model"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold", size = 13),
+    legend.position = "top",
+    legend.title = element_text(face = "bold"),
+    axis.title = element_text(face = "bold")
+  ) +
+  scale_color_brewer(palette = "Set1")
 
 ```
 

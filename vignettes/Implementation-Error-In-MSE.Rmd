@@ -117,8 +117,6 @@ For this run, we used the **`"constant"`** method, with a **constant_value of 1.
 mod = loop_through_fn(om = om_with_data,
                       em_info = info, 
                       random = random,
-                      M_em = M, 
-                      sel_em = sel,
                       NAA_re_em = NAA_re, 
                       age_comp_em = "multinomial",
                       em.opt = list(separate.em = FALSE, 

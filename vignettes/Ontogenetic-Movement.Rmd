@@ -78,30 +78,71 @@ move.names = c("Increasing logistic", "Decreasing logistic", "Double logistic", 
 Here we use `prepare_wham_input()` function to generate a wham input using the basic information we set above:
 
 ```{r, eval=FALSE}
-par(mfrow = c(2,2))
-for (i in 1:4){
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+plot_list <- vector("list", 3)
+
+for (i in 1:3) {
   
-  info <- generate_basic_info(onto_move = onto.move.opts[i], onto_move_pars = onto.move.pars.opts[[i]]) 
+  info <- generate_basic_info(
+    onto_move = onto.move.opts[i],
+    onto_move_pars = onto.move.pars.opts[[i]]
+  )
+  
   print(info$basic_info$onto_move)
   print(info$basic_info$onto_move_pars)
-  basic_info = info$basic_info # collect basic information
   
-  input <- prepare_wham_input(basic_info = basic_info, NAA_re = NAA_re, move = move, 
-                              catch_info = catch_info, index_info = index_info, F = F_info)
-  random = input$random # check what processes are random effects
-  input$random = NULL # so inner optimization won't change simulated RE
-  om <- fit_wham(input, do.fit = F, do.brps = T, MakeADFun.silent = TRUE)
-  # Note: do.fit must be FALSE (no modeling fitting yet)
+  basic_info <- info$basic_info
+  
+  input <- prepare_wham_input(
+    basic_info = basic_info,
+    NAA_re = NAA_re,
+    move = move,
+    catch_info = catch_info,
+    index_info = index_info,
+    F = F_info
+  )
+  
+  random <- input$random
+  input$random <- NULL
+  
+  om <- fit_wham(
+    input,
+    do.fit = FALSE,
+    do.brps = TRUE,
+    MakeADFun.silent = TRUE
+  )
+  
   set.seed(123)
   input <- om$input
-  input$data <- om$simulate(complete=TRUE)
-  plot(exp(input$data$trans_mu_base)[1,1:12,1,1,1,1], type = "o", ylab = "Movement rate", xlab = "Age",
-     main = paste(move.names[i],"\nMovement from R1 to R2"))
-  # plot(exp(input$data$trans_mu_base)[2,1:12,1,1,2,1], type = "o", ylab = "movement rate", xlab = "Year",
-  #    main = paste(move.names[i], "\nMovement from R2 to R1"))
+  input$data <- om$simulate(complete = TRUE)
+  
+  plot_list[[i]] <- data.frame(
+    Age = 1:12,
+    MovementRate = exp(input$data$trans_mu_base)[1, 1:12, 1, 1, 1, 1],
+    Scenario = move.names[i]
+  )
 }
+
+plot_df <- bind_rows(plot_list)
+
+ggplot(plot_df, aes(x = Age, y = MovementRate)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  facet_wrap(~Scenario, ncol = 2) +
+  labs(
+    x = "Age",
+    y = "Movement rate",
+    title = "Movement from R1 to R2"
+  ) +
+  theme_bw() +
+  theme(
+    strip.text = element_text(face = "bold")
+  )
 ```
-![Figure 1](Example_plots/ontogenetic_move.png){width="600"}
+![Figure 1](Example_plots/ontogenetic_plot.png){width="600"}
 
 ### 7. Ontogenetic movement as random effects
 
@@ -144,7 +185,6 @@ p <- ggplot(data, aes(x = Years, y = Move_rate, color = factor(Age))) +
   theme_bw() +
   labs(title = "Random movment (iid_y)", x = "Years", y = "Movement rate")
 print(p)
-# ggsave("ontogenetic_random_movement.png", width = 8, height = 8)
 
 ```
 ![Figure 2](Example_plots/ontogenetic_random_movement.png){width="600"}
@@ -155,85 +195,78 @@ Here are 2 examples showing how to model movement with an increasing trend over 
 
 Users can apply an increasing trend on mean movement rate directly:
 ```{r, eval=FALSE}
-# Increasing trend applied on the mean movement directly
-move <- generate_move(basic_info = basic_info, move.type = 2, 
-                      move.rate = c(0.2,0.1), move.re = "iid_y")
-
-info <- generate_basic_info(onto_move = 1, onto_move_pars = c(2,1,0,0),  # increasing logistic
-                            apply_mu_trend = 1, # trend applied on the mean movement
-                            trend_mu_rate = 0.05) # annual rate of 0.05 
-
-basic_info = info$basic_info # collect basic information
-
-input <- prepare_wham_input(basic_info = basic_info, NAA_re = NAA_re, move = move, 
-                            catch_info = catch_info, index_info = index_info, F = F_info)
-random = input$random # check what processes are random effects
-input$random = NULL # so inner optimization won't change simulated RE
-om <- fit_wham(input, do.fit = F, do.brps = T, MakeADFun.silent = TRUE)
-set.seed(123)
-input <- om$input
-input$data <- om$simulate(complete=TRUE)
-
-movement_data <- data.frame(t(input$data$mu[1,,1,,1,2]))
-movement_data$Years <- input$years
-names(movement_data) <- c(1:12,"Years")
-
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-data <- movement_data %>% 
-  pivot_longer(cols = -Years, names_to = "Age", values_to = "Move_rate") %>%
-  mutate(Age = as.factor(Age))
+# 1. First generate basic_info with the trend included
+info <- generate_basic_info(
+  onto_move = 1,
+  onto_move_pars = c(2, 1, 0, 0),   # increasing logistic across age
+  apply_mu_trend = 1,
+  trend_mu_rate = array(
+    0.05,
+    dim = c(2, 12, 5, 2, 1)   # n_stocks, n_ages, n_seasons, n_regions, n_regions-1
+  )
+)
 
-levels(data$Age) = 1:12
+basic_info <- info$basic_info
 
-p <- ggplot(data, aes(x = Years, y = Move_rate, color = factor(Age))) +
-  geom_line(size = 1) +
-  scale_color_discrete(name = "Age") + 
-  theme_bw() +
-  labs(title = "Increasing trend on mean movement", x = "Years", y = "Movement rate")
-print(p)
-# ggsave("ontogenetic_random_movement_mu_increasing.png", width = 8, height = 8)
-```
-![Figure 3](Example_plots/ontogenetic_random_movement_mu_increasing.png){width="600"}
+# 2. Then generate movement using this updated basic_info
+move <- generate_move(
+  basic_info = basic_info,
+  move.type = 2,
+  move.rate = c(0.2, 0.1),
+  move.re = "iid_y"
+)
 
+# 3. Prepare input
+input <- prepare_wham_input(
+  basic_info = basic_info,
+  NAA_re = NAA_re,
+  move = move,
+  catch_info = catch_info,
+  index_info = index_info,
+  F = F_info
+)
 
-Users can also apply an increasing trend on movement random effects:
-```{r, eval=FALSE}
-# Increasing trend applied on movement random effects 
-info <- generate_basic_info(onto_move = 1, onto_move_pars = c(2,1,0,0),  # increasing logistic
-                            apply_re_trend = 1, # trend applied to movement random effects
-                            trend_re_rate = 0.1) # annual rate of 0.1
+random <- input$random
+input$random <- NULL
 
-basic_info = info$basic_info # collect basic information
+# 4. Fit/simulate
+om <- fit_wham(
+  input,
+  do.fit = FALSE,
+  do.brps = TRUE,
+  MakeADFun.silent = TRUE
+)
 
-input <- prepare_wham_input(basic_info = basic_info, NAA_re = NAA_re, move = move, 
-                            catch_info = catch_info, index_info = index_info, F = F_info)
-random = input$random # check what processes are random effects
-input$random = NULL # so inner optimization won't change simulated RE
-om <- fit_wham(input, do.fit = F, do.brps = T, MakeADFun.silent = TRUE)
 set.seed(123)
 input <- om$input
-input$data <- om$simulate(complete=TRUE)
+input$data <- om$simulate(complete = TRUE)
 
-movement_data <- data.frame(t(input$data$mu[1,,1,,1,2]))
+# 5. Extract movement
+movement_data <- data.frame(t(input$data$mu[1, , 1, , 1, 2]))
 movement_data$Years <- input$years
-names(movement_data) <- c(1:12,"Years")
+names(movement_data) <- c(1:12, "Years")
 
-data <- movement_data %>% 
+# 6. Long format for plotting
+data <- movement_data %>%
   pivot_longer(cols = -Years, names_to = "Age", values_to = "Move_rate") %>%
-  mutate(Age = as.factor(Age))
+  mutate(Age = factor(Age, levels = as.character(1:12)))
 
-levels(data$Age) = 1:12
-
-p <- ggplot(data, aes(x = Years, y = Move_rate, color = factor(Age))) +
-  geom_line(size = 1) +
-  scale_color_discrete(name = "Age") + 
+# 7. Plot
+p <- ggplot(data, aes(x = Years, y = Move_rate, color = Age)) +
+  geom_line(linewidth = 1) +
+  scale_color_discrete(name = "Age") +
   theme_bw() +
-  labs(title = "Increasing trend on movement random effects", x = "Years", y = "Movement rate")
+  labs(
+    title = "Increasing trend on mean movement",
+    x = "Years",
+    y = "Movement rate"
+  )
+
 print(p)
-# ggsave("ontogenetic_random_movement_re_increasing.png", width = 8, height = 8)
 
 ```
-![Figure 4](Example_plots/ontogenetic_random_movement_re_increasing.png){width="600"}
+![Figure 3](Example_plots/ontogenetic_random_movement_mu_increasing.png){width="600"}

@@ -13,51 +13,125 @@ update_em_with_basic_info(
 )
 }
 \arguments{
-\item{om}{List. An operating model containing observed data (`agg_catch`, `agg_indices`).}
+\item{om}{List. Operating model object. Expected to contain
+\code{om$input$data}, including \code{agg_catch} and \code{agg_indices}.}
 
-\item{em_info}{List. The estimation model information containing:
+\item{em_info}{List. Estimation model information object containing at least:
 \itemize{
-  \item `par_inputs` - Model parameters including fleet and index configurations.
-  \item `user_waa` - Weight-at-age information for fleets, indices, and stocks.
+  \item \code{par_inputs}: model parameter inputs,
+  \item \code{basic_info}: basic model dimensions and WAA arrays,
+  \item optionally \code{par_inputs$user_waa}: user-defined WAA matrix.
 }}
 
-\item{aggregate_catch_info}{List. Aggregated fleet catch data:
+\item{aggregate_catch_info}{List. Aggregated fleet settings. Expected
+components may include:
 \itemize{
-  \item `fleet_pointer` - Vector mapping original fleets to aggregated fleets (`0` = exclude).
-  \item `agg_catch` - Aggregated catch values per fleet.
-  \item `catch_cv`, `catch_Neff`, `use_agg_catch`, `use_catch_paa`
+  \item \code{$n_fleets}: Integer. Number of aggregated fleets.
+  \item \code{$fleet_pointer}: Integer vector of length
+    \code{om$input$data$n_fleets}; maps original fleets to aggregated fleets
+    (\code{0} = exclude).
+  \item \code{$catch_cv}: Numeric vector of length \code{n_fleets}.
+  \item \code{$catch_Neff}: Numeric vector of length \code{n_fleets}.
+  \item \code{$use_agg_catch}: Integer vector of length \code{n_fleets}.
+  \item \code{$use_catch_paa}: Integer vector of length \code{n_fleets}.
+  \item \code{$use_catch_weighted_waa}: Logical. If \code{TRUE}, fleet WAA
+    are weighted by mean aggregate catch over \code{ind_em}; otherwise they
+    are averaged equally within each aggregated fleet.
 }}
 
-\item{aggregate_index_info}{List. Aggregated survey index data:
+\item{aggregate_index_info}{List. Aggregated index settings. Expected
+components may include:
 \itemize{
-  \item `index_pointer` - Vector mapping original indices to aggregated indices (`0` = exclude).
-  \item `agg_indices` - Aggregated index values.
-  \item `index_cv`, `index_Neff`, `fracyr_indices`, `q`, `use_indices`, `use_index_paa`
+  \item \code{$n_indices}: Integer. Number of aggregated indices.
+  \item \code{$index_pointer}: Integer vector of length
+    \code{om$input$data$n_indices}; maps original indices to aggregated
+    indices (\code{0} = exclude).
+  \item \code{$index_cv}: Numeric vector of length \code{n_indices}.
+  \item \code{$index_Neff}: Numeric vector of length \code{n_indices}.
+  \item \code{$fracyr_indices}: Numeric vector of length \code{n_indices}.
+  \item \code{$q}: Numeric vector of length \code{n_indices}.
+  \item \code{$use_indices}: Integer vector of length \code{n_indices}.
+  \item \code{$use_index_paa}: Integer vector of length \code{n_indices}.
+  \item \code{$units_indices}: Integer vector of length \code{n_indices}.
+  \item \code{$units_index_paa}: Integer vector of length \code{n_indices}.
+  \item \code{$use_index_weighted_waa}: Logical. If \code{TRUE}, index WAA
+    are weighted by mean aggregate index values over \code{ind_em};
+    otherwise they are averaged equally within each aggregated index.
 }}
 
-\item{ind_em}{Vector. Indices specifying the years for the estimation model.}
+\item{ind_em}{Integer vector. Indices specifying which years from OM data are
+used in the estimation model.}
 }
 \value{
-List. Updated `em_info` with:
+Updated \code{em_info} list with:
   \itemize{
-    \item `par_inputs` - Adjusted estimation model parameters reflecting the new structure.
-    \item `user_waa` - Updated weight-at-age (`n_fleets + n_regions + n_indices + n_stocks, n_ages`).
-    \item `basic_info$waa` - Normalized weight-at-age data ensuring proper scaling.
+    \item updated \code{par_inputs},
+    \item updated \code{basic_info},
+    \item aggregated \code{par_inputs$user_waa},
+    \item synchronized \code{basic_info$waa}.
   }
 }
 \description{
-Updates the estimation model (`em_info`) by incorporating aggregated data
-from `aggregate_catch_info` and `aggregate_index_info`. This function adjusts
-`par_inputs` and weight-at-age (`user_waa`) to match the new fleet, region,
-index, and stock structure while handling fleet/index exclusions (`fleet_pointer == 0`).
+Update an estimation-model information object by replacing fleet- and
+index-related inputs with aggregated versions derived from user-specified
+fleet and index mappings. This function is primarily intended for
+panmictic/spatially aggregated assessment configurations, where multiple
+fleets or indices from the operating model are combined into a reduced set
+of fleets and indices for the estimation model.
+}
+\details{
+The function updates:
+\itemize{
+  \item \code{par_inputs} entries related to catch and index observations,
+  \item numbers of fleets and indices in \code{par_inputs} and
+    \code{basic_info},
+  \item fleet and index region pointers,
+  \item user-defined weight-at-age (\code{user_waa}) after aggregation, and
+  \item \code{basic_info$waa} so that the EM uses the aggregated WAA values.
+}
+
+Fleet and index mappings are specified using pointer vectors:
+\itemize{
+  \item \code{fleet_pointer}: maps original fleets to aggregated fleets,
+  \item \code{index_pointer}: maps original indices to aggregated indices.
+}
+
+Pointer values of \code{0} exclude the corresponding fleet or index from the
+aggregated EM.
+
+
+This function assumes the aggregated EM is panmictic, so the output uses:
+\itemize{
+  \item \code{n_regions = 1}
+  \item \code{n_stocks = 1}
+}
+
+The aggregated \code{user_waa} matrix is rebuilt in the standard WHAM order:
+\enumerate{
+  \item fleets,
+  \item regions,
+  \item indices,
+  \item stocks.
+}
+
+If \code{par_inputs$user_waa} is available, it is used as the source WAA.
+Otherwise, \code{basic_info$waa} is used.
 }
 \examples{
 \dontrun{
 updated_em_info <- update_em_with_basic_info(
   om = some_operating_model,
   em_info = some_em_info,
-  aggregate_catch_info = list(fleet_pointer = c(1, 1, 2, 0), agg_catch = matrix(runif(40), 10, 4)),
-  aggregate_index_info = list(index_pointer = c(1, 2, 0), agg_indices = matrix(runif(30), 10, 3)),
+  aggregate_catch_info = list(
+    n_fleets = 2,
+    fleet_pointer = c(1, 1, 2, 0),
+    use_catch_weighted_waa = TRUE
+  ),
+  aggregate_index_info = list(
+    n_indices = 2,
+    index_pointer = c(1, 2, 0),
+    use_index_weighted_waa = TRUE
+  ),
   ind_em = 1:10
 )
 }
