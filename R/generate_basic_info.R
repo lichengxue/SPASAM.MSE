@@ -170,7 +170,7 @@ generate_basic_info <- function(n_stocks = 2,
   basic_info$onto_move_pars = onto_move_pars
   basic_info$age_mu_devs = age_mu_devs
   basic_info$apply_re_trend = apply_re_trend
-  if (apply_mu_trend == 1) {
+  if (apply_re_trend == 1) {
     basic_info$trend_re_rate <- trend_re_rate
   } else {
     # Create an array of zeros with the exact same dimensions as trend_re_rate
