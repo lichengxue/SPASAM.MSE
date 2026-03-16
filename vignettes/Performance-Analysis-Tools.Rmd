@@ -173,7 +173,6 @@ mods <- lapply(1:nsim, function(r) {
 
 ### 4. Plot MSE Results
 ```{r, eval=FALSE}
-library(SPASAM.MSE)
 plot_mse_output(mods,
                 main_dir = getwd(),
                 output_dir = "Report",

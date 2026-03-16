@@ -1,0 +1,595 @@
+---
+title: "MSE Output Report"
+output:
+  pdf_document:
+    toc: false
+    number_sections: true
+header-includes:
+  - \usepackage{hyperref}
+  - \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+  - \usepackage{tocloft}
+  - \setlength{\cftbeforesecskip}{12pt}
+  - \setlength{\cftbeforesubsecskip}{7pt}
+  - \renewcommand{\baselinestretch}{1.35}
+  - \setlength{\cftsecnumwidth}{2.8em}
+  - \setlength{\cftsubsecnumwidth}{3.6em}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+have_progress <- requireNamespace('progress', quietly = TRUE)
+total_imgs <- 93
+pb_env <- new.env(parent = emptyenv())
+pb_env$pb <- NULL
+if (have_progress && total_imgs > 0) {
+  pb_env$pb <- progress::progress_bar$new(
+    format = 'Rendering [:bar] :percent | :current/:total | :section',
+    total  = total_imgs, clear = FALSE, width = 60)
+}
+tick_pb <- function(section_label = '') {
+  if (!is.null(pb_env$pb)) pb_env$pb$tick(tokens = list(section = section_label))
+  invisible(NULL)
+}
+```
+
+```{=latex}
+{\Large\bfseries Table of Contents}\par\vspace{1.2em}
+\tableofcontents
+\clearpage
+```
+
+# Realized Time Series
+
+## Time series plots
+
+```{r fig_Realized_Time_Series_Time_series_plots_1, out.width='100%'}
+tick_pb("Realized Time Series")
+knitr::include_graphics("./Time_Series/Catch.PNG")
+```
+
+```{r fig_Realized_Time_Series_Time_series_plots_2, out.width='100%'}
+tick_pb("Realized Time Series")
+knitr::include_graphics("./Time_Series/Fbar_fleet.PNG")
+```
+
+```{r fig_Realized_Time_Series_Time_series_plots_3, out.width='100%'}
+tick_pb("Realized Time Series")
+knitr::include_graphics("./Time_Series/Fbar_global.PNG")
+```
+
+```{r fig_Realized_Time_Series_Time_series_plots_4, out.width='100%'}
+tick_pb("Realized Time Series")
+knitr::include_graphics("./Time_Series/Fbar_region.PNG")
+```
+
+```{r fig_Realized_Time_Series_Time_series_plots_5, out.width='100%'}
+tick_pb("Realized Time Series")
+knitr::include_graphics("./Time_Series/SSB.PNG")
+```
+
+\newpage
+
+# Relative Trajectories
+
+## Relative trajectories
+
+```{r fig_Relative_Trajectories_Relative_trajectories_1, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/Catch_1_trajectories.png")
+```
+
+```{r fig_Relative_Trajectories_Relative_trajectories_2, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/Catch_2_trajectories.png")
+```
+
+```{r fig_Relative_Trajectories_Relative_trajectories_3, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/Catch_3_trajectories.png")
+```
+
+```{r fig_Relative_Trajectories_Relative_trajectories_4, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/Catch_4_trajectories.png")
+```
+
+```{r fig_Relative_Trajectories_Relative_trajectories_5, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/Catch_Global_trajectories.png")
+```
+
+```{r fig_Relative_Trajectories_Relative_trajectories_6, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/SSB_1_trajectories.png")
+```
+
+```{r fig_Relative_Trajectories_Relative_trajectories_7, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/SSB_2_trajectories.png")
+```
+
+```{r fig_Relative_Trajectories_Relative_trajectories_8, out.width='100%'}
+tick_pb("Relative Trajectories")
+knitr::include_graphics("./Relative_Trajectory/SSB_Global_trajectories.png")
+```
+
+\newpage
+
+# Relative Performance
+
+## Catch (short-term, first 10 years)
+
+```{r fig_Relative_Performance_Catch_short_term_first_10_years__1, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_fleet_perf_Relative_first_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Catch_short_term_first_10_years__2, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_global_perf_Relative_first_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Catch_short_term_first_10_years__3, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_region_perf_Relative_first_10_years.PNG")
+```
+
+## Catch (long-term, last 10 years)
+
+```{r fig_Relative_Performance_Catch_long_term_last_10_years__1, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_fleet_perf_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Catch_long_term_last_10_years__2, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_global_perf_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Catch_long_term_last_10_years__3, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_region_perf_Relative_last_10_years.PNG")
+```
+
+## Catch (all years)
+
+```{r fig_Relative_Performance_Catch_all_years__1, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_fleet_perf_Relative_all_years.PNG")
+```
+
+```{r fig_Relative_Performance_Catch_all_years__2, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_global_perf_Relative_all_years.PNG")
+```
+
+```{r fig_Relative_Performance_Catch_all_years__3, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Catch_region_perf_Relative_all_years.PNG")
+```
+
+## SSB (short-term, first 10 years)
+
+```{r fig_Relative_Performance_SSB_short_term_first_10_years__1, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/SSB_global_perf_Relative_first_10_years_from_36.PNG")
+```
+
+```{r fig_Relative_Performance_SSB_short_term_first_10_years__2, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/SSB_region_perf_Relative_first_10_years_from_36.PNG")
+```
+
+```{r fig_Relative_Performance_SSB_short_term_first_10_years__3, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/SSB_status_Relative_first_10_years.PNG")
+```
+
+## SSB (long-term, last 10 years)
+
+```{r fig_Relative_Performance_SSB_long_term_last_10_years__1, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/SSB_global_perf_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_SSB_long_term_last_10_years__2, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/SSB_region_perf_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_SSB_long_term_last_10_years__3, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/SSB_status_Relative_last_10_years.PNG")
+```
+
+## Fbar (short-term, first 10 years)
+
+```{r fig_Relative_Performance_Fbar_short_term_first_10_years__1, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Fbar_fleet_perf_Relative_first_10_years_from_36.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_short_term_first_10_years__2, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Fbar_global_perf_Relative_first_10_years_from_36.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_short_term_first_10_years__3, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Fbar_region_perf_Relative_first_10_years_from_36.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_short_term_first_10_years__4, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_fleet_Relative_first_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_short_term_first_10_years__5, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_global_Relative_first_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_short_term_first_10_years__6, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_region_Relative_first_10_years.PNG")
+```
+
+## Fbar (long-term, last 10 years)
+
+```{r fig_Relative_Performance_Fbar_long_term_last_10_years__1, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Fbar_fleet_perf_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_long_term_last_10_years__2, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Fbar_global_perf_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_long_term_last_10_years__3, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Performance_Boxplot/Fbar_region_perf_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_long_term_last_10_years__4, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_fleet_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_long_term_last_10_years__5, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_global_Relative_last_10_years.PNG")
+```
+
+```{r fig_Relative_Performance_Fbar_long_term_last_10_years__6, out.width='100%'}
+tick_pb("Relative Performance")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_region_Relative_last_10_years.PNG")
+```
+
+\newpage
+
+# Performance (absolute scale)
+
+## Catch (short-term, first 10 years)
+
+```{r fig_Performance_absolute_scale__Catch_short_term_first_10_years__1, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_fleet_perf_first_10_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Catch_short_term_first_10_years__2, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_global_perf_first_10_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Catch_short_term_first_10_years__3, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_region_perf_first_10_years.PNG")
+```
+
+## Catch (long-term, last 10 years)
+
+```{r fig_Performance_absolute_scale__Catch_long_term_last_10_years__1, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_fleet_perf_last_10_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Catch_long_term_last_10_years__2, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_global_perf_last_10_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Catch_long_term_last_10_years__3, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_region_perf_last_10_years.PNG")
+```
+
+## Catch (all years)
+
+```{r fig_Performance_absolute_scale__Catch_all_years__1, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_fleet_perf_all_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Catch_all_years__2, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_global_perf_all_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Catch_all_years__3, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Catch_region_perf_all_years.PNG")
+```
+
+## SSB (short-term, first 10 years)
+
+```{r fig_Performance_absolute_scale__SSB_short_term_first_10_years__1, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/SSB_global_perf_first_10_years_from_36.PNG")
+```
+
+```{r fig_Performance_absolute_scale__SSB_short_term_first_10_years__2, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/SSB_region_perf_first_10_years_from_36.PNG")
+```
+
+## SSB (long-term, last 10 years)
+
+```{r fig_Performance_absolute_scale__SSB_long_term_last_10_years__1, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/SSB_global_perf_last_10_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__SSB_long_term_last_10_years__2, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/SSB_region_perf_last_10_years.PNG")
+```
+
+## Fbar (short-term, first 10 years)
+
+```{r fig_Performance_absolute_scale__Fbar_short_term_first_10_years__1, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Fbar_fleet_perf_first_10_years_from_36.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Fbar_short_term_first_10_years__2, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Fbar_global_perf_first_10_years_from_36.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Fbar_short_term_first_10_years__3, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Fbar_region_perf_first_10_years_from_36.PNG")
+```
+
+## Fbar (long-term, last 10 years)
+
+```{r fig_Performance_absolute_scale__Fbar_long_term_last_10_years__1, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Fbar_fleet_perf_last_10_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Fbar_long_term_last_10_years__2, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Fbar_global_perf_last_10_years.PNG")
+```
+
+```{r fig_Performance_absolute_scale__Fbar_long_term_last_10_years__3, out.width='100%'}
+tick_pb("Performance (absolute scale)")
+knitr::include_graphics("./Performance_Boxplot/Fbar_region_perf_last_10_years.PNG")
+```
+
+\newpage
+
+# Average Annual Variation (start.years=36)
+
+## Annual variation plots
+
+```{r fig_Average_Annual_Variation_start_years_36__Annual_variation_plots_1, out.width='100%'}
+tick_pb("Average Annual Variation (start.years=36)")
+knitr::include_graphics("./Annual_Variation_Boxplot/Catch_AAV_start_36.png")
+```
+
+```{r fig_Average_Annual_Variation_start_years_36__Annual_variation_plots_2, out.width='100%'}
+tick_pb("Average Annual Variation (start.years=36)")
+knitr::include_graphics("./Annual_Variation_Boxplot/Fbar_AAV_start_36.png")
+```
+
+```{r fig_Average_Annual_Variation_start_years_36__Annual_variation_plots_3, out.width='100%'}
+tick_pb("Average Annual Variation (start.years=36)")
+knitr::include_graphics("./Annual_Variation_Boxplot/SSB_AAV_start_36.png")
+```
+
+\newpage
+
+# Stock Status
+
+## Short-term (first 10 years)
+
+```{r fig_Stock_Status_Short_term_first_10_years__1, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_fleet_overfishing_prob_fleet_first_10_years.PNG")
+```
+
+```{r fig_Stock_Status_Short_term_first_10_years__2, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_global_overfishing_prob_fleet_first_10_years.PNG")
+```
+
+```{r fig_Stock_Status_Short_term_first_10_years__3, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_region_overfishing_prob_fleet_first_10_years.PNG")
+```
+
+```{r fig_Stock_Status_Short_term_first_10_years__4, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/SSB_status_overfished_prob_first_10_years.PNG")
+```
+
+## Long-term (last 10 years)
+
+```{r fig_Stock_Status_Long_term_last_10_years__1, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_fleet_overfishing_prob_fleet_last_10_years.PNG")
+```
+
+```{r fig_Stock_Status_Long_term_last_10_years__2, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_global_overfishing_prob_fleet_last_10_years.PNG")
+```
+
+```{r fig_Stock_Status_Long_term_last_10_years__3, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/Fbar_status_region_overfishing_prob_fleet_last_10_years.PNG")
+```
+
+```{r fig_Stock_Status_Long_term_last_10_years__4, out.width='100%'}
+tick_pb("Stock Status")
+knitr::include_graphics("./Status_Boxplot/SSB_status_overfished_prob_last_10_years.PNG")
+```
+
+\newpage
+
+# Kobe Plots
+
+## Short-term (first 10 years, start.years=36)
+
+```{r fig_Kobe_Plots_Short_term_first_10_years_start_years_36__1, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_first_s36_10yr_G_density.png")
+```
+
+```{r fig_Kobe_Plots_Short_term_first_10_years_start_years_36__2, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_first_s36_10yr_G_points.png")
+```
+
+```{r fig_Kobe_Plots_Short_term_first_10_years_start_years_36__3, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_first_s36_10yr_R1_density.png")
+```
+
+```{r fig_Kobe_Plots_Short_term_first_10_years_start_years_36__4, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_first_s36_10yr_R1_points.png")
+```
+
+```{r fig_Kobe_Plots_Short_term_first_10_years_start_years_36__5, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_first_s36_10yr_R2_density.png")
+```
+
+```{r fig_Kobe_Plots_Short_term_first_10_years_start_years_36__6, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_first_s36_10yr_R2_points.png")
+```
+
+## Long-term (last 10 years)
+
+```{r fig_Kobe_Plots_Long_term_last_10_years__1, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_last_s1_10yr_G_density.png")
+```
+
+```{r fig_Kobe_Plots_Long_term_last_10_years__2, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_last_s1_10yr_G_points.png")
+```
+
+```{r fig_Kobe_Plots_Long_term_last_10_years__3, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_last_s1_10yr_R1_density.png")
+```
+
+```{r fig_Kobe_Plots_Long_term_last_10_years__4, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_last_s1_10yr_R1_points.png")
+```
+
+```{r fig_Kobe_Plots_Long_term_last_10_years__5, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_last_s1_10yr_R2_density.png")
+```
+
+```{r fig_Kobe_Plots_Long_term_last_10_years__6, out.width='100%'}
+tick_pb("Kobe Plots")
+knitr::include_graphics("./KOBE_Plot/Kobe_last_s1_10yr_R2_points.png")
+```
+
+\newpage
+
+# Holistic Performance
+
+## Performance bar plots
+
+```{r fig_Holistic_Performance_Performance_bar_plots_1, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Holistic_Bar_Plot/Overall_Performance_type1.png")
+```
+
+```{r fig_Holistic_Performance_Performance_bar_plots_2, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Holistic_Bar_Plot/Overall_Performance_type2.png")
+```
+
+```{r fig_Holistic_Performance_Performance_bar_plots_3, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Holistic_Bar_Plot/Overall_Performance_type3.png")
+```
+
+```{r fig_Holistic_Performance_Performance_bar_plots_4, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Holistic_Bar_Plot/Overall_Performance_type4.png")
+```
+
+## Radar plots
+
+```{r fig_Holistic_Performance_Radar_plots_1, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Radar_Holistic_Plot/model_performance_radar_type1.png")
+```
+
+```{r fig_Holistic_Performance_Radar_plots_2, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Radar_Holistic_Plot/model_performance_radar_type2.png")
+```
+
+```{r fig_Holistic_Performance_Radar_plots_3, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Radar_Holistic_Plot/model_performance_radar_type3.png")
+```
+
+## Wind-rose (stacked polar)
+
+```{r fig_Holistic_Performance_Wind_rose_stacked_polar__1, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Holistic_Performance/Holistic_rose.png")
+```
+
+## Heatmap (Model × Metric)
+
+```{r fig_Holistic_Performance_Heatmap_Model_Metric__1, out.width='100%'}
+tick_pb("Holistic Performance")
+knitr::include_graphics("./Holistic_Performance/Holistic_heat.png")
+```
+
+\newpage
+
+# Diagnostics
+
+## Recruitment params
+
+```{r fig_Diagnostics_Recruitment_params_1, out.width='100%'}
+tick_pb("Diagnostics")
+knitr::include_graphics("./Diagnostic_Results/Mean_rec_par.png")
+```
+
+## NAA params
+
+```{r fig_Diagnostics_NAA_params_1, out.width='100%'}
+tick_pb("Diagnostics")
+knitr::include_graphics("./Diagnostic_Results/Variance_Para_NAA.png")
+```
+
+\newpage
+
