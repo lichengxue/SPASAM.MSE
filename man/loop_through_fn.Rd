@@ -34,6 +34,8 @@ loop_through_fn(
   year.use = 20,
   add.years = FALSE,
   by_fleet = TRUE,
+  process_fix = FALSE,
+  first_free_year = 1L,
   FXSPR_init = NULL,
   hcr = list(hcr.type = 1, hcr.opts = NULL),
   proj.opts = list(),
@@ -337,6 +339,18 @@ window length.}
 
 \item{by_fleet}{Logical. Whether the OM update should calculate fishing
 mortality separately by fleet when applying realized catch.}
+
+\item{process_fix}{Logical or numeric 0/1. Passed to \code{\link{update_om_fn}}
+when the operating model is updated. Values \code{TRUE} and \code{1} are
+treated as enabling process fixing; values \code{FALSE} and \code{0} are
+treated as disabling it. If \code{FALSE} (default), all simulated random
+effects listed in \code{random} are overwritten. If \code{TRUE}, the
+historical process is preserved and only the future portion of
+\code{log_NAA} is overwritten.}
+
+\item{first_free_year}{Integer. Passed to \code{\link{update_om_fn}} when
+\code{process_fix = TRUE}. This gives the first year index in
+\code{log_NAA} that is allowed to change; earlier years are kept fixed.}
 
 \item{FXSPR_init}{Numeric or \code{NULL}. Optional initial value used in
 biological reference-point calculations involving \eqn{F_{XSPR}}. If

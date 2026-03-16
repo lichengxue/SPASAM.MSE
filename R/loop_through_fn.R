@@ -312,6 +312,18 @@
 #' @param by_fleet Logical. Whether the OM update should calculate fishing
 #'   mortality separately by fleet when applying realized catch.
 #'
+#' @param process_fix Logical or numeric 0/1. Passed to \code{\link{update_om_fn}}
+#'   when the operating model is updated. Values \code{TRUE} and \code{1} are
+#'   treated as enabling process fixing; values \code{FALSE} and \code{0} are
+#'   treated as disabling it. If \code{FALSE} (default), all simulated random
+#'   effects listed in \code{random} are overwritten. If \code{TRUE}, the
+#'   historical process is preserved and only the future portion of
+#'   \code{log_NAA} is overwritten.
+#'
+#' @param first_free_year Integer. Passed to \code{\link{update_om_fn}} when
+#'   \code{process_fix = TRUE}. This gives the first year index in
+#'   \code{log_NAA} that is allowed to change; earlier years are kept fixed.
+#'   
 #' @param FXSPR_init Numeric or \code{NULL}. Optional initial value used in
 #'   biological reference-point calculations involving \eqn{F_{XSPR}}. If
 #'   supplied, this value is copied into the EM input before fitting.
@@ -522,6 +534,8 @@ loop_through_fn <- function(om,
                             year.use = 20,
                             add.years = FALSE,
                             by_fleet = TRUE,
+                            process_fix = FALSE,
+                            first_free_year = 1L,
                             FXSPR_init = NULL,
                             hcr = list(hcr.type = 1, hcr.opts = NULL),
                             proj.opts = list(),
@@ -768,6 +782,28 @@ loop_through_fn <- function(om,
   }
   if (isTRUE(em.opt$separate.em)) move_em <- NULL
   
+  if (length(process_fix) != 1L || is.na(process_fix)) {
+    stop("`process_fix` must be a single non-missing TRUE/FALSE or 0/1 value.", call. = FALSE)
+  }
+  
+  if (is.numeric(process_fix)) {
+    if (!process_fix %in% c(0, 1)) {
+      stop("Numeric `process_fix` must be 0 or 1.", call. = FALSE)
+    }
+    process_fix <- as.logical(process_fix)
+  } else if (!is.logical(process_fix)) {
+    stop("`process_fix` must be a single TRUE/FALSE or 0/1 value.", call. = FALSE)
+  }
+  
+  if (!is.numeric(first_free_year) || length(first_free_year) != 1L || is.na(first_free_year)) {
+    stop("`first_free_year` must be a single non-missing integer.", call. = FALSE)
+  }
+  first_free_year <- as.integer(first_free_year)
+  
+  if (first_free_year < 1L) {
+    stop("`first_free_year` must be >= 1.", call. = FALSE)
+  }
+  
   tmp_inputs <- prepare_common_inputs(
     aggregate_catch_info = aggregate_catch_info,
     aggregate_index_info = aggregate_index_info
@@ -948,7 +984,9 @@ loop_through_fn <- function(om,
           random = random,
           method = "nlminb",
           by_fleet = by_fleet,
-          do.brps = do.brps
+          do.brps = do.brps,
+          process_fix = process_fix,
+          first_free_year = first_free_year
         )
         
         store_em_outputs(em, i)
@@ -1017,7 +1055,9 @@ loop_through_fn <- function(om,
           random = random,
           method = "nlminb",
           by_fleet = by_fleet,
-          do.brps = do.brps
+          do.brps = do.brps,
+          process_fix = process_fix,
+          first_free_year = first_free_year
         )
         
         store_em_outputs(em, i)
@@ -1118,7 +1158,9 @@ loop_through_fn <- function(om,
             random = random,
             method = "nlminb",
             by_fleet = by_fleet,
-            do.brps = do.brps
+            do.brps = do.brps,
+            process_fix = process_fix,
+            first_free_year = first_free_year
           )
         }
         
@@ -1333,7 +1375,9 @@ loop_through_fn <- function(om,
           random = random,
           method = "nlminb",
           by_fleet = by_fleet,
-          do.brps = do.brps
+          do.brps = do.brps,
+          process_fix = process_fix,
+          first_free_year = first_free_year
         )
         
       } else {

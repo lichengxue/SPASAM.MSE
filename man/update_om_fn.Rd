@@ -11,21 +11,26 @@ update_om_fn(
   random = "log_NAA",
   method = "nlminb",
   by_fleet = TRUE,
-  do.brps = FALSE
+  do.brps = FALSE,
+  process_fix = FALSE,
+  first_free_year = 1L
 )
 }
 \arguments{
 \item{om}{A fitted operating model that includes both burn-in and feedback years.}
 
-\item{interval.info}{A list containing projected catch advice for future years from the estimation model. It includes:
+\item{interval.info}{A list containing projected catch advice for future years
+from the estimation model. It includes:
 \describe{
   \item{\code{years}}{Vector of projection years.}
-  \item{\code{catch}}{Matrix (n_regions x n_years) of projected catch.}
+  \item{\code{catch}}{Matrix (n_years x n_fleets, or compatible) of projected catch.}
 }}
 
-\item{seed}{Integer. Seed used for generating simulated data to ensure reproducibility (default = 123).}
+\item{seed}{Integer. Seed used for generating simulated data to ensure
+reproducibility (default = 123).}
 
-\item{random}{Character vector of process names that are treated as random effects in the operating model (default = "log_NAA").}
+\item{random}{Character vector of process names that are treated as random
+effects in the operating model (default = `"log_NAA"`).}
 
 \item{method}{Character. Optimization method used for solving F. Options include:
 \itemize{
@@ -33,9 +38,18 @@ update_om_fn(
   \item \code{"BFGS"}: Uses `optim` with the BFGS method.
 }}
 
-\item{by_fleet}{Logical. If TRUE, estimates F separately for each fleet. If FALSE, estimates a single global F (default = FALSE).}
+\item{by_fleet}{Logical. If TRUE, estimates F separately for each fleet.
+If FALSE, estimates a single global F (default = TRUE).}
 
-\item{do.brps}{Logical. If TRUE, calculates reference points in the operating model (default = FALSE).}
+\item{do.brps}{Logical. If TRUE, calculates reference points in the operating
+model (default = FALSE).}
+
+\item{process_fix}{Logical. If FALSE (default), overwrite all simulated random
+effects listed in `random`, matching the original behavior. If TRUE, preserve
+the historical process and overwrite only the future portion of `log_NAA`.}
+
+\item{first_free_year}{Integer. First year index in `log_NAA` that is allowed to
+change when `process_fix = TRUE`. Years before this are preserved. Default = 1L.}
 }
 \value{
 An updated operating model (`om`) with:
@@ -46,8 +60,15 @@ An updated operating model (`om`) with:
   }
 }
 \description{
-This function updates fishing mortality (F) in the operating model, projects the population forward,
-and generates new simulated data based on the updated F time series.
+This function updates fishing mortality (F) in the operating model, projects the
+population forward, and generates new simulated data based on the updated F time
+series.
+}
+\details{
+By default, the function follows the original behavior and overwrites all
+simulated random effects listed in `random`. When `process_fix = TRUE`, the
+historical process is preserved and only the future portion of `log_NAA` is
+replaced, beginning at `first_free_year`.
 }
 \seealso{
 \code{\link{get_F_from_Catch}}, \code{\link{update_om_F}}

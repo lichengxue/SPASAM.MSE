@@ -78,9 +78,7 @@ library(wham)
 library(SPASAM.MSE)
 library(dplyr)
 library(ggplot2)
-library(here)
 
-main.dir <- here::here()
 ```
 
 ### 2. Read stock assessment data and define global settings
@@ -89,7 +87,8 @@ We use Georges Bank yellowtail flounder ASAP input data and set up a short MSE
 feedback period.
 
 ```{r, eval=FALSE}
-gb_dat <- read_asap3_dat("Data/GBK.DAT")
+gb_file <- system.file("extdata", "GBK.DAT", package = "SPASAM.MSE")
+gb_dat <- read_asap3_dat(gb_file)
 
 input_hist <- prepare_wham_input(gb_dat)
 input      <- prepare_wham_input(gb_dat)
@@ -288,7 +287,14 @@ input_histfit <- update_input_index_info(
 ```
 
 ```{r, eval=FALSE}
-if (!file.exists("Data/OM.RDS")) {
+om_file <- system.file("extdata", "OM.RDS", package = "SPASAM.MSE")
+
+if (file.exists(om_file)) {
+  
+  OM <- readRDS(om_file)
+  
+} else {
+  
   OM <- fit_wham(
     input_histfit,
     do.fit = TRUE,
@@ -297,9 +303,9 @@ if (!file.exists("Data/OM.RDS")) {
     do.osa = FALSE,
     MakeADFun.silent = TRUE
   )
-  saveRDS(OM, "Data/OM.RDS")
-} else {
-  OM <- readRDS("Data/OM.RDS")
+  
+  saveRDS(OM, file.path(tempdir(), "OM.RDS"))
+  
 }
 
 check_convergence(OM)
@@ -606,7 +612,7 @@ om_future <- update_om_fn(
   unfitted_om_P,
   seed = seed,
   random = "log_NAA",
-  process_fix = 1,
+  process_fix = TRUE,
   first_free_year = first_free_year
 )
 ```
@@ -621,7 +627,7 @@ plot(
   om_future$rep$SSB,
   type = "l",
   main = "SSB with fixed history and simulated feedback period",
-  xlab = "Year index",
+  xlab = "Model year",
   ylab = "SSB"
 )
 lines(1:n_hist_years, OM$rep$SSB[1:n_hist_years], col = "red", lwd = 2)
@@ -635,41 +641,81 @@ legend(
 )
 ```
 
+![Figure 1](Example_plots/actual_assessment_plot1.png){width="600"}
+
 ```{r, eval=FALSE}
 s <- 1
 r <- 1
 hist_idx <- 1:(n_hist_years - 1L)
 
-par(mfrow = c(2, 1), mar = c(4, 4, 2, 1))
+layout(matrix(c(1,2,3), nrow = 3, byrow = TRUE))
+par(mar = c(4,4,2,1))
 
-plot(
-  hist_idx + 1,
-  exp(om_future$input$par$log_NAA[s, r, hist_idx, 1]),
-  type = "l",
-  xlab = "Model year",
-  ylab = "NAA age 1",
-  main = "Historical check: input log_NAA vs fitted OM rep$NAA"
-)
-lines(
-  hist_idx + 1,
-  OM$rep$NAA[s, r, hist_idx + 1L, 1],
-  col = "red"
-)
+# Extract series
+input_series <- exp(om_future$input$par$log_NAA[s, r, hist_idx, 1])
+fitted_series <- OM$rep$NAA[s, r, hist_idx + 1L, 1]
 
+# Panel 1 — overlay
+plot(hist_idx + 1, input_series,
+     type = "l",
+     lwd = 2,
+     xlab = "Model year",
+     ylab = "NAA age 1",
+     main = "Input vs Fitted (age 1)")
+lines(hist_idx + 1, fitted_series, col = "red", lwd = 2)
+legend("topright", c("Input", "Fitted"), col=c("black","red"), lty=1)
+
+# Panel 2 — difference
+plot(hist_idx + 1,
+     input_series - fitted_series,
+     type = "l",
+     xlab = "Model year",
+     ylab = "Difference",
+     main = "Input − Fitted")
+abline(h = 0, lty = 2)
+
+# Panel 3 — predicted NAA age 6
 plot(
   om_future$rep$pred_NAA[s, r, , 6],
   type = "l",
-  main = "pred_NAA age 6",
-  xlab = "Year index",
-  ylab = "pred_NAA age 6"
+  main = "Predicted Number at Age 6",
+  xlab = "Model year",
+  ylab = "Predicted NAA age 6"
 )
 abline(v = first_free_year, lty = 2, col = "red")
 ```
 
+![Figure 2](Example_plots/actual_assessment_plot2.png){width="600"}
+
 ```{r, eval=FALSE}
-plot(om_future$rep$NAA_devs[, , , 1], type = "l", main = "NAA_devs age 1")
-plot(om_future$rep$pred_NAA[, , , 1], type = "l", main = "pred_NAA age 1")
+par(mfrow = c(2, 1))
+
+# Recruitment deviations
+matplot(
+  om_future$rep$NAA_devs[, , , 1],
+  type = "l",
+  lty = 1,
+  col = rainbow(dim(om_future$rep$NAA_devs)[1]),
+  main = "Log Recruitment Deviations",
+  xlab = "Year",
+  ylab = "Value"
+)
+
+# Predicted recruitment
+matplot(
+  om_future$rep$pred_NAA[, , , 1],
+  type = "l",
+  lty = 1,
+  col = rainbow(dim(om_future$rep$pred_NAA)[1]),
+  main = "Predicted Recruitment",
+  xlab = "Year",
+  ylab = "Value"
+)
+
+par(mfrow = c(1,1))
 ```
+
+![Figure 3](Example_plots/actual_assessment_plot3.png){width="600"}
 
 ```{r, eval=FALSE}
 hist_diff <- om_future$rep$NAA[, , 1:n_hist_years, ] -
@@ -685,6 +731,8 @@ plot(
 )
 lines(OM$rep$SSB[1:n_hist_years], col = "red")
 ```
+
+![Figure 4](Example_plots/actual_assessment_plot4.png){width="600"}
 
 ### 9. Run MSE
 
@@ -735,7 +783,14 @@ hcr1 <- list(
   hcr.opts = list(use_FXSPR = TRUE, percentFXSPR = 75)
 )
 
-if (!file.exists("Results/mod1.RDS")) {
+mod1_file <- system.file("extdata", "mod1.RDS", package = "SPASAM.MSE")
+
+if (file.exists(mod1_file)) {
+  
+  mod1 <- readRDS(mod1_file)
+  
+} else {
+  
   mod1 <- loop_through_fn(
     om = om_future,
     em_info = info,
@@ -749,7 +804,7 @@ if (!file.exists("Results/mod1.RDS")) {
       separate.em.type = 1,
       do.move = FALSE,
       est.move = FALSE
-      ),
+    ),
     update_index_info = update_index_info_list,
     update_catch_info = update_catch_info_list,
     assess_years = assess_years,
@@ -762,13 +817,11 @@ if (!file.exists("Results/mod1.RDS")) {
     save.sdrep = FALSE,
     save.last.em = TRUE,
     FXSPR_init = 0.5,
-    process_fix = 1,
+    process_fix = TRUE,
     first_free_year = 51
-    ) 
-  saveRDS(mod1, "Results/mod1.RDS")
-  } else {
-    mod1 <- readRDS("Results/mod1.RDS")
-  }
+  )
+  
+}
 ```
 
 #### 9.3 MSE run with 100% FXSPR
@@ -779,7 +832,14 @@ hcr2 <- list(
   hcr.opts = list(use_FXSPR = TRUE, percentFXSPR = 100)
 )
 
-if (!file.exists("Results/mod2.RDS")) {
+mod2_file <- system.file("extdata", "mod2.RDS", package = "SPASAM.MSE")
+
+if (file.exists(mod2_file)) {
+  
+  mod2 <- readRDS(mod2_file)
+  
+} else {
+  
   mod2 <- loop_through_fn(
     om = om_future,
     em_info = info,
@@ -793,7 +853,7 @@ if (!file.exists("Results/mod2.RDS")) {
       separate.em.type = 1,
       do.move = FALSE,
       est.move = FALSE
-      ),
+    ),
     update_index_info = update_index_info_list,
     update_catch_info = update_catch_info_list,
     assess_years = assess_years,
@@ -806,13 +866,11 @@ if (!file.exists("Results/mod2.RDS")) {
     save.sdrep = FALSE,
     save.last.em = TRUE,
     FXSPR_init = 0.5,
-    process_fix = 1,
+    process_fix = TRUE,
     first_free_year = 51
-    )
-  saveRDS(mod2, "Results/mod2.RDS")
-  } else {
-    mod2 <- readRDS("Results/mod2.RDS")
-  }
+  )
+  
+}
 ```
 
 ### 10. Plot MSE results
@@ -848,6 +906,7 @@ legend(
   bty = "n"
 )
 ```
+![Figure 5](Example_plots/actual_assessment_plot5.png){width="600"}
 
 ### 11. Summary
 
