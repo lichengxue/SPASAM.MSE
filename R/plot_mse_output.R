@@ -118,8 +118,7 @@ plot_mse_output <- function(mods,
   }
   
   # one unified “safe runner”
-  run_plot <- function(name, fn_name, args, pb = NULL) {
-    if (!is.null(pb)) pb$tick(tokens = list(name = name))
+  run_plot <- function(name, fn_name, args) {
     if (!safe_exists(fn_name)) return(invisible(NULL))
     fn <- get(fn_name, mode = "function")
     tryCatch(
@@ -704,23 +703,22 @@ plot_mse_output <- function(mods,
         }
         
       } else if (nm == "Holistic performance (bar plots) - all supported types") {
-        if (!is.null(pb_png)) pb_png$tick(tokens = list(name = nm))
         call_holistic_bar_all()
         
       } else if (nm == "Model performance radar (all types)") {
-        if (!is.null(pb_png)) pb_png$tick(tokens = list(name = nm))
         call_radar_all()
         
       } else if (nm == "Holistic performance (wind-rose + heatmap)") {
-        if (!is.null(pb_png)) pb_png$tick(tokens = list(name = nm))
         call_holistic_windrose_heat()
       }
       
+      if (!is.null(pb_png)) pb_png$tick(tokens = list(name = nm))
       next
     }
     
     ## normal single-function calls
-    run_plot(nm, fn, args, pb = pb_png)
+    run_plot(nm, fn, args)
+    if (!is.null(pb_png)) pb_png$tick(tokens = list(name = nm))
   }
   
   ## ---- collect all PNGs ----
