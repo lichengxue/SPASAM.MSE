@@ -1,9 +1,9 @@
 Package: SPASAM.MSE
 Title: Spatially Explicit Management Strategy Evaluation for WHAM-Based Stock Assessments
 Type: Package
-Version: 1.1.3
-Author: Chengxue Li <chengxue.li@noaa.gov>
-Maintainer: Chengxue Li <chengxue.li@noaa.gov>
+Version: 1.1.4
+Author: Chengxue Li <chengxue.li@stonybrook.edu>
+Maintainer: Chengxue Li <chengxue.li@stonybrook.edu>
 Description: A flexible and extensible framework for conducting spatially explicit
     Management Strategy Evaluation (MSE) for marine fish stocks using the Woods Hole
     Assessment Model (WHAM). SPASAM-MSE provides a fully configurable multi-stock,

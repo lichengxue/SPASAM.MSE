@@ -10,6 +10,7 @@ library(htmltools)
 ```{r echo=FALSE, results='asis'}
 # Define the news updates
 news_updates <- list(
+  list(date = "2026-06-23", title = "Version 1.1.4 Released", content = "Improve MSE results reporting, including more robust BRP-dependent plotting, report generation, and handling of missing or non-finite plotting values."),
   list(date = "2025-12-16", title = "Version 1.0.0 Released", content = "Perform comprehensive checks on SPASAM.MSE package.")
 )
 

@@ -38,7 +38,7 @@ branch     <- "main"
 # Main developer
 main_dev_name   <- "Chengxue Li"
 email_primary   <- "chengxue.li@stonybrook.edu"
-email_secondary <- "chengxue.li@noaa.gov"
+email_secondary <- ""
 
 wham_link <- "https://timjmiller.github.io/wham/"
 
@@ -490,10 +490,26 @@ main_dev_html <- sprintf(
 )
 
 
-alt_email_html <- sprintf(
-  '<div class="small" style="margin-top:4px;"><b>Alt</b>: &lt;<a href="mailto:%s">%s</a>&gt;</div>',
-  email_secondary, email_secondary
-)
+alt_email_html <- if (nzchar(email_secondary) && email_secondary != email_primary) {
+  sprintf(
+    '<div class="small" style="margin-top:4px;"><b>Alt</b>: &lt;<a href="mailto:%s">%s</a>&gt;</div>',
+    email_secondary, email_secondary
+  )
+} else {
+  NULL
+}
+
+footer_email_html <- if (nzchar(email_secondary) && email_secondary != email_primary) {
+  sprintf(
+    '&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;',
+    email_primary, email_primary, email_secondary, email_secondary
+  )
+} else {
+  sprintf(
+    '&lt;<a href="mailto:%s">%s</a>&gt;',
+    email_primary, email_primary
+  )
+}
 
 index_out <- c(
   '<!DOCTYPE html>',
@@ -679,8 +695,7 @@ index_out <- c(
   '    <div class="footer">',
   '      <div>',
   sprintf('        <div><span class="main-dev-label">Main developer</span>: <span class="main-dev-name">%s</span></div>', main_dev_name),
-  sprintf('        <div class="small">&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;</div>',
-          email_primary, email_primary, email_secondary, email_secondary),
+  sprintf('        <div class="small">%s</div>', footer_email_html),
   '      </div>',
   sprintf('      <div class="small">Source: <a href="%s">%s</a></div>', repo_base, repo_base),
   '    </div>',
@@ -844,8 +859,7 @@ vignettes_out <- c(
   '    <div class="footer">',
   '      <div>',
   sprintf('        <div><span class="main-dev-label">Main developer</span>: <span class="main-dev-name">%s</span></div>', main_dev_name),
-  sprintf('        <div class="small">&lt;<a href="mailto:%s">%s</a>&gt; • &lt;<a href="mailto:%s">%s</a>&gt;</div>',
-          email_primary, email_primary, email_secondary, email_secondary),
+  sprintf('        <div class="small">%s</div>', footer_email_html),
   '      </div>',
   sprintf('      <div class="small">Source: <a href="%s">%s</a></div>', repo_base, repo_base),
   '    </div>',
