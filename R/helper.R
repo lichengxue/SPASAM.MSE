@@ -934,7 +934,7 @@ plot_ssb_time_series <- function(mods, is.nsim, main.dir, sub.dir, var = "SSB",
               aes(x = Year, y = SSB,
                   color = Model,
                   group = interaction(Model, Realization))) +
-    geom_line(size = 0.3, alpha = 0.5) +
+    geom_line(linewidth = 0.3, alpha = 0.5) +
     facet_grid(Label ~ ., scales = "free") +
     scale_color_viridis_d(option = col.opt) +
     ggtitle(var) +
@@ -1054,7 +1054,7 @@ plot_fbar_time_series <- function(mods, is.nsim, main.dir, sub.dir, var = "Fbar"
                 aes(x = Year, y = Fbar,
                     color = Model,
                     group = interaction(Model, Realization))) +
-      geom_line(size = 0.3, alpha = 0.5) +
+      geom_line(linewidth = 0.3, alpha = 0.5) +
       facet_grid(Label ~ ., scales = "free") +
       scale_color_viridis_d(option = col.opt) +
       ggtitle(title) +
@@ -1275,7 +1275,7 @@ plot_catch_time_series <- function(mods, is.nsim, main.dir, sub.dir, var = "Catc
               aes(x = Year, y = Catch,
                   color = Model,
                   group = interaction(Model, Realization))) +
-    geom_line(size = 0.3, alpha = 0.5) +
+    geom_line(linewidth = 0.3, alpha = 0.5) +
     facet_grid(Label ~ ., scales = "free") +
     scale_color_viridis_d(option = col.opt) +
     ggtitle(var) +
@@ -5845,7 +5845,7 @@ plot_relative_trajectories <- function(mods, is.nsim,
     t = t + 1
     
     plot[[t]] <- ggplot(subset_data, aes(x = Years, y = Median, color = EM)) +
-      geom_line(size = 1) +
+      geom_line(linewidth = 1) +
       geom_ribbon(aes(ymin = Q1, ymax = Q3, fill = EM), alpha = 0.1, color = NA) +
       scale_color_viridis_d(option = col.opt) +
       scale_fill_viridis_d(option = col.opt) +

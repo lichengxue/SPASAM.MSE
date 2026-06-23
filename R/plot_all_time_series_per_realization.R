@@ -162,7 +162,7 @@ plot_all_time_series_per_realization <- function(mods, main.dir, sub.dir,
                            names_to = "Label", values_to = "SSB")
     
     p_ssb <- ggplot(df_ssb, aes(x = Year, y = SSB, color = Model, group = Model)) +
-      geom_line(size = 0.8) +
+      geom_line(linewidth = 0.8) +
       scale_color_viridis_d(option = col.opt) +
       facet_grid(Label ~ ., scales = "free") +
       theme_bw() +
@@ -195,7 +195,7 @@ plot_all_time_series_per_realization <- function(mods, main.dir, sub.dir,
                             names_to = "Label", values_to = "Fbar")
     
     p_fbar <- ggplot(df_fbar, aes(x = Year, y = Fbar, color = Model, group = Model)) +
-      geom_line(size = 0.8) +
+      geom_line(linewidth = 0.8) +
       scale_color_viridis_d(option = col.opt) +
       facet_grid(Label ~ ., scales = "free") +
       theme_bw() +
@@ -223,7 +223,7 @@ plot_all_time_series_per_realization <- function(mods, main.dir, sub.dir,
                              names_to = "Label", values_to = "Catch")
     
     p_catch <- ggplot(df_catch, aes(x = Year, y = Catch, color = Model, group = Model)) +
-      geom_line(size = 0.8) +
+      geom_line(linewidth = 0.8) +
       scale_color_viridis_d(option = col.opt) +
       facet_grid(Label ~ ., scales = "free") +
       theme_bw() +
