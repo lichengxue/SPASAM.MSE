@@ -2,11 +2,11 @@
 % Please edit documentation in R/plot_mse_output.R
 \name{plot_mse_output}
 \alias{plot_mse_output}
-\title{Generate MSE Output Plots in PNG, HTML, or PDF Format}
+\title{Run full MSE plotting pipeline and render HTML/PDF report}
 \usage{
 plot_mse_output(
   mods,
-  main_dir,
+  main_dir = getwd(),
   output_dir = "Report",
   output_format = c("png", "html", "pdf"),
   width = 10,
@@ -23,53 +23,107 @@ plot_mse_output(
   use.n.years.first = 5,
   use.n.years.last = 5,
   new_model_names = NULL,
-  base.model = "Model1"
+  base.model = "Model1",
+  report_from_pngs = TRUE,
+  export_performance_csv = TRUE,
+  performance_csv_file = "mse_performance_statistics.csv",
+  export_performance_summary_csv = TRUE,
+  performance_summary_csv_file = "mse_performance_summary.csv",
+  performance_summary_statistics = c("mean", "median", "sd", "q1", "q3", "min", "max",
+    "n_finite"),
+  export_raw_timeseries_csv = TRUE,
+  raw_timeseries_csv_file = "mse_raw_timeseries.csv",
+  feedback_start_year = NULL,
+  progress = TRUE,
+  toc_line_spacing = 1.35,
+  toc_entry_vspace_pt = 12
 )
 }
 \arguments{
-\item{mods}{A list of model outputs from multiple simulations and estimation models.}
+\item{mods}{Model outputs list. For non-simulation runs:
+`list(Mod1, Mod2, ...)`. For simulation runs:
+`list(sim1=list(Mod1,Mod2,...), sim2=list(...), ...)`.}
 
-\item{main_dir}{The main directory path where results should be saved.}
+\item{main_dir}{Base directory for outputs. Default `getwd()`.}
 
-\item{output_dir}{Folder name inside main_dir where plots/reports will be saved (default: "Report").}
+\item{output_dir}{Output folder under `main_dir`. Default `"Report"`.}
 
-\item{output_format}{Output type: "png", "html", or "pdf".}
+\item{output_format}{Character vector of outputs to produce. Any of
+`"png"`, `"html"`, `"pdf"`. Default `c("png","html","pdf")`.}
 
-\item{width}{Width of each plot in inches.}
+\item{width, height, dpi}{Figure saving size for PNGs.}
 
-\item{height}{Height of each plot in inches.}
+\item{col.opt}{Passed to viridis discrete option where used.}
 
-\item{dpi}{Resolution of saved plots in dots per inch.}
+\item{method}{Passed to performance-summary plots where used.}
 
-\item{col.opt}{Color palette option for `viridis`-based scales.}
+\item{outlier.opt}{Outlier shape for boxplot style figures. `NA` is treated as NULL.}
 
-\item{method}{method = NULL: global median, method = "mean": median of means, method = "median": median of medians}
+\item{plot.style}{Plot style for performance plots (e.g. `"median_iqr"` or `"boxplot"`).}
 
-\item{outlier.opt}{outlier.opt = NA (default): no outliers will be shown, outlier.opt = 0 - 25 (26 different shapes to use)}
+\item{show.whisker}{Logical. Used by `"median_iqr"` style plots.}
 
-\item{plot.style}{plot.style = "median_iqr" (Default): only median, IQR will be displayed in the boxplot (no outliers will be displayed), method = "boxplot": boxplot including median, IQR, and outliers}
+\item{f.ymin, f.ymax}{Optional y-limits for relative performance plots.}
 
-\item{show.whisker}{Logical, Whether to show 1.5IQR as a whisker}
+\item{start.years}{Starting row index for "first" windows (1-based).}
 
-\item{f.ymin}{Numeric value specifying the lower limit of the y-axis for F-based performance plots (Default = NULL)}
+\item{use.n.years.first}{Window length for short-term/first window.}
 
-\item{f.ymax}{Numeric value specifying the upper limit of the y-axis for F-based performance plots. (Default = NULL)}
+\item{use.n.years.last}{Window length for long-term/last window.}
 
-\item{start.years}{The first year used in short-term performance summaries.}
+\item{new_model_names}{Optional vector of display names for models.}
 
-\item{use.n.years.first}{Number of years to summarize at the beginning of the time series.}
+\item{base.model}{Baseline model name (e.g. `"Model1"`) for relative plots.}
 
-\item{use.n.years.last}{Number of years to summarize at the end of the time series.}
+\item{report_from_pngs}{Logical. If TRUE, build reports using saved PNGs.}
 
-\item{new_model_names}{Optional character vector of custom model names.}
+\item{export_performance_csv}{Logical. If TRUE, automatically write a CSV
+with the performance statistics used by the plotting pipeline.}
 
-\item{base.model}{Model name used as a baseline for relative difference plots.}
+\item{performance_csv_file}{File name or path for the performance statistics
+CSV. A bare file name is written inside `file.path(main_dir, output_dir)`.}
+
+\item{export_performance_summary_csv}{Logical. If TRUE, automatically write
+a compact summary CSV from the detailed performance statistics.}
+
+\item{performance_summary_csv_file}{File name or path for the compact
+performance summary CSV.}
+
+\item{performance_summary_statistics}{Character vector of summary statistics
+to keep in the compact CSV.}
+
+\item{export_raw_timeseries_csv}{Logical. If TRUE, automatically write a
+very raw CSV with one row per OM realization, EM model, year, metric,
+scale, and label. This includes Catch, SSB, Fbar, NAA, NAA deviations,
+and BRPs when available.}
+
+\item{raw_timeseries_csv_file}{File name or path for the raw yearly time
+series CSV.}
+
+\item{feedback_start_year}{Optional numeric year marking the first feedback
+year. If NULL, the raw time-series exporter tries to infer it from
+`catch_advice`; otherwise the raw CSV `Period` column is labelled
+`"unknown"`.}
+
+\item{progress}{Logical. If TRUE and package `progress` is installed, show progress.}
+
+\item{toc_line_spacing}{Line spacing factor used for the PDF ToC page.}
+
+\item{toc_entry_vspace_pt}{Vertical space (pt) between ToC entries in PDF.}
 }
 \value{
-Saves output plots/reports to disk; returns nothing explicitly.
+Invisibly returns a list with:
+  `full_output_dir`, `pngs`, `reports` (paths for html/pdf if generated),
+  `raw_timeseries_csv`, `performance_csv`, and `performance_summary_csv`
+  (paths if generated).
 }
 \description{
-This function creates a comprehensive set of plots to visualize MSE (Management Strategy Evaluation)
-results from a list of model simulations. Outputs can be saved as individual PNG files or as a single
-interactive HTML or PDF report.
+This wrapper (i) regenerates all PNG figures by calling the available
+plotting functions in the package/workspace, and (ii) optionally renders
+an HTML and/or PDF report by embedding the generated PNGs into an Rmd.
+}
+\details{
+The function also builds (optional) cached summaries via `build_mse_summary()`
+and stores them in `options(mse_summary=...)` so downstream plotting
+functions can reuse them.
 }

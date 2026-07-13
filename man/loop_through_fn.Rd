@@ -15,8 +15,7 @@ loop_through_fn(
   catchability_em = NULL,
   ecov_em = NULL,
   ecov_em_opts = NULL,
-  gauss_rec_em = list(use = FALSE, Ecov_rec_T_col = NULL, Topt_rec = NULL, width_rec =
-    NULL, beta_T_rec = NULL, estimate = TRUE),
+  gauss_rec_em = NULL,
   age_comp_em = "multinomial",
   em.opt = list(separate.em = TRUE, separate.em.type = 1, do.move = FALSE, est.move =
     FALSE),

@@ -4,11 +4,14 @@ library(DiagrammeRsvg)
 library(rsvg)
 library(shinyjs)
 
+spasam_mse_version <- tryCatch(as.character(utils::packageVersion("SPASAM.MSE")),
+                               error = function(e) "1.1.5")
+
 # Define UI for the app
 ui <- fluidPage(
   useShinyjs(),  # Enable shinyjs
   
-  titlePanel("Specify Movement Rates for Fish"),
+  titlePanel(paste0("Specify Movement Rates for Fish (v", spasam_mse_version, ")")),
   
   sidebarLayout(
     sidebarPanel(

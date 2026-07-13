@@ -28,12 +28,34 @@
 #' @param new_model_names Optional vector of display names for models.
 #' @param base.model Baseline model name (e.g. `"Model1"`) for relative plots.
 #' @param report_from_pngs Logical. If TRUE, build reports using saved PNGs.
+#' @param export_performance_csv Logical. If TRUE, automatically write a CSV
+#'   with the performance statistics used by the plotting pipeline.
+#' @param performance_csv_file File name or path for the performance statistics
+#'   CSV. A bare file name is written inside `file.path(main_dir, output_dir)`.
+#' @param export_performance_summary_csv Logical. If TRUE, automatically write
+#'   a compact summary CSV from the detailed performance statistics.
+#' @param performance_summary_csv_file File name or path for the compact
+#'   performance summary CSV.
+#' @param performance_summary_statistics Character vector of summary statistics
+#'   to keep in the compact CSV.
+#' @param export_raw_timeseries_csv Logical. If TRUE, automatically write a
+#'   very raw CSV with one row per OM realization, EM model, year, metric,
+#'   scale, and label. This includes Catch, SSB, Fbar, NAA, NAA deviations,
+#'   and BRPs when available.
+#' @param raw_timeseries_csv_file File name or path for the raw yearly time
+#'   series CSV.
+#' @param feedback_start_year Optional numeric year marking the first feedback
+#'   year. If NULL, the raw time-series exporter tries to infer it from
+#'   `catch_advice`; otherwise the raw CSV `Period` column is labelled
+#'   `"unknown"`.
 #' @param progress Logical. If TRUE and package `progress` is installed, show progress.
 #' @param toc_line_spacing Line spacing factor used for the PDF ToC page.
 #' @param toc_entry_vspace_pt Vertical space (pt) between ToC entries in PDF.
 #'
 #' @return Invisibly returns a list with:
-#'   `full_output_dir`, `pngs`, and `reports` (paths for html/pdf if generated).
+#'   `full_output_dir`, `pngs`, `reports` (paths for html/pdf if generated),
+#'   `raw_timeseries_csv`, `performance_csv`, and `performance_summary_csv`
+#'   (paths if generated).
 #' @export
 
 plot_mse_output <- function(mods,
@@ -56,6 +78,16 @@ plot_mse_output <- function(mods,
                             new_model_names     = NULL,
                             base.model          = "Model1",
                             report_from_pngs    = TRUE,
+                            export_performance_csv = TRUE,
+                            performance_csv_file   = "mse_performance_statistics.csv",
+                            export_performance_summary_csv = TRUE,
+                            performance_summary_csv_file   = "mse_performance_summary.csv",
+                            performance_summary_statistics = c("mean", "median", "sd",
+                                                               "q1", "q3", "min", "max",
+                                                               "n_finite"),
+                            export_raw_timeseries_csv = TRUE,
+                            raw_timeseries_csv_file   = "mse_raw_timeseries.csv",
+                            feedback_start_year       = NULL,
                             progress            = TRUE,
                             toc_line_spacing    = 1.35,
                             toc_entry_vspace_pt = 12) {
@@ -174,6 +206,96 @@ plot_mse_output <- function(mods,
   old_opt <- getOption("mse_summary", NULL)
   options(mse_summary = mse_summary)
   on.exit(options(mse_summary = old_opt), add = TRUE)
+  
+  raw_timeseries_csv_path <- NULL
+  if (isTRUE(export_raw_timeseries_csv)) {
+    if (safe_exists("export_mse_raw_timeseries")) {
+      raw_timeseries <- tryCatch(
+        export_mse_raw_timeseries(
+          mods                = mods,
+          is.nsim             = is.nsim,
+          main.dir            = main_dir,
+          sub.dir             = output_dir,
+          output_file         = raw_timeseries_csv_file,
+          mse_summary         = mse_summary,
+          new_model_names     = new_model_names,
+          feedback_start_year = feedback_start_year
+        ),
+        error = function(e) {
+          message("Raw time-series CSV export failed: ", e$message)
+          NULL
+        }
+      )
+      raw_timeseries_csv_path <- attr(raw_timeseries, "file", exact = TRUE)
+      if (!is.null(raw_timeseries_csv_path)) {
+        message("Raw time-series CSV written to: ", raw_timeseries_csv_path)
+      }
+    } else {
+      message("export_mse_raw_timeseries() not found. Skipping raw time-series CSV.")
+    }
+  }
+  
+  performance_csv_path <- NULL
+  performance_summary_csv_path <- NULL
+  performance_stats <- NULL
+  if (isTRUE(export_performance_csv) || isTRUE(export_performance_summary_csv)) {
+    if (safe_exists("export_mse_performance_statistics")) {
+      performance_stats <- tryCatch(
+        export_mse_performance_statistics(
+          mods               = mods,
+          is.nsim            = is.nsim,
+          main.dir           = main_dir,
+          sub.dir            = output_dir,
+          output_file        = if (isTRUE(export_performance_csv)) performance_csv_file else NULL,
+          mse_summary        = mse_summary,
+          method             = method,
+          start.years        = start.years,
+          use.n.years.first  = use.n.years.first,
+          use.n.years.last   = use.n.years.last,
+          new_model_names    = new_model_names,
+          base.model         = base.model,
+          include_relative   = !is.null(base.model),
+          include_status     = has_dynamic_brps,
+          include_kobe       = has_dynamic_brps,
+          include_holistic   = TRUE,
+          include_diagnostics = TRUE
+        ),
+        error = function(e) {
+          message("Performance statistics CSV export failed: ", e$message)
+          NULL
+        }
+      )
+      performance_csv_path <- attr(performance_stats, "file", exact = TRUE)
+      if (!is.null(performance_csv_path)) {
+        message("Performance statistics CSV written to: ", performance_csv_path)
+      }
+      if (isTRUE(export_performance_summary_csv) && !is.null(performance_stats)) {
+        if (safe_exists("export_mse_performance_summary")) {
+          performance_summary <- tryCatch(
+            export_mse_performance_summary(
+              performance_statistics = performance_stats,
+              main.dir = main_dir,
+              sub.dir = output_dir,
+              output_file = performance_summary_csv_file,
+              statistics = performance_summary_statistics
+            ),
+            error = function(e) {
+              message("Performance summary CSV export failed: ", e$message)
+              NULL
+            }
+          )
+          performance_summary_csv_path <- attr(performance_summary, "file", exact = TRUE)
+          if (!is.null(performance_summary_csv_path)) {
+            message("Performance summary CSV written to: ", performance_summary_csv_path)
+          }
+        } else {
+          message("export_mse_performance_summary() not found. Skipping performance summary CSV.")
+        }
+      }
+    } else {
+      message("export_mse_performance_statistics() not found. Skipping performance CSV exports.")
+    }
+  }
   
   have_progress <- isTRUE(progress) && requireNamespace("progress", quietly = TRUE)
   make_pb <- function(total, label = "Progress") {
@@ -386,7 +508,7 @@ plot_mse_output <- function(mods,
            show.whisker = show.whisker, f.ymin = f.ymin, f.ymax = f.ymax,
            new_model_names = new_model_names,
            base.model = NULL,
-           catch_total = c("global","region","fleet")
+           total = TRUE
          )),
     
     list(name = sprintf("TOTAL Catch performance (last %d years)", use.n.years.last),
@@ -399,7 +521,7 @@ plot_mse_output <- function(mods,
            show.whisker = show.whisker, f.ymin = f.ymin, f.ymax = f.ymax,
            new_model_names = new_model_names,
            base.model = NULL,
-           catch_total = c("global","region","fleet")
+           total = TRUE
          )),
     
     list(name = "TOTAL Catch performance (all years)",
@@ -412,7 +534,7 @@ plot_mse_output <- function(mods,
            show.whisker = show.whisker, f.ymin = f.ymin, f.ymax = f.ymax,
            new_model_names = new_model_names,
            base.model = NULL,
-           catch_total = c("global","region","fleet")
+           total = TRUE
          )),
     
     ## ---- SSB performance ----
@@ -539,7 +661,7 @@ plot_mse_output <- function(mods,
               method = method, outlier.opt = outlier.opt, plot.style = plot.style,
               show.whisker = show.whisker, f.ymin = f.ymin, f.ymax = f.ymax,
               new_model_names = new_model_names, base.model = base.model,
-              catch_total = c("global","region","fleet")
+              total = TRUE
             ))
             run_plot("Relative TOTAL Catch (last)", "plot_catch_performance", list(
               mods = mods, is.nsim = is.nsim, main.dir = main_dir, sub.dir = output_dir,
@@ -549,7 +671,7 @@ plot_mse_output <- function(mods,
               method = method, outlier.opt = outlier.opt, plot.style = plot.style,
               show.whisker = show.whisker, f.ymin = f.ymin, f.ymax = f.ymax,
               new_model_names = new_model_names, base.model = base.model,
-              catch_total = c("global","region","fleet")
+              total = TRUE
             ))
             run_plot("Relative TOTAL Catch (all)", "plot_catch_performance", list(
               mods = mods, is.nsim = is.nsim, main.dir = main_dir, sub.dir = output_dir,
@@ -559,7 +681,7 @@ plot_mse_output <- function(mods,
               method = method, outlier.opt = outlier.opt, plot.style = plot.style,
               show.whisker = show.whisker, f.ymin = f.ymin, f.ymax = f.ymax,
               new_model_names = new_model_names, base.model = base.model,
-              catch_total = c("global","region","fleet")
+              total = TRUE
             ))
           }
           
@@ -1053,6 +1175,9 @@ plot_mse_output <- function(mods,
   invisible(list(
     full_output_dir = full_output_dir,
     pngs            = all_pngs,
-    reports         = report_paths
+    reports         = report_paths,
+    raw_timeseries_csv = raw_timeseries_csv_path,
+    performance_csv = performance_csv_path,
+    performance_summary_csv = performance_summary_csv_path
   ))
 }

@@ -4,27 +4,93 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-library(htmltools)
+html_escape <- function(x) {
+  x <- gsub("&", "&amp;", x, fixed = TRUE)
+  x <- gsub("<", "&lt;", x, fixed = TRUE)
+  x <- gsub(">", "&gt;", x, fixed = TRUE)
+  x <- gsub('"', "&quot;", x, fixed = TRUE)
+  x
+}
 ```
 
 ```{r echo=FALSE, results='asis'}
 # Define the news updates
 news_updates <- list(
-  list(date = "2026-06-23", title = "Version 1.1.4 Released", content = "Improve MSE results reporting, including more robust BRP-dependent plotting, report generation, and handling of missing or non-finite plotting values."),
+  list(
+    date = "2026-07-13",
+    title = "Version 1.1.5 Released",
+    content = "Since Version 1.1.4: reporting exports and audit trail expansion.",
+    details = c(
+      "Detailed performance CSV",
+      "Compact summary CSV",
+      "Raw time-series CSV",
+      "Catch, SSB, Fbar by scale",
+      "OM/EM NAA and NAA deviations",
+      "Annual/static BRPs",
+      "Mean recruitment, Rec sigma, NAA sigma diagnostics",
+      "Historical/feedback period labels",
+      "GUI version display"
+    )
+  ),
+  list(
+    date = "2026-06-23",
+    title = "Version 1.1.4 Released",
+    content = "MSE reporting stability and plot robustness.",
+    details = c(
+      "BRP-dependent plotting",
+      "Report generation",
+      "Missing/non-finite value handling",
+      "ggplot2 linewidth compatibility",
+      "Gaussian recruitment bug fix"
+    )
+  ),
+  list(
+    date = "2026-03-16",
+    title = "Version 1.1.3 Released",
+    content = "Major spatial MSE workflow update.",
+    details = c(
+      "Multi-stock/multi-region workflow",
+      "Movement model builder",
+      "Model input builder",
+      "Projection/ecov workflow",
+      "Documentation site expansion"
+    )
+  ),
+  list(
+    date = "2026-03-14",
+    title = "Version 1.1.2 Released",
+    content = "GUI and workflow expansion.",
+    details = c(
+      "Shiny movement setup",
+      "Biological/fleet/input configuration",
+      "Helper workflow updates",
+      "Documentation cleanup"
+    )
+  ),
+  list(
+    date = "2026-01-02",
+    title = "Version 1.1.1 Released",
+    content = "Package foundation and documentation refresh.",
+    details = c(
+      "README/site refresh",
+      "Package structure cleanup",
+      "Initial examples and assets",
+      "Installation guidance"
+    )
+  ),
   list(date = "2025-12-16", title = "Version 1.0.0 Released", content = "Perform comprehensive checks on SPASAM.MSE package.")
 )
 
 # Create dropdown menu
 dropdown_menu <- function(news) {
-  tags$div(
-    class = "dropdown",
-    tags$button(class = "btn btn-primary dropdown-toggle", type = "button", id = "dropdownMenuButton", `data-toggle` = "dropdown", `aria-haspopup` = "true", `aria-expanded` = "false", "Recent News"),
-    tags$div(class = "dropdown-menu", `aria-labelledby` = "dropdownMenuButton", 
-      lapply(news, function(item) {
-        tags$a(class = "dropdown-item", href = "#", item$title)
-      })
-    )
-  )
+  cat('<div class="dropdown">\n')
+  cat('<button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Recent News</button>\n')
+  cat('<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">\n')
+  for (item in news) {
+    cat(paste0('<a class="dropdown-item" href="#">', html_escape(item$title), '</a>\n'))
+  }
+  cat('</div>\n')
+  cat('</div>\n')
 }
 
 # Render the dropdown menu
@@ -39,5 +105,12 @@ for (item in news_updates) {
   cat(paste0("### ", item$title, "\n\n"))
   cat(paste0("**Date:** ", item$date, "\n\n"))
   cat(paste0(item$content, "\n\n"))
+  if (!is.null(item$details)) {
+    cat("<ul>\n")
+    for (detail in item$details) {
+      cat(paste0("<li>", html_escape(detail), "</li>\n"))
+    }
+    cat("</ul>\n\n")
+  }
 }
 ```

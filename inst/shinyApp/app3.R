@@ -11,6 +11,9 @@ library(DiagrammeR)
 library(DiagrammeRsvg)
 library(rsvg)
 
+spasam_mse_version <- tryCatch(as.character(utils::packageVersion("SPASAM.MSE")),
+                               error = function(e) "1.1.5")
+
 # Safe coalesce
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
@@ -1008,7 +1011,7 @@ ui <- fluidPage(
     "))
   ),
   
-  titlePanel("Movement Model Builder"),
+  titlePanel(paste0("Movement Model Builder (v", spasam_mse_version, ")")),
   
   tabsetPanel(
     id = "step_tabs",
@@ -1230,7 +1233,7 @@ ui <- fluidPage(
     "))
   ),
   
-  titlePanel("Movement Model Builder"),
+  titlePanel(paste0("Movement Model Builder (v", spasam_mse_version, ")")),
   
   tabsetPanel(
     id = "step_tabs",

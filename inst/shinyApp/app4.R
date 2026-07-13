@@ -4,6 +4,9 @@ library(shinyjs)
 library(shinyWidgets)
 library(ggplot2)
 
+spasam_mse_version <- tryCatch(as.character(utils::packageVersion("SPASAM.MSE")),
+                               error = function(e) "1.1.5")
+
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
 # ----- Small helper to safely coerce comma-separated numeric text -----
@@ -637,7 +640,7 @@ ui <- fluidPage(
     "))
   ),
   
-  titlePanel("SPASAM-MSE Model Input Builder"),
+  titlePanel(paste0("SPASAM-MSE Model Input Builder (v", spasam_mse_version, ")")),
   
   tabsetPanel(
     id = "step_tabs",

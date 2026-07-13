@@ -830,6 +830,1819 @@ build_mse_summary <- function(mods,
   )
 }
 
+#' Export MSE performance statistics used by the plotting wrapper
+#'
+#' Builds a tidy CSV containing the raw values and distribution summaries used by
+#' the performance, status, Kobe, annual-variation, and holistic plots generated
+#' by \code{plot_mse_output()}. Holistic rows are reported before any max-min
+#' normalization is applied.
+#'
+#' @param mods Model outputs list. For non-simulation runs:
+#'   \code{list(Mod1, Mod2, ...)}. For simulation runs:
+#'   \code{list(sim1=list(Mod1, Mod2, ...), sim2=list(...), ...)}.
+#' @param is.nsim Logical; whether \code{mods} is nested by simulation
+#'   realization.
+#' @param main.dir Character. Top-level output directory.
+#' @param sub.dir Character. Subdirectory under \code{main.dir}.
+#' @param output_file Character or \code{NULL}. File name or path for the CSV.
+#'   If \code{NULL}, the data frame is returned without writing a file.
+#' @param mse_summary Optional precomputed summary from \code{build_mse_summary()}.
+#' @param method Character or \code{NULL}. Same year-aggregation method used by
+#'   the plotting functions.
+#' @param start.years First row index used for short-term windows.
+#' @param use.n.years.first,use.n.years.last Window lengths used for short- and
+#'   long-term summaries.
+#' @param new_model_names Optional display names for models.
+#' @param base.model Optional baseline model used for relative performance plots.
+#' @param include_relative Logical; include relative-to-baseline rows when
+#'   \code{base.model} is supplied.
+#' @param include_status,include_kobe,include_holistic Logical; include the
+#'   corresponding plot families.
+#' @param include_diagnostics Logical; include diagnostic parameter rows for
+#'   mean recruitment, recruitment sigma, and NAA sigma from the final EM.
+#'
+#' @return A data frame. If \code{output_file} is not \code{NULL}, the written
+#'   path is stored in \code{attr(result, "file")}.
+#' @export
+export_mse_performance_statistics <- function(mods,
+                                              is.nsim,
+                                              main.dir = getwd(),
+                                              sub.dir = "Report",
+                                              output_file = "mse_performance_statistics.csv",
+                                              mse_summary = getOption("mse_summary", NULL),
+                                              method = "mean",
+                                              start.years = 1,
+                                              use.n.years.first = 5,
+                                              use.n.years.last = 5,
+                                              new_model_names = NULL,
+                                              base.model = "Model1",
+                                              include_relative = !is.null(base.model),
+                                              include_status = TRUE,
+                                              include_kobe = TRUE,
+                                              include_holistic = TRUE,
+                                              include_diagnostics = TRUE) {
+  if (!requireNamespace("dplyr", quietly = TRUE)) {
+    stop("Package 'dplyr' is required to export MSE performance statistics.")
+  }
+  if (!requireNamespace("tidyr", quietly = TRUE)) {
+    stop("Package 'tidyr' is required to export MSE performance statistics.")
+  }
+  
+  method_label <- if (is.null(method)) "none" else as.character(method)
+  stat_method <- if (is.null(method)) "median" else as.character(method)
+  
+  bind_export_rows <- function(rows) {
+    rows <- rows[!vapply(rows, function(x) is.null(x) || nrow(x) == 0L, logical(1))]
+    if (length(rows) == 0L) {
+      return(data.frame(
+        record_type = character(),
+        plot_family = character(),
+        metric = character(),
+        metric_detail = character(),
+        level = character(),
+        period = character(),
+        total = logical(),
+        relative = logical(),
+        base_model = character(),
+        method = character(),
+        statistic = character(),
+        Model = character(),
+        Label = character(),
+        Realization = integer(),
+        Year = numeric(),
+        start.years = integer(),
+        use.n.years = integer(),
+        true_value = numeric(),
+        value = numeric(),
+        stringsAsFactors = FALSE
+      ))
+    }
+    cols <- unique(unlist(lapply(rows, names), use.names = FALSE))
+    rows <- lapply(rows, function(x) {
+      missing <- setdiff(cols, names(x))
+      for (nm in missing) x[[nm]] <- NA
+      x[, cols, drop = FALSE]
+    })
+    dplyr::bind_rows(rows)
+  }
+  
+  scalar_col <- function(x, n) {
+    if (is.null(x) || length(x) == 0L) return(rep(NA_character_, n))
+    rep(as.character(x[1]), n)
+  }
+  
+  first_model <- function() {
+    if (isTRUE(is.nsim)) mods[[1]][[1]] else mods[[1]]
+  }
+  
+  iter_models <- function(fun) {
+    if (!isTRUE(is.nsim)) {
+      out <- lapply(seq_along(mods), function(m) fun(mods[[m]], m, 1L))
+    } else {
+      out <- lapply(seq_along(mods), function(r) {
+        lapply(seq_along(mods[[r]]), function(m) fun(mods[[r]][[m]], m, r))
+      })
+      out <- unlist(out, recursive = FALSE)
+    }
+    out[!vapply(out, is.null, logical(1))]
+  }
+  
+  relabel_models <- function(df, base_model = NULL) {
+    if (is.null(df) || nrow(df) == 0L || !("Model" %in% names(df))) {
+      return(list(data = df, base_model = base_model))
+    }
+    base_local <- base_model
+    old_levels <- unique(as.character(df$Model))
+    if (!is.null(new_model_names)) {
+      if (length(new_model_names) != length(old_levels)) {
+        stop("Length of new_model_names must match the number of models.")
+      }
+      if (!is.null(base_model) && base_model %in% old_levels &&
+          !(base_model %in% new_model_names)) {
+        base_local <- new_model_names[match(base_model, old_levels)]
+      }
+      df$Model <- factor(df$Model, levels = old_levels, labels = new_model_names)
+    } else {
+      df$Model <- factor(df$Model, levels = old_levels)
+    }
+    list(data = df, base_model = base_local)
+  }
+  
+  window_n <- function(period) {
+    if (identical(period, "first")) return(use.n.years.first)
+    if (identical(period, "last")) return(use.n.years.last)
+    NA_integer_
+  }
+  
+  make_value_rows <- function(df,
+                              plot_family,
+                              metric = NA_character_,
+                              metric_detail = NA_character_,
+                              level = NA_character_,
+                              period = NA_character_,
+                              total = FALSE,
+                              relative = FALSE,
+                              base_model = NULL,
+                              method_value = method_label,
+                              statistic = "value",
+                              value_col = "value",
+                              record_type = "plot_value",
+                              use_n = NA_integer_) {
+    if (is.null(df) || nrow(df) == 0L) return(NULL)
+    n <- nrow(df)
+    col_or <- function(nm, default) {
+      if (nm %in% names(df)) df[[nm]] else rep(default, n)
+    }
+    out <- data.frame(
+      record_type = record_type,
+      plot_family = as.character(col_or("plot_family", plot_family)),
+      metric = as.character(col_or("metric", metric)),
+      metric_detail = as.character(col_or("metric_detail", metric_detail)),
+      level = as.character(col_or("level", level)),
+      period = as.character(col_or("period", period)),
+      total = as.logical(col_or("total", total)),
+      relative = as.logical(col_or("relative", relative)),
+      base_model = scalar_col(base_model, n),
+      method = scalar_col(method_value, n),
+      statistic = as.character(col_or("statistic", statistic)),
+      Model = as.character(col_or("Model", NA_character_)),
+      Label = as.character(col_or("Label", NA_character_)),
+      Realization = suppressWarnings(as.integer(col_or("Realization", NA_integer_))),
+      Year = suppressWarnings(as.numeric(col_or("Year", NA_real_))),
+      start.years = rep(as.integer(start.years), n),
+      use.n.years = suppressWarnings(as.integer(col_or("use.n.years", use_n))),
+      true_value = suppressWarnings(as.numeric(col_or("true_value", NA_real_))),
+      value = suppressWarnings(as.numeric(df[[value_col]])),
+      stringsAsFactors = FALSE
+    )
+    out
+  }
+  
+  finite_quantile <- function(x, p) {
+    x <- x[is.finite(x)]
+    if (length(x) == 0L) return(NA_real_)
+    as.numeric(stats::quantile(x, p, na.rm = TRUE, names = FALSE))
+  }
+  
+  add_summary_rows <- function(value_rows) {
+    if (is.null(value_rows) || nrow(value_rows) == 0L) return(NULL)
+    group_cols <- intersect(
+      c("plot_family", "metric", "metric_detail", "level", "period",
+        "total", "relative", "base_model", "method", "Model", "Label",
+        "start.years", "use.n.years", "true_value"),
+      names(value_rows)
+    )
+    summary_wide <- value_rows |>
+      dplyr::filter(.data$statistic == "value") |>
+      dplyr::group_by(dplyr::across(dplyr::all_of(group_cols))) |>
+      dplyr::summarise(
+        q1 = finite_quantile(.data$value, 0.25),
+        median = finite_quantile(.data$value, 0.50),
+        q3 = finite_quantile(.data$value, 0.75),
+        min = .finite_min(.data$value),
+        max = .finite_max(.data$value),
+        n_finite = sum(is.finite(.data$value)),
+        .groups = "drop"
+      ) |>
+      dplyr::mutate(
+        iqr = .data$q3 - .data$q1,
+        whisker_low = pmax(.data$q1 - 1.5 * .data$iqr, .data$min),
+        whisker_high = pmin(.data$q3 + 1.5 * .data$iqr, .data$max)
+      )
+    
+    if (nrow(summary_wide) == 0L) return(NULL)
+    
+    summary_long <- tidyr::pivot_longer(
+      summary_wide,
+      cols = c("q1", "median", "q3", "iqr", "min", "max",
+               "whisker_low", "whisker_high", "n_finite"),
+      names_to = "statistic",
+      values_to = "value"
+    )
+    summary_long$record_type <- "plot_summary"
+    summary_long$Realization <- NA_integer_
+    summary_long$Year <- NA_real_
+    summary_long[, names(value_rows), drop = FALSE]
+  }
+  
+  metric_value_name <- function(metric) {
+    switch(metric, Catch = "Catch", SSB = "SSB", Fbar = "Fbar")
+  }
+  
+  summary_slot_name <- function(metric, level, period) {
+    if (metric == "Catch") {
+      return(paste0("catch_", level, "_", period))
+    }
+    if (metric == "SSB") {
+      return(paste0("ssb_", level, "_", period))
+    }
+    paste0("fbar_", level, "_", period)
+  }
+  
+  extract_performance_window <- function(metric, level, period) {
+    use_n <- window_n(period)
+    if (!is.null(mse_summary) && period %in% c("first", "last")) {
+      start_matches <- !identical(period, "first") ||
+        is.null(mse_summary$start.years) ||
+        identical(as.integer(start.years), as.integer(mse_summary$start.years))
+      slot_name <- summary_slot_name(metric, level, period)
+      if (isTRUE(start_matches) && !is.null(mse_summary[[slot_name]])) {
+        cached <- mse_summary[[slot_name]] |>
+          dplyr::group_by(.data$Model, .data$Realization) |>
+          dplyr::arrange(.data$Year, .by_group = TRUE)
+        if (period == "last") {
+          cached <- dplyr::slice_tail(cached, n = use_n)
+        } else {
+          cached <- dplyr::slice_head(cached, n = use_n)
+        }
+        return(dplyr::ungroup(cached))
+      }
+    }
+    
+    scope <- if (period == "all") "all" else period
+    if (metric == "Catch") {
+      return(extract_mods_catch(
+        mods, is.nsim, level = level, scope = scope,
+        use.n.years = if (period == "all") NULL else use_n,
+        start.years = start.years
+      ))
+    }
+    if (metric == "SSB") {
+      return(extract_mods_SSB(
+        mods, is.nsim, level = level, scope = scope,
+        use.n.years = if (period == "all") NULL else use_n,
+        start.years = start.years
+      ))
+    }
+    extract_mods_Fbar(
+      mods, is.nsim, level = level, scope = scope,
+      use.n.years = if (period == "all") NULL else use_n,
+      start.years = start.years
+    )
+  }
+  
+  make_performance_rows <- function(metric, level, period,
+                                    total = FALSE,
+                                    relative = FALSE,
+                                    base_model = NULL) {
+    res <- extract_performance_window(metric, level, period)
+    if (is.null(res) || nrow(res) == 0L) return(NULL)
+    
+    relabeled <- relabel_models(res, base_model)
+    res <- relabeled$data
+    base_local <- relabeled$base_model
+    value_name <- metric_value_name(metric)
+    
+    value_cols <- setdiff(names(res), c("Model", "Year", "Realization"))
+    long <- tidyr::pivot_longer(
+      res,
+      cols = dplyr::all_of(value_cols),
+      names_to = "Label",
+      values_to = "value"
+    )
+    
+    if (isTRUE(total) && metric == "Catch") {
+      long <- long |>
+        dplyr::group_by(.data$Model, .data$Realization, .data$Label) |>
+        dplyr::summarise(value = sum(.data$value, na.rm = TRUE), .groups = "drop")
+    }
+    
+    if (isTRUE(relative) && !is.null(base_local)) {
+      base_df <- long[as.character(long$Model) == as.character(base_local), , drop = FALSE]
+      names(base_df)[names(base_df) == "value"] <- "base_val"
+      if (isTRUE(total) && metric == "Catch") {
+        base_df <- base_df[, c("Realization", "Label", "base_val"), drop = FALSE]
+        long <- dplyr::left_join(long, base_df, by = c("Realization", "Label"))
+      } else {
+        base_df <- base_df[, c("Realization", "Year", "Label", "base_val"), drop = FALSE]
+        long <- dplyr::left_join(long, base_df, by = c("Realization", "Year", "Label"))
+      }
+      long$value <- ifelse(
+        is.finite(long$base_val) & long$base_val != 0,
+        long$value / long$base_val - 1,
+        NA_real_
+      )
+      long$base_val <- NULL
+    }
+    
+    if (!is.null(method)) {
+      long <- long |>
+        dplyr::group_by(.data$Model, .data$Realization, .data$Label) |>
+        dplyr::summarise(
+          value = if (method == "mean") {
+            mean(.data$value, na.rm = TRUE)
+          } else {
+            stats::median(.data$value, na.rm = TRUE)
+          },
+          .groups = "drop"
+        )
+    }
+    
+    value_rows <- make_value_rows(
+      long,
+      plot_family = "performance",
+      metric = metric,
+      metric_detail = if (isTRUE(total)) paste0("total_", value_name) else value_name,
+      level = level,
+      period = period,
+      total = isTRUE(total),
+      relative = isTRUE(relative),
+      base_model = if (isTRUE(relative)) base_local else NULL,
+      use_n = window_n(period)
+    )
+    bind_export_rows(list(value_rows, add_summary_rows(value_rows)))
+  }
+  
+  calculate_aav <- function(x) {
+    x <- as.numeric(x)
+    x <- x[is.finite(x)]
+    if (length(x) < 2L) return(NA_real_)
+    denom <- sum(x[-length(x)], na.rm = TRUE)
+    if (!is.finite(denom) || denom <= 0) return(NA_real_)
+    sum(abs(diff(x)), na.rm = TRUE) / denom
+  }
+  
+  start_to_row <- function(years_vec, start_y) {
+    n <- length(years_vec)
+    if (is.null(start_y) || length(start_y) != 1L || is.na(start_y)) return(1L)
+    idx_year <- which(years_vec == start_y)
+    if (length(idx_year) > 0L) return(as.integer(idx_year[1]))
+    idx <- suppressWarnings(as.integer(start_y))
+    if (!is.finite(idx)) return(1L)
+    as.integer(max(1L, min(n, idx)))
+  }
+  
+  aav_metric_info <- function(one, metric) {
+    if (metric == "Catch") {
+      mat <- one$om$rep$pred_catch
+      return(list(mat = mat, prefix = "Catch_Fleet",
+                  global_name = "Catch_Global",
+                  global_fun = function(M) rowSums(M, na.rm = TRUE)))
+    }
+    if (metric == "SSB") {
+      mat <- one$om$rep$SSB
+      return(list(mat = mat, prefix = "SSB_Region",
+                  global_name = "SSB_Global",
+                  global_fun = function(M) rowSums(as.matrix(M), na.rm = TRUE)))
+    }
+    mat <- one$om$rep$Fbar
+    list(mat = mat, prefix = "Fbar_Col",
+         global_name = "Fbar_Global",
+         global_fun = function(M) as.numeric(as.matrix(M)[, ncol(as.matrix(M))]))
+  }
+  
+  infer_level_from_label <- function(label) {
+    out <- rep("column", length(label))
+    out[grepl("Global", label, ignore.case = TRUE)] <- "global"
+    out[grepl("Region", label, ignore.case = TRUE)] <- "region"
+    out[grepl("Fleet", label, ignore.case = TRUE)] <- "fleet"
+    out
+  }
+  
+  make_annual_variation_rows <- function(metric) {
+    pieces <- iter_models(function(one, m, r) {
+      info <- aav_metric_info(one, metric)
+      mat <- as.matrix(info$mat)
+      years_vec <- tryCatch(one$om$years, error = function(e) NULL)
+      if (is.null(years_vec) || length(years_vec) != nrow(mat)) years_vec <- seq_len(nrow(mat))
+      i0 <- start_to_row(years_vec, start.years)
+      mat2 <- mat[i0:nrow(mat), , drop = FALSE]
+      out <- data.frame(Model = paste0("Model", m), Realization = r, stringsAsFactors = FALSE)
+      for (j in seq_len(ncol(mat2))) {
+        out[[paste0(info$prefix, j)]] <- calculate_aav(mat2[, j])
+      }
+      out[[info$global_name]] <- calculate_aav(info$global_fun(mat2))
+      out
+    })
+    if (length(pieces) == 0L) return(NULL)
+    res <- dplyr::bind_rows(pieces)
+    relabeled <- relabel_models(res, NULL)
+    res <- relabeled$data
+    metric_cols <- setdiff(names(res), c("Model", "Realization"))
+    long <- tidyr::pivot_longer(
+      res,
+      cols = dplyr::all_of(metric_cols),
+      names_to = "Label",
+      values_to = "value"
+    )
+    long$level <- infer_level_from_label(long$Label)
+    value_rows <- make_value_rows(
+      long,
+      plot_family = "annual_variation",
+      metric = metric,
+      metric_detail = "AAV",
+      period = "from_start_to_end",
+      total = FALSE,
+      relative = FALSE,
+      method_value = "AAV",
+      use_n = NA_integer_
+    )
+    bind_export_rows(list(value_rows, add_summary_rows(value_rows)))
+  }
+  
+  pick_idx <- function(nT, period, use_n, start_y) {
+    if (nT <= 0L) return(integer(0))
+    if (period == "last") {
+      idx <- (nT - use_n + 1L):nT
+    } else {
+      idx <- start_y:(start_y + use_n - 1L)
+    }
+    idx[idx >= 1L & idx <= nT]
+  }
+  
+  make_status_ssb_rows <- function(period) {
+    one0 <- first_model()
+    if (is.null(one0$om$rep$log_SSB_FXSPR)) return(NULL)
+    percentSPR <- one0$om$input$data$percentSPR
+    use_n <- window_n(period)
+    pieces <- iter_models(function(one, m, r) {
+      ref <- one$om$rep$log_SSB_FXSPR
+      ssb <- as.matrix(one$om$rep$SSB)
+      ratio <- cbind(ssb, rowSums(ssb, na.rm = TRUE)) / exp(ref)
+      idx <- pick_idx(nrow(ratio), period, use_n, start.years)
+      if (length(idx) == 0L) return(NULL)
+      out <- as.data.frame(ratio[idx, , drop = FALSE])
+      base_name <- paste0("SSB/SSB", percentSPR, "%")
+      names(out) <- paste0(base_name, ".s", seq_len(ncol(out)))
+      names(out)[ncol(out)] <- base_name
+      years_vec <- tryCatch(one$om$years, error = function(e) seq_len(nrow(ratio)))
+      out$Model <- paste0("Model", m)
+      out$Realization <- r
+      out$Year <- years_vec[idx]
+      out
+    })
+    if (length(pieces) == 0L) return(NULL)
+    res <- dplyr::bind_rows(pieces)
+    relabeled <- relabel_models(res, base.model)
+    res <- relabeled$data
+    base_local <- relabeled$base_model
+    value_cols <- setdiff(names(res), c("Model", "Year", "Realization"))
+    long_abs <- tidyr::pivot_longer(
+      res,
+      cols = dplyr::all_of(value_cols),
+      names_to = "Label",
+      values_to = "value"
+    )
+    
+    prob <- long_abs |>
+      dplyr::group_by(.data$Model, .data$Realization, .data$Label) |>
+      dplyr::summarise(value = mean(.data$value < 0.5, na.rm = TRUE), .groups = "drop")
+    
+    long_plot <- long_abs
+    relative_status <- !is.null(base_local)
+    if (relative_status) {
+      base_df <- long_abs[as.character(long_abs$Model) == as.character(base_local), , drop = FALSE]
+      names(base_df)[names(base_df) == "value"] <- "base_val"
+      base_df <- base_df[, c("Realization", "Year", "Label", "base_val"), drop = FALSE]
+      long_plot <- dplyr::left_join(long_plot, base_df, by = c("Realization", "Year", "Label")) |>
+        dplyr::mutate(value = ifelse(
+          is.finite(.data$base_val) & .data$base_val != 0,
+          .data$value / .data$base_val - 1,
+          NA_real_
+        ))
+      long_plot$base_val <- NULL
+    }
+    if (!is.null(method)) {
+      long_plot <- long_plot |>
+        dplyr::group_by(.data$Model, .data$Realization, .data$Label) |>
+        dplyr::summarise(
+          value = if (method == "mean") mean(.data$value, na.rm = TRUE) else stats::median(.data$value, na.rm = TRUE),
+          .groups = "drop"
+        )
+    }
+    
+    status_rows <- make_value_rows(
+      long_plot,
+      plot_family = "status",
+      metric = "SSB_ratio",
+      metric_detail = paste0("SSB_over_SSB", percentSPR, "pct"),
+      level = "region_global",
+      period = period,
+      relative = relative_status,
+      base_model = if (relative_status) base_local else NULL,
+      use_n = use_n
+    )
+    prob_rows <- make_value_rows(
+      prob,
+      plot_family = "status",
+      metric = "prob_SSB_below_0.5",
+      metric_detail = "overfished_probability",
+      level = "region_global",
+      period = period,
+      relative = FALSE,
+      method_value = "probability",
+      use_n = use_n
+    )
+    bind_export_rows(list(
+      status_rows, add_summary_rows(status_rows),
+      prob_rows, add_summary_rows(prob_rows)
+    ))
+  }
+  
+  make_status_fbar_rows <- function(period) {
+    one0 <- first_model()
+    if (is.null(one0$om$rep$log_Fbar_XSPR)) return(NULL)
+    percentSPR <- one0$om$input$data$percentSPR
+    n_fleets <- one0$om$input$data$n_fleets[1]
+    n_regions <- one0$om$input$data$n_regions[1]
+    use_n <- window_n(period)
+    
+    level_specs <- list(
+      fleet = list(idx = seq_len(n_fleets), prefix = "Fleet_"),
+      region = list(idx = n_fleets + seq_len(n_regions), prefix = "Region_"),
+      global = list(idx = n_fleets + n_regions + 1L, prefix = "Global")
+    )
+    
+    build_level <- function(level_name, spec) {
+      pieces <- iter_models(function(one, m, r) {
+        ref <- one$om$rep$log_Fbar_XSPR
+        fbar <- as.matrix(one$om$rep$Fbar)
+        ratio <- fbar[, spec$idx, drop = FALSE] / exp(ref[, spec$idx, drop = FALSE])
+        idx <- pick_idx(nrow(ratio), period, use_n, start.years)
+        if (length(idx) == 0L) return(NULL)
+        out <- as.data.frame(ratio[idx, , drop = FALSE])
+        names(out) <- paste0(spec$prefix, seq_along(spec$idx))
+        years_vec <- tryCatch(one$om$years, error = function(e) seq_len(nrow(ratio)))
+        out$Model <- paste0("Model", m)
+        out$Realization <- r
+        out$Year <- years_vec[idx]
+        out
+      })
+      if (length(pieces) == 0L) return(NULL)
+      res <- dplyr::bind_rows(pieces)
+      relabeled <- relabel_models(res, base.model)
+      res <- relabeled$data
+      base_local <- relabeled$base_model
+      value_cols <- setdiff(names(res), c("Model", "Year", "Realization"))
+      long_abs <- tidyr::pivot_longer(
+        res,
+        cols = dplyr::all_of(value_cols),
+        names_to = "Label",
+        values_to = "value"
+      )
+      prob <- long_abs |>
+        dplyr::group_by(.data$Model, .data$Realization, .data$Label) |>
+        dplyr::summarise(value = mean(.data$value > 1, na.rm = TRUE), .groups = "drop")
+      
+      long_plot <- long_abs
+      relative_status <- !is.null(base_local)
+      if (relative_status) {
+        base_df <- long_abs[as.character(long_abs$Model) == as.character(base_local), , drop = FALSE]
+        names(base_df)[names(base_df) == "value"] <- "base_val"
+        base_df <- base_df[, c("Realization", "Year", "Label", "base_val"), drop = FALSE]
+        long_plot <- dplyr::left_join(long_plot, base_df, by = c("Realization", "Year", "Label")) |>
+          dplyr::mutate(value = ifelse(
+            is.finite(.data$base_val) & .data$base_val != 0,
+            .data$value / .data$base_val - 1,
+            NA_real_
+          ))
+        long_plot$base_val <- NULL
+      }
+      if (!is.null(method)) {
+        long_plot <- long_plot |>
+          dplyr::group_by(.data$Model, .data$Realization, .data$Label) |>
+          dplyr::summarise(
+            value = if (method == "mean") mean(.data$value, na.rm = TRUE) else stats::median(.data$value, na.rm = TRUE),
+            .groups = "drop"
+          )
+      }
+      status_rows <- make_value_rows(
+        long_plot,
+        plot_family = "status",
+        metric = "Fbar_ratio",
+        metric_detail = paste0("Fbar_over_F", percentSPR, "pct"),
+        level = level_name,
+        period = period,
+        relative = relative_status,
+        base_model = if (relative_status) base_local else NULL,
+        use_n = use_n
+      )
+      prob_rows <- make_value_rows(
+        prob,
+        plot_family = "status",
+        metric = "prob_Fbar_above_1",
+        metric_detail = "overfishing_probability",
+        level = level_name,
+        period = period,
+        relative = FALSE,
+        method_value = "probability",
+        use_n = use_n
+      )
+      bind_export_rows(list(
+        status_rows, add_summary_rows(status_rows),
+        prob_rows, add_summary_rows(prob_rows)
+      ))
+    }
+    
+    bind_export_rows(lapply(names(level_specs), function(nm) build_level(nm, level_specs[[nm]])))
+  }
+  
+  make_kobe_rows <- function(period) {
+    one0 <- first_model()
+    if (is.null(one0$om$rep$log_SSB_FXSPR) || is.null(one0$om$rep$log_Fbar_XSPR)) {
+      return(NULL)
+    }
+    use_n <- window_n(period)
+    pieces <- iter_models(function(one, m, r) {
+      ssb_ref <- one$om$rep$log_SSB_FXSPR
+      f_ref <- one$om$rep$log_Fbar_XSPR
+      if (any(!is.finite(ssb_ref)) || any(!is.finite(f_ref))) return(NULL)
+      ssb <- as.matrix(one$om$rep$SSB)
+      ssb_ratio <- cbind(ssb, rowSums(ssb, na.rm = TRUE)) / exp(ssb_ref)
+      n_fleets <- one$om$input$data$n_fleets[1]
+      fbar <- as.matrix(one$om$rep$Fbar)
+      keep_idx <- seq_len(ncol(fbar))
+      if (n_fleets > 0L) keep_idx <- setdiff(keep_idx, seq_len(n_fleets))
+      f_ratio <- fbar[, keep_idx, drop = FALSE] / exp(f_ref[, keep_idx, drop = FALSE])
+      if (ncol(ssb_ratio) != ncol(f_ratio)) return(NULL)
+      idx <- pick_idx(nrow(ssb_ratio), period, use_n, start.years)
+      if (length(idx) == 0L) return(NULL)
+      labels <- c(paste0("Region_", seq_len(ncol(ssb_ratio) - 1L)), "Global")
+      years_vec <- tryCatch(one$om$years, error = function(e) seq_len(nrow(ssb_ratio)))
+      ssb_df <- data.frame(
+        Model = paste0("Model", m),
+        Realization = r,
+        Year = years_vec[idx],
+        as.data.frame(ssb_ratio[idx, , drop = FALSE]),
+        check.names = FALSE
+      )
+      f_df <- data.frame(
+        Model = paste0("Model", m),
+        Realization = r,
+        Year = years_vec[idx],
+        as.data.frame(f_ratio[idx, , drop = FALSE]),
+        check.names = FALSE
+      )
+      names(ssb_df)[4:ncol(ssb_df)] <- labels
+      names(f_df)[4:ncol(f_df)] <- labels
+      ssb_long <- tidyr::pivot_longer(
+        ssb_df,
+        cols = dplyr::all_of(labels),
+        names_to = "Label",
+        values_to = "value"
+      )
+      f_long <- tidyr::pivot_longer(
+        f_df,
+        cols = dplyr::all_of(labels),
+        names_to = "Label",
+        values_to = "value"
+      )
+      ssb_long$metric <- "SSB_ratio"
+      f_long$metric <- "Fbar_ratio"
+      dplyr::bind_rows(ssb_long, f_long)
+    })
+    if (length(pieces) == 0L) return(NULL)
+    long <- dplyr::bind_rows(pieces)
+    relabeled <- relabel_models(long, NULL)
+    long <- relabeled$data
+    long$level <- infer_level_from_label(long$Label)
+    value_rows <- make_value_rows(
+      long,
+      plot_family = "kobe",
+      metric_detail = "kobe_axis_ratio",
+      period = period,
+      relative = FALSE,
+      method_value = "none",
+      use_n = use_n
+    )
+    bind_export_rows(list(value_rows, add_summary_rows(value_rows)))
+  }
+  
+  make_holistic_rows <- function() {
+    pieces <- iter_models(function(one, m, r) {
+      rep_obj <- one$om$rep
+      dat <- one$om$input$data
+      n_fleets <- dat$n_fleets[1]
+      n_regions <- dat$n_regions[1]
+      fbar_global_idx <- n_fleets + n_regions + 1L
+      ssb_global_idx <- n_regions + 1L
+      
+      catch_ts <- rowSums(rep_obj$pred_catch, na.rm = TRUE)
+      ssb_ts <- rowSums(rep_obj$SSB, na.rm = TRUE)
+      fbar_ts <- as.matrix(rep_obj$Fbar)[, fbar_global_idx]
+      
+      idx_first <- pick_idx(length(catch_ts), "first", use.n.years.first, start.years)
+      idx_last <- pick_idx(length(catch_ts), "last", use.n.years.last, start.years)
+      stat_fun <- if (stat_method == "mean") mean else stats::median
+      
+      out <- data.frame(
+        Model = paste0("Model", m),
+        Realization = r,
+        Catch_first = stat_fun(catch_ts[idx_first], na.rm = TRUE),
+        SSB_first = stat_fun(ssb_ts[idx_first], na.rm = TRUE),
+        Fbar_first = stat_fun(fbar_ts[idx_first], na.rm = TRUE),
+        Catch_last = stat_fun(catch_ts[idx_last], na.rm = TRUE),
+        SSB_last = stat_fun(ssb_ts[idx_last], na.rm = TRUE),
+        Fbar_last = stat_fun(fbar_ts[idx_last], na.rm = TRUE),
+        catch_aacv = calculate_aav(catch_ts),
+        ssb_aacv = calculate_aav(ssb_ts),
+        fbar_aacv = calculate_aav(fbar_ts),
+        stringsAsFactors = FALSE
+      )
+      
+      f_ref_ts <- NULL
+      if (!is.null(rep_obj$log_Fbar_XSPR)) {
+        f_ref_ts <- tryCatch(exp(rep_obj$log_Fbar_XSPR[, fbar_global_idx]), error = function(e) NULL)
+        if (is.null(f_ref_ts) || length(f_ref_ts) != length(fbar_ts) ||
+            !any(is.finite(f_ref_ts))) f_ref_ts <- NULL
+      }
+      if (is.null(f_ref_ts) && !is.null(rep_obj$log_Fbar_XSPR_static)) {
+        f_ref <- suppressWarnings(exp(rep_obj$log_Fbar_XSPR_static[fbar_global_idx]))
+        if (is.finite(f_ref) && f_ref > 0) f_ref_ts <- rep(f_ref, length(fbar_ts))
+      }
+      if (!is.null(f_ref_ts)) {
+        f_ratio <- fbar_ts / f_ref_ts
+        out$prob_first <- mean(f_ratio[idx_first] > 1, na.rm = TRUE)
+        out$prob_last <- mean(f_ratio[idx_last] > 1, na.rm = TRUE)
+      } else {
+        out$prob_first <- NA_real_
+        out$prob_last <- NA_real_
+      }
+      
+      ssb_ref_ts <- NULL
+      if (!is.null(rep_obj$log_SSB_FXSPR)) {
+        ssb_ref_ts <- tryCatch(exp(rep_obj$log_SSB_FXSPR[, ssb_global_idx]), error = function(e) NULL)
+        if (is.null(ssb_ref_ts) || length(ssb_ref_ts) != length(ssb_ts) ||
+            !any(is.finite(ssb_ref_ts))) ssb_ref_ts <- NULL
+      }
+      if (is.null(ssb_ref_ts) && !is.null(rep_obj$log_SSB_FXSPR_static)) {
+        ssb_ref <- suppressWarnings(exp(rep_obj$log_SSB_FXSPR_static[ssb_global_idx]))
+        if (is.finite(ssb_ref) && ssb_ref > 0) ssb_ref_ts <- rep(ssb_ref, length(ssb_ts))
+      }
+      if (!is.null(ssb_ref_ts)) {
+        ssb_ratio <- ssb_ts / ssb_ref_ts
+        out$prob_SSB_first <- mean(ssb_ratio[idx_first] < 1, na.rm = TRUE)
+        out$prob_SSB_last <- mean(ssb_ratio[idx_last] < 1, na.rm = TRUE)
+      } else {
+        out$prob_SSB_first <- NA_real_
+        out$prob_SSB_last <- NA_real_
+      }
+      out
+    })
+    if (length(pieces) == 0L) return(NULL)
+    wide <- dplyr::bind_rows(pieces)
+    relabeled <- relabel_models(wide, NULL)
+    wide <- relabeled$data
+    metric_cols <- setdiff(names(wide), c("Model", "Realization"))
+    long <- tidyr::pivot_longer(
+      wide,
+      cols = dplyr::all_of(metric_cols),
+      names_to = "metric",
+      values_to = "value"
+    )
+    long$period <- ifelse(grepl("first$", long$metric), "first",
+                          ifelse(grepl("last$", long$metric), "last", "all"))
+    long$level <- "global"
+    long$Label <- "Global"
+    value_rows <- make_value_rows(
+      long,
+      plot_family = "holistic_raw",
+      metric_detail = "raw_before_normalized_score",
+      total = FALSE,
+      relative = FALSE,
+      method_value = stat_method,
+      use_n = NA_integer_
+    )
+    bind_export_rows(list(value_rows, add_summary_rows(value_rows)))
+  }
+  
+  make_diagnostic_parameter_rows <- function() {
+    one0 <- first_model()
+    mean_rec_true <- tryCatch(exp(one0$om$parList$mean_rec_pars[, 1]),
+                              error = function(e) numeric(0L))
+    rec_sig_true <- tryCatch(exp(one0$om$parList$log_NAA_sigma[, 1, 1]),
+                             error = function(e) numeric(0L))
+    naa_sig_true <- tryCatch(exp(one0$om$parList$log_NAA_sigma[, 1, 2]),
+                             error = function(e) numeric(0L))
+    is_n_regions <- tryCatch(one0$om$input$data$n_regions[1] > 1,
+                             error = function(e) FALSE)
+    
+    parameter_blocks <- function(est, nm) {
+      if (is.null(est)) return(list())
+      nms <- names(est)
+      if (!is.null(nms) && nm %in% nms) return(list(est))
+      if (!is.list(est)) return(list())
+      blocks <- Filter(function(x) {
+        is.list(x) && !is.null(names(x)) && nm %in% names(x)
+      }, est)
+      blocks
+    }
+    
+    extract_mean_rec <- function(est) {
+      blocks <- parameter_blocks(est, "mean_rec_pars")
+      vals <- unlist(lapply(blocks, function(x) {
+        tryCatch(exp(x$mean_rec_pars[, 1]), error = function(e) numeric(0L))
+      }), use.names = FALSE)
+      as.numeric(vals)
+    }
+    
+    extract_sigmas <- function(est) {
+      blocks <- parameter_blocks(est, "log_NAA_sigma")
+      rec_vals <- unlist(lapply(blocks, function(x) {
+        tryCatch(exp(x$log_NAA_sigma[, 1, 1]), error = function(e) numeric(0L))
+      }), use.names = FALSE)
+      naa_vals <- unlist(lapply(blocks, function(x) {
+        tryCatch(exp(x$log_NAA_sigma[, 1, 2]), error = function(e) numeric(0L))
+      }), use.names = FALSE)
+      list(rec = as.numeric(rec_vals), naa = as.numeric(naa_vals))
+    }
+    
+    label_values <- function(prefix, values, mean_rec = FALSE) {
+      if (length(values) == 0L) return(character(0L))
+      if (length(values) == 1L) return(prefix)
+      if (isTRUE(mean_rec)) return(paste0(prefix, "_", seq_along(values)))
+      paste0(prefix, seq_along(values))
+    }
+    
+    mean_rec_true_for_label <- function(labels) {
+      out <- rep(NA_real_, length(labels))
+      if (length(mean_rec_true) == 0L) return(out)
+      exact <- labels == "Mean_Rec"
+      if (any(exact)) {
+        out[exact] <- if (isTRUE(is_n_regions)) sum(mean_rec_true, na.rm = TRUE) else mean_rec_true[1]
+      }
+      indexed <- grepl("^Mean_Rec_\\d+$", labels)
+      idx <- suppressWarnings(as.integer(sub("^Mean_Rec_", "", labels[indexed])))
+      ok <- is.finite(idx) & idx >= 1L & idx <= length(mean_rec_true)
+      out[which(indexed)[ok]] <- mean_rec_true[idx[ok]]
+      out
+    }
+    
+    sigma_true_for_label <- function(labels, prefix, truth) {
+      out <- rep(NA_real_, length(labels))
+      if (isTRUE(is_n_regions) || length(truth) == 0L) return(out)
+      exact <- labels == prefix
+      if (any(exact)) out[exact] <- truth[1]
+      indexed <- grepl(paste0("^", prefix, "\\d+$"), labels)
+      idx <- suppressWarnings(as.integer(sub(paste0("^", prefix), "", labels[indexed])))
+      ok <- is.finite(idx) & idx >= 1L & idx <= length(truth)
+      out[which(indexed)[ok]] <- truth[idx[ok]]
+      out
+    }
+    
+    pieces <- iter_models(function(one, m, r) {
+      if (is.null(one$par.est) || length(one$par.est) == 0L) return(NULL)
+      est <- one$par.est[[length(one$par.est)]]
+      
+      mean_rec_vals <- extract_mean_rec(est)
+      sig_vals <- extract_sigmas(est)
+      rows <- list()
+      
+      if (length(mean_rec_vals) > 0L) {
+        labels <- label_values("Mean_Rec", mean_rec_vals, mean_rec = TRUE)
+        rows[[length(rows) + 1L]] <- data.frame(
+          Model = paste0("Model", m),
+          Realization = r,
+          Label = labels,
+          metric = "Mean_Rec",
+          metric_detail = "estimated_mean_recruitment",
+          true_value = mean_rec_true_for_label(labels),
+          value = mean_rec_vals,
+          stringsAsFactors = FALSE
+        )
+      }
+      
+      if (length(sig_vals$rec) > 0L) {
+        labels <- label_values("Rec_sigma", sig_vals$rec)
+        rows[[length(rows) + 1L]] <- data.frame(
+          Model = paste0("Model", m),
+          Realization = r,
+          Label = labels,
+          metric = "Rec_sigma",
+          metric_detail = "estimated_recruitment_sigma",
+          true_value = sigma_true_for_label(labels, "Rec_sigma", rec_sig_true),
+          value = sig_vals$rec,
+          stringsAsFactors = FALSE
+        )
+      }
+      
+      if (length(sig_vals$naa) > 0L) {
+        labels <- label_values("NAA_sigma", sig_vals$naa)
+        rows[[length(rows) + 1L]] <- data.frame(
+          Model = paste0("Model", m),
+          Realization = r,
+          Label = labels,
+          metric = "NAA_sigma",
+          metric_detail = "estimated_naa_sigma",
+          true_value = sigma_true_for_label(labels, "NAA_sigma", naa_sig_true),
+          value = sig_vals$naa,
+          stringsAsFactors = FALSE
+        )
+      }
+      
+      rows <- rows[!vapply(rows, function(x) is.null(x) || nrow(x) == 0L, logical(1))]
+      if (length(rows) == 0L) return(NULL)
+      dplyr::bind_rows(rows)
+    })
+    
+    if (length(pieces) == 0L) return(NULL)
+    res <- dplyr::bind_rows(pieces)
+    relabeled <- relabel_models(res, NULL)
+    res <- relabeled$data
+    
+    value_rows <- make_value_rows(
+      res,
+      plot_family = "diagnostics",
+      level = "parameter",
+      period = "last_assessment",
+      total = FALSE,
+      relative = FALSE,
+      method_value = "diagnostic",
+      use_n = NA_integer_
+    )
+    bind_export_rows(list(value_rows, add_summary_rows(value_rows)))
+  }
+  
+  rows <- list()
+  
+  for (period in c("first", "last", "all")) {
+    for (level in c("global", "region", "fleet")) {
+      rows[[length(rows) + 1L]] <- make_performance_rows("Catch", level, period, total = FALSE)
+      rows[[length(rows) + 1L]] <- make_performance_rows("Catch", level, period, total = TRUE)
+      if (isTRUE(include_relative) && !is.null(base.model)) {
+        rows[[length(rows) + 1L]] <- make_performance_rows("Catch", level, period, total = FALSE,
+                                                           relative = TRUE, base_model = base.model)
+        rows[[length(rows) + 1L]] <- make_performance_rows("Catch", level, period, total = TRUE,
+                                                           relative = TRUE, base_model = base.model)
+      }
+    }
+  }
+  
+  for (period in c("first", "last")) {
+    for (level in c("global", "region")) {
+      rows[[length(rows) + 1L]] <- make_performance_rows("SSB", level, period, total = FALSE)
+      if (isTRUE(include_relative) && !is.null(base.model)) {
+        rows[[length(rows) + 1L]] <- make_performance_rows("SSB", level, period,
+                                                           relative = TRUE, base_model = base.model)
+      }
+    }
+    for (level in c("global", "region", "fleet")) {
+      rows[[length(rows) + 1L]] <- make_performance_rows("Fbar", level, period, total = FALSE)
+      if (isTRUE(include_relative) && !is.null(base.model)) {
+        rows[[length(rows) + 1L]] <- make_performance_rows("Fbar", level, period,
+                                                           relative = TRUE, base_model = base.model)
+      }
+    }
+  }
+  
+  for (metric in c("Catch", "SSB", "Fbar")) {
+    rows[[length(rows) + 1L]] <- make_annual_variation_rows(metric)
+  }
+  
+  if (isTRUE(include_status)) {
+    status_rows <- tryCatch(
+      bind_export_rows(list(
+        make_status_ssb_rows("first"),
+        make_status_ssb_rows("last"),
+        make_status_fbar_rows("first"),
+        make_status_fbar_rows("last")
+      )),
+      error = function(e) {
+        message("Status statistics export skipped: ", e$message)
+        NULL
+      }
+    )
+    rows[[length(rows) + 1L]] <- status_rows
+  }
+  
+  if (isTRUE(include_kobe)) {
+    kobe_rows <- tryCatch(
+      bind_export_rows(list(make_kobe_rows("first"), make_kobe_rows("last"))),
+      error = function(e) {
+        message("Kobe statistics export skipped: ", e$message)
+        NULL
+      }
+    )
+    rows[[length(rows) + 1L]] <- kobe_rows
+  }
+  
+  if (isTRUE(include_holistic)) {
+    rows[[length(rows) + 1L]] <- tryCatch(
+      make_holistic_rows(),
+      error = function(e) {
+        message("Holistic raw statistics export skipped: ", e$message)
+        NULL
+      }
+    )
+  }
+  
+  if (isTRUE(include_diagnostics)) {
+    rows[[length(rows) + 1L]] <- tryCatch(
+      make_diagnostic_parameter_rows(),
+      error = function(e) {
+        message("Diagnostic parameter statistics export skipped: ", e$message)
+        NULL
+      }
+    )
+  }
+  
+  out <- bind_export_rows(rows)
+  
+  if (!is.null(output_file)) {
+    is_abs <- grepl("^([A-Za-z]:)?[\\\\/]", output_file)
+    output_path <- if (is_abs) {
+      output_file
+    } else if (dirname(output_file) %in% c(".", "")) {
+      file.path(main.dir, sub.dir, output_file)
+    } else {
+      file.path(main.dir, output_file)
+    }
+    output_dir <- dirname(output_path)
+    if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    utils::write.csv(out, output_path, row.names = FALSE, na = "")
+    attr(out, "file") <- normalizePath(output_path, winslash = "/", mustWork = FALSE)
+  }
+  
+  out
+}
+
+#' Export a compact summary of MSE performance statistics
+#'
+#' Summarises the detailed table returned by
+#' \code{export_mse_performance_statistics()} into one row per
+#' plot family, metric, level, period, model, and label. This is intended as a
+#' compact analysis-ready CSV with means, medians, and other common summaries.
+#'
+#' @param performance_statistics A data frame returned by
+#'   \code{export_mse_performance_statistics()}, or a path to a CSV previously
+#'   written by that function.
+#' @param main.dir Character. Top-level output directory.
+#' @param sub.dir Character. Subdirectory under \code{main.dir}.
+#' @param output_file Character or \code{NULL}. File name or path for the CSV.
+#'   If \code{NULL}, the data frame is returned without writing a file.
+#' @param statistics Character vector of summary statistics to keep. Options are
+#'   \code{"n_total"}, \code{"n_finite"}, \code{"n_missing"}, \code{"mean"},
+#'   \code{"median"}, \code{"sd"}, \code{"q1"}, \code{"q3"},
+#'   \code{"iqr"}, \code{"min"}, and \code{"max"}.
+#' @param plot_family Optional character vector used to keep only selected plot
+#'   families, such as \code{"performance"} or \code{"holistic_raw"}.
+#' @param metrics Optional character vector used to keep only selected metrics,
+#'   such as \code{"Catch"}, \code{"SSB"}, or \code{"Fbar"}.
+#'
+#' @return A compact summary data frame. If \code{output_file} is not
+#'   \code{NULL}, the written path is stored in \code{attr(result, "file")}.
+#' @export
+export_mse_performance_summary <- function(performance_statistics,
+                                           main.dir = getwd(),
+                                           sub.dir = "Report",
+                                           output_file = "mse_performance_summary.csv",
+                                           statistics = c("mean", "median", "sd",
+                                                          "q1", "q3", "min", "max",
+                                                          "n_finite"),
+                                           plot_family = NULL,
+                                           metrics = NULL) {
+  if (!requireNamespace("dplyr", quietly = TRUE)) {
+    stop("Package 'dplyr' is required to export MSE performance summaries.")
+  }
+  
+  if (is.character(performance_statistics) && length(performance_statistics) == 1L) {
+    performance_statistics <- utils::read.csv(performance_statistics, stringsAsFactors = FALSE)
+  }
+  if (!is.data.frame(performance_statistics)) {
+    stop("performance_statistics must be a data frame or a path to a CSV file.")
+  }
+  
+  allowed_stats <- c("n_total", "n_finite", "n_missing", "mean", "median",
+                     "sd", "q1", "q3", "iqr", "min", "max")
+  statistics <- unique(statistics)
+  bad_stats <- setdiff(statistics, allowed_stats)
+  if (length(bad_stats) > 0L) {
+    stop("Unsupported statistics requested: ", paste(bad_stats, collapse = ", "))
+  }
+  
+  required_cols <- c("record_type", "statistic", "value")
+  missing_cols <- setdiff(required_cols, names(performance_statistics))
+  if (length(missing_cols) > 0L) {
+    stop("performance_statistics is missing required columns: ",
+         paste(missing_cols, collapse = ", "))
+  }
+  
+  value_rows <- performance_statistics[
+    performance_statistics$record_type == "plot_value" &
+      performance_statistics$statistic == "value",
+    ,
+    drop = FALSE
+  ]
+  
+  if (!is.null(plot_family) && "plot_family" %in% names(value_rows)) {
+    value_rows <- value_rows[value_rows$plot_family %in% plot_family, , drop = FALSE]
+  }
+  if (!is.null(metrics) && "metric" %in% names(value_rows)) {
+    value_rows <- value_rows[value_rows$metric %in% metrics, , drop = FALSE]
+  }
+  
+  id_cols <- intersect(
+    c("plot_family", "metric", "metric_detail", "level", "period",
+      "total", "relative", "base_model", "method", "Model", "Label",
+      "start.years", "use.n.years", "true_value"),
+    names(value_rows)
+  )
+  
+  finite_quantile <- function(x, p) {
+    x <- x[is.finite(x)]
+    if (length(x) == 0L) return(NA_real_)
+    as.numeric(stats::quantile(x, p, na.rm = TRUE, names = FALSE))
+  }
+  
+  finite_mean <- function(x) {
+    x <- x[is.finite(x)]
+    if (length(x) == 0L) return(NA_real_)
+    mean(x)
+  }
+  
+  finite_sd <- function(x) {
+    x <- x[is.finite(x)]
+    if (length(x) < 2L) return(NA_real_)
+    stats::sd(x)
+  }
+  
+  if (nrow(value_rows) == 0L) {
+    out <- value_rows[0, id_cols, drop = FALSE]
+    for (nm in statistics) out[[nm]] <- numeric(0L)
+  } else {
+    out <- value_rows |>
+      dplyr::group_by(dplyr::across(dplyr::all_of(id_cols))) |>
+      dplyr::summarise(
+        n_total = dplyr::n(),
+        n_finite = sum(is.finite(.data$value)),
+        n_missing = sum(!is.finite(.data$value)),
+        mean = finite_mean(.data$value),
+        median = finite_quantile(.data$value, 0.50),
+        sd = finite_sd(.data$value),
+        q1 = finite_quantile(.data$value, 0.25),
+        q3 = finite_quantile(.data$value, 0.75),
+        iqr = q3 - q1,
+        min = .finite_min(.data$value),
+        max = .finite_max(.data$value),
+        .groups = "drop"
+      )
+    
+    out <- out[, c(id_cols, statistics), drop = FALSE]
+  }
+  
+  if (!is.null(output_file)) {
+    is_abs <- grepl("^([A-Za-z]:)?[\\\\/]", output_file)
+    output_path <- if (is_abs) {
+      output_file
+    } else if (dirname(output_file) %in% c(".", "")) {
+      file.path(main.dir, sub.dir, output_file)
+    } else {
+      file.path(main.dir, output_file)
+    }
+    output_dir <- dirname(output_path)
+    if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    utils::write.csv(out, output_path, row.names = FALSE, na = "")
+    attr(out, "file") <- normalizePath(output_path, winslash = "/", mustWork = FALSE)
+  }
+  
+  out
+}
+
+#' Export raw yearly MSE time series
+#'
+#' Builds a very raw, long-form table with one row per OM realization, EM model,
+#' year, metric, scale, and label. This includes Catch, SSB, Fbar, OM/EM NAA,
+#' OM/EM NAA deviations, and biological reference points when available. This
+#' is useful when you want the underlying yearly values behind the plots rather
+#' than the summarized performance statistics.
+#'
+#' @param mods A list of model outputs. For non-simulation runs:
+#'   \code{list(Mod1, Mod2, ...)}. For simulation runs:
+#'   \code{list(sim1=list(Mod1, Mod2, ...), sim2=list(...), ...)}.
+#' @param is.nsim Logical; whether \code{mods} is nested by simulation
+#'   realization.
+#' @param main.dir Character. Top-level output directory.
+#' @param sub.dir Character. Subdirectory under \code{main.dir}.
+#' @param output_file Character or \code{NULL}. File name or path for the CSV.
+#'   If \code{NULL}, the data frame is returned without writing a file.
+#' @param mse_summary Optional precomputed summary from \code{build_mse_summary()}.
+#' @param new_model_names Optional display names for models.
+#' @param feedback_start_year Optional numeric year marking the first feedback
+#'   year. Years before this value are labelled \code{"historical"} and years
+#'   from this value onward are labelled \code{"feedback"}. If \code{NULL}, the
+#'   function tries to infer the first feedback year from \code{catch_advice};
+#'   if that is not available, \code{Period} is labelled \code{"unknown"}.
+#'
+#' @return A raw long-form data frame. If \code{output_file} is not
+#'   \code{NULL}, the written path is stored in \code{attr(result, "file")}.
+#' @export
+export_mse_raw_timeseries <- function(mods,
+                                      is.nsim,
+                                      main.dir = getwd(),
+                                      sub.dir = "Report",
+                                      output_file = "mse_raw_timeseries.csv",
+                                      mse_summary = getOption("mse_summary", NULL),
+                                      new_model_names = NULL,
+                                      feedback_start_year = NULL) {
+  if (!requireNamespace("dplyr", quietly = TRUE)) {
+    stop("Package 'dplyr' is required to export raw MSE time series.")
+  }
+  if (!requireNamespace("tidyr", quietly = TRUE)) {
+    stop("Package 'tidyr' is required to export raw MSE time series.")
+  }
+  
+  first_model <- function() {
+    if (isTRUE(is.nsim)) mods[[1]][[1]] else mods[[1]]
+  }
+  
+  model_levels <- if (isTRUE(is.nsim)) {
+    paste0("Model", seq_along(mods[[1]]))
+  } else {
+    paste0("Model", seq_along(mods))
+  }
+  
+  relabel_models <- function(df) {
+    if (is.null(df) || nrow(df) == 0L || !("Model" %in% names(df))) {
+      return(df)
+    }
+    if (!is.null(new_model_names)) {
+      if (length(new_model_names) != length(model_levels)) {
+        stop("Length of new_model_names must match the number of models.")
+      }
+      df$Model <- factor(as.character(df$Model),
+                         levels = model_levels,
+                         labels = new_model_names)
+    } else {
+      df$Model <- factor(as.character(df$Model), levels = model_levels)
+    }
+    df
+  }
+  
+  infer_feedback_start_year <- function() {
+    one <- tryCatch(first_model(), error = function(e) NULL)
+    if (is.null(one)) return(NULL)
+    
+    years <- tryCatch(one$om$years, error = function(e) NULL)
+    if (is.null(years) || length(years) == 0L) return(NULL)
+    
+    catch_advice <- tryCatch(one$catch_advice, error = function(e) NULL)
+    if (is.null(catch_advice) || length(catch_advice) == 0L) return(NULL)
+    
+    n_feedback_years <- tryCatch({
+      if (is.data.frame(catch_advice) || is.matrix(catch_advice)) {
+        nrow(catch_advice)
+      } else {
+        ca <- do.call(rbind, catch_advice)
+        nrow(ca)
+      }
+    }, error = function(e) length(catch_advice))
+    
+    n_feedback_years <- suppressWarnings(as.integer(n_feedback_years))
+    if (length(n_feedback_years) != 1L || !is.finite(n_feedback_years) ||
+        n_feedback_years <= 0L) {
+      return(NULL)
+    }
+    
+    first_feedback_idx <- length(years) - n_feedback_years + 1L
+    if (first_feedback_idx < 1L || first_feedback_idx > length(years)) return(NULL)
+    as.numeric(years[first_feedback_idx])
+  }
+  
+  feedback_start <- feedback_start_year
+  if (is.null(feedback_start)) {
+    feedback_start <- infer_feedback_start_year()
+  }
+  if (!is.null(feedback_start)) {
+    feedback_start <- suppressWarnings(as.numeric(feedback_start[1]))
+    if (length(feedback_start) != 1L || !is.finite(feedback_start)) {
+      feedback_start <- NULL
+    }
+  }
+  
+  period_for_year <- function(year) {
+    year <- suppressWarnings(as.numeric(year))
+    if (is.null(feedback_start)) return(rep("unknown", length(year)))
+    ifelse(year < feedback_start, "historical", "feedback")
+  }
+  
+  get_timeseries <- function(slot_name, metric, level) {
+    if (!is.null(mse_summary) && !is.null(mse_summary[[slot_name]])) {
+      return(mse_summary[[slot_name]])
+    }
+    if (metric == "Catch") {
+      return(extract_mods_catch(mods, is.nsim, level = level, scope = "all"))
+    }
+    if (metric == "SSB") {
+      return(extract_mods_SSB(mods, is.nsim, level = level, scope = "all"))
+    }
+    extract_mods_Fbar(mods, is.nsim, level = level, scope = "all")
+  }
+  
+  empty_raw <- function() {
+    data.frame(
+      record_type = character(),
+      component = character(),
+      OM = character(),
+      EM = character(),
+      Realization = integer(),
+      Model = character(),
+      Assessment = integer(),
+      Year = numeric(),
+      Year_Index = integer(),
+      Period = character(),
+      feedback_start_year = numeric(),
+      metric = character(),
+      level = character(),
+      Label = character(),
+      Stock = character(),
+      Region = character(),
+      Fleet = character(),
+      Age = character(),
+      reference_percent = numeric(),
+      value = numeric(),
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  iter_models <- function(fun) {
+    if (!isTRUE(is.nsim)) {
+      out <- lapply(seq_along(mods), function(m) fun(mods[[m]], m, 1L))
+    } else {
+      out <- lapply(seq_along(mods), function(r) {
+        lapply(seq_along(mods[[r]]), function(m) fun(mods[[r]][[m]], m, r))
+      })
+      out <- unlist(out, recursive = FALSE)
+    }
+    out[!vapply(out, is.null, logical(1))]
+  }
+  
+  complete_raw_rows <- function(df, component = "OM") {
+    if (is.null(df) || nrow(df) == 0L) return(NULL)
+    if (!("Model" %in% names(df))) stop("Raw export rows must include Model.")
+    if (!("Realization" %in% names(df))) df$Realization <- NA_integer_
+    
+    df <- relabel_models(df)
+    n <- nrow(df)
+    
+    if (!("record_type" %in% names(df))) df$record_type <- "raw_timeseries"
+    if (!("component" %in% names(df))) df$component <- component
+    if (!("OM" %in% names(df))) df$OM <- paste0("OM", df$Realization)
+    if (!("EM" %in% names(df))) df$EM <- as.character(df$Model)
+    if (!("Assessment" %in% names(df))) df$Assessment <- NA_integer_
+    if (!("Year" %in% names(df))) df$Year <- NA_real_
+    if (!("Year_Index" %in% names(df))) df$Year_Index <- NA_integer_
+    if (!("Period" %in% names(df))) df$Period <- period_for_year(df$Year)
+    if (!("feedback_start_year" %in% names(df))) {
+      df$feedback_start_year <- if (is.null(feedback_start)) NA_real_ else feedback_start
+    }
+    if (!("metric" %in% names(df))) df$metric <- NA_character_
+    if (!("level" %in% names(df))) df$level <- NA_character_
+    if (!("Label" %in% names(df))) df$Label <- NA_character_
+    if (!("Stock" %in% names(df))) df$Stock <- NA_character_
+    if (!("Region" %in% names(df))) df$Region <- NA_character_
+    if (!("Fleet" %in% names(df))) df$Fleet <- NA_character_
+    if (!("Age" %in% names(df))) df$Age <- NA_character_
+    if (!("reference_percent" %in% names(df))) df$reference_percent <- NA_real_
+    if (!("value" %in% names(df))) df$value <- NA_real_
+    
+    df$record_type <- as.character(df$record_type)
+    df$component <- as.character(df$component)
+    df$OM <- as.character(df$OM)
+    df$EM <- as.character(df$EM)
+    df$Realization <- suppressWarnings(as.integer(df$Realization))
+    df$Model <- as.character(df$Model)
+    df$Assessment <- suppressWarnings(as.integer(df$Assessment))
+    df$Year <- suppressWarnings(as.numeric(df$Year))
+    df$Year_Index <- suppressWarnings(as.integer(df$Year_Index))
+    df$Period <- as.character(df$Period)
+    df$feedback_start_year <- suppressWarnings(as.numeric(df$feedback_start_year))
+    df$metric <- as.character(df$metric)
+    df$level <- as.character(df$level)
+    df$Label <- as.character(df$Label)
+    df$Stock <- as.character(df$Stock)
+    df$Region <- as.character(df$Region)
+    df$Fleet <- as.character(df$Fleet)
+    df$Age <- as.character(df$Age)
+    df$reference_percent <- suppressWarnings(as.numeric(df$reference_percent))
+    df$value <- suppressWarnings(as.numeric(df$value))
+    
+    df[, names(empty_raw()), drop = FALSE]
+  }
+  
+  make_raw_rows <- function(df, metric, level) {
+    if (is.null(df) || nrow(df) == 0L) return(NULL)
+    
+    required_cols <- c("Model", "Year", "Realization")
+    missing_cols <- setdiff(required_cols, names(df))
+    if (length(missing_cols) > 0L) {
+      stop("Raw ", metric, " ", level, " data are missing required columns: ",
+           paste(missing_cols, collapse = ", "))
+    }
+    
+    df <- relabel_models(df)
+    df <- df |>
+      dplyr::group_by(.data$Model, .data$Realization) |>
+      dplyr::arrange(.data$Year, .by_group = TRUE) |>
+      dplyr::mutate(Year_Index = dplyr::row_number()) |>
+      dplyr::ungroup()
+    
+    value_cols <- setdiff(names(df), c("Model", "Year", "Realization", "Year_Index"))
+    if (length(value_cols) == 0L) return(NULL)
+    
+    long <- tidyr::pivot_longer(
+      df,
+      cols = dplyr::all_of(value_cols),
+      names_to = "Label",
+      values_to = "value"
+    )
+    
+    long$metric <- metric
+    long$level <- level
+    complete_raw_rows(long, component = "OM")
+  }
+  
+  choose_years <- function(obj, n_years) {
+    candidates <- list(
+      tryCatch(obj$years_full, error = function(e) NULL),
+      tryCatch(obj$years, error = function(e) NULL)
+    )
+    for (yrs in candidates) {
+      if (!is.null(yrs) && length(yrs) == n_years) return(as.numeric(yrs))
+    }
+    seq_len(n_years)
+  }
+  
+  labels_or_default <- function(x, n, prefix) {
+    if (!is.null(x) && length(x) >= n) return(as.character(x[seq_len(n)]))
+    paste0(prefix, seq_len(n))
+  }
+  
+  make_naa_array_rows <- function(arr,
+                                  years,
+                                  model_name,
+                                  realization,
+                                  metric,
+                                  component,
+                                  assessment = NA_integer_,
+                                  stock_names = NULL,
+                                  region_names = NULL,
+                                  age_names = NULL) {
+    if (is.null(arr)) return(NULL)
+    dims <- dim(arr)
+    if (length(dims) != 4L) return(NULL)
+    
+    stock_labels <- labels_or_default(stock_names, dims[1], "Stock_")
+    region_labels <- labels_or_default(region_names, dims[2], "Region_")
+    age_labels <- labels_or_default(age_names, dims[4], "Age_")
+    year_vals <- if (!is.null(years) && length(years) == dims[3]) as.numeric(years) else seq_len(dims[3])
+    
+    grid <- expand.grid(
+      Stock_Index = seq_len(dims[1]),
+      Region_Index = seq_len(dims[2]),
+      Year_Index = seq_len(dims[3]),
+      Age_Index = seq_len(dims[4]),
+      KEEP.OUT.ATTRS = FALSE
+    )
+    grid$value <- as.numeric(arr)
+    
+    grid$Model <- model_name
+    grid$Realization <- realization
+    grid$Assessment <- assessment
+    grid$Year <- year_vals[grid$Year_Index]
+    grid$metric <- metric
+    grid$level <- "stock_region_age"
+    grid$Stock <- stock_labels[grid$Stock_Index]
+    grid$Region <- region_labels[grid$Region_Index]
+    grid$Age <- as.character(age_labels[grid$Age_Index])
+    grid$Label <- paste(grid$Stock, grid$Region, paste0("Age_", grid$Age_Index), sep = "_")
+    grid$Stock_Index <- NULL
+    grid$Region_Index <- NULL
+    grid$Age_Index <- NULL
+    
+    complete_raw_rows(grid, component = component)
+  }
+  
+  make_naa_rows <- function(component = c("OM", "EM")) {
+    component <- match.arg(component)
+    pieces <- iter_models(function(one, m, r) {
+      model_name <- paste0("Model", m)
+      
+      if (component == "OM") {
+        om <- tryCatch(one$om, error = function(e) NULL)
+        if (is.null(om) || is.null(om$rep)) return(NULL)
+        dat <- tryCatch(om$input$data, error = function(e) NULL)
+        stock_names <- tryCatch(om$input$stock_names, error = function(e) NULL)
+        region_names <- tryCatch(om$input$region_names, error = function(e) NULL)
+        age_names <- tryCatch(om$ages.lab, error = function(e) NULL)
+        rows <- list()
+        
+        arr <- tryCatch(om$rep$NAA, error = function(e) NULL)
+        if (!is.null(arr) && length(dim(arr)) == 4L) {
+          rows[[length(rows) + 1L]] <- make_naa_array_rows(
+            arr = arr,
+            years = choose_years(om, dim(arr)[3]),
+            model_name = model_name,
+            realization = r,
+            metric = "NAA",
+            component = "OM",
+            stock_names = stock_names,
+            region_names = region_names,
+            age_names = age_names
+          )
+        }
+        
+        arr_dev <- tryCatch(om$rep$NAA_devs, error = function(e) NULL)
+        if (!is.null(arr_dev) && length(dim(arr_dev)) == 4L) {
+          rows[[length(rows) + 1L]] <- make_naa_array_rows(
+            arr = arr_dev,
+            years = choose_years(om, dim(arr_dev)[3]),
+            model_name = model_name,
+            realization = r,
+            metric = "NAA_devs",
+            component = "OM",
+            stock_names = stock_names,
+            region_names = region_names,
+            age_names = age_names
+          )
+        }
+        
+        rows <- rows[!vapply(rows, function(x) is.null(x) || nrow(x) == 0L, logical(1))]
+        if (length(rows) == 0L) return(NULL)
+        return(dplyr::bind_rows(rows))
+      }
+      
+      em_list <- tryCatch(one$em_list, error = function(e) NULL)
+      em_input <- tryCatch(one$em_input, error = function(e) NULL)
+      if (is.null(em_list) || length(em_list) == 0L) return(NULL)
+      
+      rows <- list()
+      for (a in seq_along(em_list)) {
+        rep_obj <- em_list[[a]]
+        input_obj <- if (!is.null(em_input) && length(em_input) >= a) em_input[[a]] else NULL
+        years <- tryCatch(input_obj$years_full, error = function(e) NULL)
+        
+        arr <- tryCatch(rep_obj$NAA, error = function(e) NULL)
+        if (!is.null(arr) && length(dim(arr)) == 4L) {
+          rows[[length(rows) + 1L]] <- make_naa_array_rows(
+            arr = arr,
+            years = if (!is.null(years)) years else seq_len(dim(arr)[3]),
+            model_name = model_name,
+            realization = r,
+            metric = "NAA",
+            component = "EM",
+            assessment = a
+          )
+        }
+        
+        arr_dev <- tryCatch(rep_obj$NAA_devs, error = function(e) NULL)
+        if (!is.null(arr_dev) && length(dim(arr_dev)) == 4L) {
+          rows[[length(rows) + 1L]] <- make_naa_array_rows(
+            arr = arr_dev,
+            years = if (!is.null(years)) years else seq_len(dim(arr_dev)[3]),
+            model_name = model_name,
+            realization = r,
+            metric = "NAA_devs",
+            component = "EM",
+            assessment = a
+          )
+        }
+      }
+      
+      rows <- rows[!vapply(rows, function(x) is.null(x) || nrow(x) == 0L, logical(1))]
+      if (length(rows) == 0L) return(NULL)
+      dplyr::bind_rows(rows)
+    })
+    
+    if (length(pieces) == 0L) return(NULL)
+    dplyr::bind_rows(pieces)
+  }
+  
+  brp_label_info <- function(n_col, dat, metric) {
+    n_regions <- suppressWarnings(as.integer(dat$n_regions[1]))
+    n_fleets <- suppressWarnings(as.integer(dat$n_fleets[1]))
+    if (!is.finite(n_regions) || n_regions < 0L) n_regions <- 0L
+    if (!is.finite(n_fleets) || n_fleets < 0L) n_fleets <- 0L
+    
+    if (metric == "SSB_BRP" && n_col == n_regions + 1L) {
+      return(data.frame(
+        Label = c(paste0("Region_", seq_len(n_regions)), "Global"),
+        level = c(rep("region", n_regions), "global"),
+        Fleet = NA_character_,
+        Region = c(paste0("Region_", seq_len(n_regions)), NA_character_),
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    if (metric == "Fbar_BRP" && n_col == n_fleets + n_regions + 1L) {
+      return(data.frame(
+        Label = c(paste0("Fleet_", seq_len(n_fleets)),
+                  paste0("Region_", seq_len(n_regions)),
+                  "Global"),
+        level = c(rep("fleet", n_fleets), rep("region", n_regions), "global"),
+        Fleet = c(paste0("Fleet_", seq_len(n_fleets)),
+                  rep(NA_character_, n_regions + 1L)),
+        Region = c(rep(NA_character_, n_fleets),
+                   paste0("Region_", seq_len(n_regions)),
+                   NA_character_),
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    if (n_col == n_regions + 1L) {
+      return(data.frame(
+        Label = c(paste0("Region_", seq_len(n_regions)), "Global"),
+        level = c(rep("region", n_regions), "global"),
+        Fleet = NA_character_,
+        Region = c(paste0("Region_", seq_len(n_regions)), NA_character_),
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    data.frame(
+      Label = paste0("Column_", seq_len(n_col)),
+      level = "column",
+      Fleet = NA_character_,
+      Region = NA_character_,
+      stringsAsFactors = FALSE
+    )
+  }
+  
+  make_brp_matrix_rows <- function(log_values,
+                                   one,
+                                   model_name,
+                                   realization,
+                                   metric,
+                                   static = FALSE) {
+    if (is.null(log_values)) return(NULL)
+    dat <- tryCatch(one$om$input$data, error = function(e) NULL)
+    if (is.null(dat)) return(NULL)
+    percent_spr <- suppressWarnings(as.numeric(dat$percentSPR[1]))
+    if (!is.finite(percent_spr)) percent_spr <- NA_real_
+    
+    if (isTRUE(static)) {
+      values <- as.numeric(exp(log_values))
+      if (length(values) == 0L) return(NULL)
+      meta <- brp_label_info(length(values), dat, metric)
+      n <- min(length(values), nrow(meta))
+      out <- meta[seq_len(n), , drop = FALSE]
+      out$value <- values[seq_len(n)]
+      out$Model <- model_name
+      out$Realization <- realization
+      out$Year <- NA_real_
+      out$Year_Index <- NA_integer_
+      out$Period <- "static"
+      out$record_type <- "raw_reference"
+      out$metric <- metric
+      out$reference_percent <- percent_spr
+      return(complete_raw_rows(out, component = "OM"))
+    }
+    
+    mat <- as.matrix(exp(log_values))
+    if (nrow(mat) == 0L || ncol(mat) == 0L) return(NULL)
+    years <- choose_years(one$om, nrow(mat))
+    meta <- brp_label_info(ncol(mat), dat, metric)
+    colnames(mat) <- meta$Label[seq_len(ncol(mat))]
+    
+    wide <- as.data.frame(mat, check.names = FALSE)
+    wide$Model <- model_name
+    wide$Realization <- realization
+    wide$Year <- years
+    wide$Year_Index <- seq_len(nrow(wide))
+    long <- tidyr::pivot_longer(
+      wide,
+      cols = dplyr::all_of(meta$Label[seq_len(ncol(mat))]),
+      names_to = "Label",
+      values_to = "value"
+    )
+    long <- dplyr::left_join(long, meta, by = "Label")
+    long$metric <- metric
+    long$reference_percent <- percent_spr
+    complete_raw_rows(long, component = "OM")
+  }
+  
+  make_brp_rows <- function() {
+    pieces <- iter_models(function(one, m, r) {
+      model_name <- paste0("Model", m)
+      rep_obj <- tryCatch(one$om$rep, error = function(e) NULL)
+      if (is.null(rep_obj)) return(NULL)
+      rows <- list(
+        make_brp_matrix_rows(rep_obj$log_SSB_FXSPR, one, model_name, r,
+                             metric = "SSB_BRP", static = FALSE),
+        make_brp_matrix_rows(rep_obj$log_Fbar_XSPR, one, model_name, r,
+                             metric = "Fbar_BRP", static = FALSE),
+        make_brp_matrix_rows(rep_obj$log_SSB_FXSPR_static, one, model_name, r,
+                             metric = "SSB_BRP", static = TRUE),
+        make_brp_matrix_rows(rep_obj$log_Fbar_XSPR_static, one, model_name, r,
+                             metric = "Fbar_BRP", static = TRUE)
+      )
+      rows <- rows[!vapply(rows, function(x) is.null(x) || nrow(x) == 0L, logical(1))]
+      if (length(rows) == 0L) return(NULL)
+      dplyr::bind_rows(rows)
+    })
+    
+    if (length(pieces) == 0L) return(NULL)
+    dplyr::bind_rows(pieces)
+  }
+  
+  specs <- list(
+    list(slot = "catch_global_ts", metric = "Catch", level = "global"),
+    list(slot = "catch_region_ts", metric = "Catch", level = "region"),
+    list(slot = "catch_fleet_ts", metric = "Catch", level = "fleet"),
+    list(slot = "ssb_global_ts", metric = "SSB", level = "global"),
+    list(slot = "ssb_region_ts", metric = "SSB", level = "region"),
+    list(slot = "fbar_global_ts", metric = "Fbar", level = "global"),
+    list(slot = "fbar_region_ts", metric = "Fbar", level = "region"),
+    list(slot = "fbar_fleet_ts", metric = "Fbar", level = "fleet")
+  )
+  
+  rows <- lapply(specs, function(spec) {
+    tryCatch({
+      df <- get_timeseries(spec$slot, spec$metric, spec$level)
+      make_raw_rows(df, spec$metric, spec$level)
+    }, error = function(e) {
+      message("Raw ", spec$metric, " ", spec$level, " export skipped: ", e$message)
+      NULL
+    })
+  })
+  rows <- c(rows, list(
+    tryCatch(
+      make_naa_rows("OM"),
+      error = function(e) {
+        message("Raw OM NAA/NAA_devs export skipped: ", e$message)
+        NULL
+      }
+    ),
+    tryCatch(
+      make_naa_rows("EM"),
+      error = function(e) {
+        message("Raw EM NAA/NAA_devs export skipped: ", e$message)
+        NULL
+      }
+    ),
+    tryCatch(
+      make_brp_rows(),
+      error = function(e) {
+        message("Raw BRP export skipped: ", e$message)
+        NULL
+      }
+    )
+  ))
+  rows <- rows[!vapply(rows, function(x) is.null(x) || nrow(x) == 0L, logical(1))]
+  
+  out <- if (length(rows) == 0L) empty_raw() else dplyr::bind_rows(rows)
+  out <- out |>
+    dplyr::arrange(.data$metric, .data$level, .data$Realization,
+                   .data$EM, .data$Assessment, .data$Label, .data$Year,
+                   .data$Age)
+  
+  if (!is.null(output_file)) {
+    is_abs <- grepl("^([A-Za-z]:)?[\\\\/]", output_file)
+    output_path <- if (is_abs) {
+      output_file
+    } else if (dirname(output_file) %in% c(".", "")) {
+      file.path(main.dir, sub.dir, output_file)
+    } else {
+      file.path(main.dir, output_file)
+    }
+    output_dir <- dirname(output_path)
+    if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+    utils::write.csv(out, output_path, row.names = FALSE, na = "")
+    attr(out, "file") <- normalizePath(output_path, winslash = "/", mustWork = FALSE)
+  }
+  
+  out
+}
+
 #' Plot realized SSB time series across models and simulations
 #'
 #' Generate time-series plots of spawning stock biomass (SSB) for each model

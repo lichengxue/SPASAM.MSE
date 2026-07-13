@@ -3,9 +3,12 @@ library(shinyjs)
 library(shinyWidgets)
 library(DiagrammeR)
 
+spasam_mse_version <- tryCatch(as.character(utils::packageVersion("SPASAM.MSE")),
+                               error = function(e) "1.1.5")
+
 ui <- fluidPage(
   useShinyjs(),
-  titlePanel("Specify Movement Rates (Beta Version)"),
+  titlePanel(paste0("Specify Movement Rates (Beta Version, v", spasam_mse_version, ")")),
   
   tags$head(tags$style(HTML("
     .picker-width { width: 100% !important; }
