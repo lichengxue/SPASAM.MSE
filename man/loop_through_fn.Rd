@@ -466,6 +466,8 @@ A list with the following elements:
       requested through \code{save.sdrep} or \code{save.last.em}.}
     \item{\code{em_input}}{List of EM input objects used at each assessment
       year.}
+    \item{\code{hcr_config}}{Normalized HCR configuration used to generate
+      catch advice, including default HCR options filled in.}
     \item{\code{runtime}}{Elapsed runtime of the full MSE loop.}
     \item{\code{seed.save}}{The seed value used in the function call.}
   }

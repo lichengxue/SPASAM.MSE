@@ -8,6 +8,7 @@
 - Catch, SSB, Fbar by scale
 - OM/EM NAA and NAA deviations
 - Annual/static BRPs
+- Saved HCR config in MSE output
 - Mean recruitment, Rec sigma, NAA sigma diagnostics
 - Historical/feedback period labels
 - GUI version display

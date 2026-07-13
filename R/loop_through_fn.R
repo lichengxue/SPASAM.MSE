@@ -438,6 +438,8 @@
 #'       requested through \code{save.sdrep} or \code{save.last.em}.}
 #'     \item{\code{em_input}}{List of EM input objects used at each assessment
 #'       year.}
+#'     \item{\code{hcr_config}}{Normalized HCR configuration used to generate
+#'       catch advice, including default HCR options filled in.}
 #'     \item{\code{runtime}}{Elapsed runtime of the full MSE loop.}
 #'     \item{\code{seed.save}}{The seed value used in the function call.}
 #'   }
@@ -548,6 +550,48 @@ loop_through_fn <- function(om,
   start.time <- Sys.time()
   
   `%||%` <- function(x, y) if (is.null(x)) y else x
+  
+  normalize_hcr_config <- function(hcr) {
+    if (is.null(hcr)) hcr <- list()
+    if (!is.list(hcr)) hcr <- list(hcr.type = hcr)
+    
+    hcr_type <- if (is.null(hcr$hcr.type)) 1 else hcr$hcr.type
+    hcr_opts <- if (is.null(hcr$hcr.opts)) list() else hcr$hcr.opts
+    if (!is.list(hcr_opts)) hcr_opts <- as.list(hcr_opts)
+    
+    default_opts <- list(
+      use_FXSPR = TRUE,
+      percentFXSPR = 75,
+      use_FMSY = FALSE,
+      percentFMSY = 75,
+      avg_yrs = 5,
+      cont.M.re = FALSE
+    )
+    
+    if (identical(as.integer(hcr_type), 3L)) {
+      default_opts <- c(
+        default_opts,
+        list(
+          max_percent = 75,
+          min_percent = 0.01,
+          BThresh_up = 0.5,
+          BThresh_low = 0.1
+        )
+      )
+    }
+    
+    for (nm in names(default_opts)) {
+      if (is.null(hcr_opts[[nm]])) hcr_opts[[nm]] <- default_opts[[nm]]
+    }
+    
+    list(
+      hcr.type = hcr_type,
+      hcr.opts = hcr_opts
+    )
+  }
+  
+  hcr_config <- normalize_hcr_config(hcr)
+  hcr <- hcr_config
   
   # -----------------------------------------------------------
   # Helper functions
@@ -1405,6 +1449,7 @@ loop_through_fn <- function(om,
     catch_realized = catch_realized,
     em_full = em_full,
     em_input = em_input_list,
+    hcr_config = hcr_config,
     runtime = time.taken,
     seed.save = seed
   ))
