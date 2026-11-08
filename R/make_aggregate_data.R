@@ -122,7 +122,9 @@
 #'     \item `fleet`: Logical. If `TRUE`, use an aggregated fleet-weight matrix.
 #'     \item `index`: Logical. If `TRUE`, use an aggregated index-weight matrix.
 #'     \item `pointer`: Integer. Aggregated fleet or index group to use when
-#'       borrowing weights.
+#'       borrowing weights. A vector may instead identify all original members
+#'       of one aggregated group, for example \code{c(1, 2)} when both original
+#'       indices belong to group 1.
 #'   }
 #'
 #' @return A modified version of `em_info` with aggregated data and updated
@@ -353,6 +355,30 @@ make_aggregate_data <- function(om,
   }
   
   #------------------------------------
+  # helper: resolve an aggregated group or its original members
+  #------------------------------------
+  resolve_weight_pointer <- function(pointer, pointers, name) {
+    if (length(pointer) > 1L) {
+      if (!is.numeric(pointer) || anyNA(pointer) ||
+          any(!is.finite(pointer)) || any(pointer < 1 | pointer > length(pointers)) ||
+          any(pointer != as.integer(pointer)) || anyDuplicated(pointer)) {
+        stop("Invalid original-member pointer for `", name, "`.")
+      }
+      groups <- unique(pointers[pointer])
+      if (length(groups) != 1L || groups == 0L ||
+          !setequal(pointer, which(pointers == groups))) {
+        stop("The pointer for `", name,
+             "` must identify all original members of one aggregated group.")
+      }
+      pointer <- groups
+    }
+    if (length(pointer) != 1L) {
+      stop("A weight group must be specified for `", name, "`.")
+    }
+    pointer
+  }
+
+  #------------------------------------
   # helper: aggregate proportions-at-age
   #------------------------------------
   aggregate_paa <- function(paa_array, obs_matrix) {
@@ -403,7 +429,7 @@ make_aggregate_data <- function(om,
         stop("Weights not found for aggregated group ", grp, ".")
       }
       
-      weighted_tmp <- tmp * array(weights, dim = dim(tmp))
+      weighted_tmp <- tmp * array(t(weights), dim = dim(tmp))
       agg <- apply(weighted_tmp, c(2, 3), sum)
       out_list[[g]] <- array(agg, dim = c(1, dim(agg)))
     }
@@ -669,14 +695,16 @@ make_aggregate_data <- function(om,
       ncol = dim(waa_ssb_mat)[2]
     )
   } else if (isTRUE(ssb_waa_weights$fleet)) {
-    pointer <- ssb_waa_weights$pointer
+    pointer <- resolve_weight_pointer(ssb_waa_weights$pointer, fleet_pointer,
+                                      "ssb_waa_weights")
     ssb_weights <- fleet_weights[[as.character(pointer)]]
     if (is.null(ssb_weights)) {
       stop("Requested fleet weight pointer for `ssb_waa_weights` not found.")
     }
     ssb_weights <- t(ssb_weights)
   } else if (isTRUE(ssb_waa_weights$index)) {
-    pointer <- ssb_waa_weights$pointer
+    pointer <- resolve_weight_pointer(ssb_waa_weights$pointer, index_pointer,
+                                      "ssb_waa_weights")
     ssb_weights <- index_weights[[as.character(pointer)]]
     if (is.null(ssb_weights)) {
       stop("Requested index weight pointer for `ssb_waa_weights` not found.")
@@ -726,14 +754,16 @@ make_aggregate_data <- function(om,
       ncol = dim(maturity)[2]
     )
   } else if (isTRUE(maturity_weights$fleet)) {
-    pointer <- maturity_weights$pointer
+    pointer <- resolve_weight_pointer(maturity_weights$pointer, fleet_pointer,
+                                      "maturity_weights")
     mat_weights <- fleet_weights[[as.character(pointer)]]
     if (is.null(mat_weights)) {
       stop("Requested fleet weight pointer for `maturity_weights` not found.")
     }
     mat_weights <- t(mat_weights)
   } else if (isTRUE(maturity_weights$index)) {
-    pointer <- maturity_weights$pointer
+    pointer <- resolve_weight_pointer(maturity_weights$pointer, index_pointer,
+                                      "maturity_weights")
     mat_weights <- index_weights[[as.character(pointer)]]
     if (is.null(mat_weights)) {
       stop("Requested index weight pointer for `maturity_weights` not found.")

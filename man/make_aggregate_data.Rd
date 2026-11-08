@@ -113,7 +113,9 @@ model when constructing the reduced estimation-model data.}
     \item `fleet`: Logical. If `TRUE`, use an aggregated fleet-weight matrix.
     \item `index`: Logical. If `TRUE`, use an aggregated index-weight matrix.
     \item `pointer`: Integer. Aggregated fleet or index group to use when
-      borrowing weights.
+      borrowing weights. A vector may instead identify all original members
+      of one aggregated group, for example \code{c(1, 2)} when both original
+      indices belong to group 1.
   }}
 }
 \value{
